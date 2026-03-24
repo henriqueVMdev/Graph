@@ -142,16 +142,59 @@
         </div>
       </template>
 
+      <!-- ── Ciclo Sazonal ───────────────────────────────────────────── -->
+      <div class="sidebar-section">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            :checked="store.params.cycle_filter"
+            @change="store.params.cycle_filter = $event.target.checked"
+            class="w-3.5 h-3.5 accent-accent-yellow"
+          />
+          <span class="sidebar-section-title mb-0">Ciclo Sazonal</span>
+        </label>
+
+        <template v-if="store.params.cycle_filter">
+          <div class="mt-3 space-y-2">
+            <div>
+              <p class="text-[10px] text-green-400 font-semibold mb-1">LONG</p>
+              <div class="grid grid-cols-6 gap-1">
+                <button
+                  v-for="m in months"
+                  :key="'L' + m.n"
+                  @click="toggleMonth('cycle_long_months', m.n)"
+                  class="py-1 text-[10px] rounded font-medium transition-colors"
+                  :class="isMonthActive('cycle_long_months', m.n)
+                    ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                    : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                >{{ m.label }}</button>
+              </div>
+            </div>
+            <div>
+              <p class="text-[10px] text-red-400 font-semibold mb-1">SHORT</p>
+              <div class="grid grid-cols-6 gap-1">
+                <button
+                  v-for="m in months"
+                  :key="'S' + m.n"
+                  @click="toggleMonth('cycle_short_months', m.n)"
+                  class="py-1 text-[10px] rounded font-medium transition-colors"
+                  :class="isMonthActive('cycle_short_months', m.n)
+                    ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                    : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                >{{ m.label }}</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
       <!-- ── Botão Run ───────────────────────────────────────────────── -->
       <button
         @click="store.runBacktest()"
         :disabled="store.isRunning || !store.selectedStrategy"
         class="btn-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        <svg v-if="store.isRunning" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-        </svg>
+        <span v-if="store.isRunning" class="dollar-loader-sm">$</span>
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -173,6 +216,25 @@ import NumInput from '@/components/NumInput.vue'
 const store = useBacktestStore()
 const selectedKey = ref('')
 const timeframes = ['1d', '1h', '4h', '1wk', '1mo']
+
+const months = [
+  { n: 1, label: 'Jan' }, { n: 2, label: 'Fev' }, { n: 3, label: 'Mar' },
+  { n: 4, label: 'Abr' }, { n: 5, label: 'Mai' }, { n: 6, label: 'Jun' },
+  { n: 7, label: 'Jul' }, { n: 8, label: 'Ago' }, { n: 9, label: 'Set' },
+  { n: 10, label: 'Out' }, { n: 11, label: 'Nov' }, { n: 12, label: 'Dez' },
+]
+
+function isMonthActive(key, month) {
+  return (store.params[key] || []).includes(month)
+}
+
+function toggleMonth(key, month) {
+  const arr = [...(store.params[key] || [])]
+  const idx = arr.indexOf(month)
+  if (idx >= 0) arr.splice(idx, 1)
+  else arr.push(month)
+  store.params[key] = arr
+}
 
 function onStrategyChange(file) {
   const strat = store.strategies.find(s => s.file === file)

@@ -11,7 +11,6 @@ frontend/dist/
 
 # Data
 data/
-*_resultado.csv
 
 # IDE
 .vscode/

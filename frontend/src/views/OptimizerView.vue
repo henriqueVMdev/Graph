@@ -37,11 +37,16 @@
 
       <!-- Running -->
       <div v-if="store.isRunning" class="flex flex-col items-center justify-center h-64">
-        <svg class="w-10 h-10 text-accent-yellow animate-spin mb-3" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-        </svg>
-        <p class="text-gray-400 text-sm">Otimizando parametros... isso pode levar alguns minutos.</p>
+        <div class="dollar-loader mb-3">$</div>
+        <p class="text-gray-400 text-sm">
+          <template v-if="store.progress.total > 0">
+            Testando {{ store.progress.current }} / {{ store.progress.total }}
+            ({{ store.progress.valid }} validos)
+          </template>
+          <template v-else>
+            Preparando dados...
+          </template>
+        </p>
       </div>
 
       <!-- Results -->

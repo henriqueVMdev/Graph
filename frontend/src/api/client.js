@@ -89,6 +89,14 @@ export function getOptimizerCount(grid, capital, strategyFile = 'depaula') {
   return api.post('/optimizer/count', { grid, capital, strategy_file: strategyFile })
 }
 
+export function stopOptimizer() {
+  return api.post('/optimizer/stop')
+}
+
+export function getOptimizerProgress() {
+  return api.get('/optimizer/progress')
+}
+
 export function runOptimizer(payload) {
   return api.post('/optimizer/run', payload, { timeout: 600000 })
 }

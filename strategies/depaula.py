@@ -345,6 +345,9 @@ def run(df, params: dict) -> dict:
         use_pullback=bool(params.get("use_pullback", True)),
         use_entry_zone=bool(params.get("use_entry_zone", False)),
         initial_capital=float(params.get("initial_capital", 1000.0)),
+        cycle_filter=bool(params.get("cycle_filter", False)),
+        cycle_long_months=params.get("cycle_long_months", []),
+        cycle_short_months=params.get("cycle_short_months", []),
     )
 
     result = run_backtest(df, cfg)

@@ -1,5 +1,33 @@
 <template>
-  <div ref="chartEl" class="w-full" style="min-height: 450px;"></div>
+  <div>
+    <div class="flex items-center gap-4 mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-500">Inicio:</span>
+        <input
+          type="date"
+          v-model="dateFrom"
+          @change="applyRange"
+          class="bg-surface-700 border border-surface-500 rounded px-2 py-1 text-xs text-gray-300 focus:border-accent-yellow/50 focus:outline-none"
+        />
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-500">Ate:</span>
+        <input
+          type="date"
+          v-model="dateTo"
+          @change="applyRange"
+          class="bg-surface-700 border border-surface-500 rounded px-2 py-1 text-xs text-gray-300 focus:border-accent-yellow/50 focus:outline-none"
+          :placeholder="'atual'"
+        />
+      </div>
+      <button
+        v-if="dateFrom || dateTo"
+        @click="clearRange"
+        class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+      >limpar</button>
+    </div>
+    <div ref="chartEl" class="w-full" style="min-height: 450px;"></div>
+  </div>
 </template>
 
 <script setup>
@@ -13,21 +41,22 @@ const props = defineProps({
 })
 
 const chartEl = ref(null)
+const dateFrom = ref('')
+const dateTo = ref('')
+let Plotly = null
 
 async function render() {
   if (!chartEl.value || !props.equityCurve) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
 
   const traces = []
 
-  // Determina se a estratégia é lucrativa
   const values = props.equityCurve.values
   const profitable = values.length > 0 && values[values.length - 1] >= props.initialCapital
 
-  const lineColor = profitable ? '#26a69a' : '#ef5350'   // TradingView teal / red
+  const lineColor = profitable ? '#26a69a' : '#ef5350'
   const fillColor = profitable ? 'rgba(38,166,154,0.07)' : 'rgba(239,83,80,0.07)'
 
-  // Equity line — verde se lucrativa, vermelho se perdedora
   traces.push({
     type: 'scatter',
     mode: 'lines',
@@ -40,10 +69,9 @@ async function render() {
     hovertemplate: '<b>%{x}</b><br>Capital: $%{y:,.2f}<extra></extra>',
   })
 
-  // Trade markers — bolinhas (circle)
   for (const trade of props.trades) {
     if (!trade.entry_date) continue
-    const color = trade.pnl_pct >= 0 ? '#26a69a' : '#ef5350'  // TradingView teal / red
+    const color = trade.pnl_pct >= 0 ? '#26a69a' : '#ef5350'
 
     const idx = props.equityCurve.dates.indexOf(trade.entry_date)
     const eqVal = idx >= 0 ? props.equityCurve.values[idx] : null
@@ -59,11 +87,13 @@ async function render() {
       hovertemplate:
         `<b>${trade.comment}</b><br>` +
         `Entrada: $${trade.entry_price?.toFixed(2)}<br>` +
-        `Saída: $${trade.exit_price?.toFixed(2)}<br>` +
+        `Saida: $${trade.exit_price?.toFixed(2)}<br>` +
         `P&L: ${trade.pnl_pct?.toFixed(2)}%<br>` +
         `Motivo: ${trade.exit_comment}<extra></extra>`,
     })
   }
+
+  const xRange = buildRange()
 
   const layout = {
     template: 'plotly_dark',
@@ -78,6 +108,7 @@ async function render() {
       gridcolor: '#1e1e1e',
       linecolor: '#2a2a2a',
       tickfont: { color: '#707070' },
+      ...(xRange ? { range: xRange } : {}),
     },
     yaxis: {
       title: 'Capital ($)',
@@ -108,6 +139,30 @@ async function render() {
   }
 
   await Plotly.react(chartEl.value, traces, layout, { responsive: true, displaylogo: false })
+}
+
+function buildRange() {
+  if (!dateFrom.value && !dateTo.value) return null
+  const dates = props.equityCurve.dates
+  if (!dates || dates.length === 0) return null
+  const from = dateFrom.value || dates[0]
+  const to = dateTo.value || dates[dates.length - 1]
+  return [from, to]
+}
+
+function applyRange() {
+  if (!chartEl.value || !Plotly) return
+  const xRange = buildRange()
+  Plotly.relayout(chartEl.value, {
+    'xaxis.range': xRange || [null, null],
+    'xaxis.autorange': !xRange,
+  })
+}
+
+function clearRange() {
+  dateFrom.value = ''
+  dateTo.value = ''
+  applyRange()
 }
 
 onMounted(render)

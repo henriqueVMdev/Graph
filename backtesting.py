@@ -58,6 +58,11 @@ class Config:
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
+    # Ciclo sazonal
+    cycle_filter: bool = False
+    cycle_long_months: list = field(default_factory=list)   # ex: [8,9,10,11,12,1,2]
+    cycle_short_months: list = field(default_factory=list)  # ex: [3,4,5,6,7]
+
 
 # ==============================
 # 2. INDICADORES (equivale às funções do Pine Script)
@@ -234,6 +239,17 @@ class BacktestState:
     current_trade: Optional[Trade] = None
 
 
+def _cycle_allows(cfg: Config, month: int, direction: int) -> bool:
+    """Checa se o ciclo sazonal permite abrir posicao nesse mes/direcao."""
+    if not cfg.cycle_filter:
+        return True
+    if direction == 1:
+        return month in cfg.cycle_long_months if cfg.cycle_long_months else True
+    if direction == -1:
+        return month in cfg.cycle_short_months if cfg.cycle_short_months else True
+    return True
+
+
 def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     """Executa o backtest barra a barra, replicando a lógica do Pine Script."""
 
@@ -254,6 +270,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     for i in range(len(df)):
         row = df.iloc[i]
         date = str(df.index[i])
+        bar_month = df.index[i].month if hasattr(df.index[i], 'month') else 1
         close = row["Close"]
         high = row["High"]
         low = row["Low"]
@@ -350,12 +367,12 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
 
         # A. Entrada de Tendência
         if not st.aguardando_pullback and (not cfg.use_entry_zone or in_entry_zone):
-            if st.pending_long and state == 1 and st.position <= 0:
+            if st.pending_long and state == 1 and st.position <= 0 and _cycle_allows(cfg, bar_month, 1):
                 if st.position == -1:
                     _close_position(st, date, close, "Reversão S→L")
                 _open_position(st, date, close, 1, "L Trend")
                 st.pending_long = False
-            elif st.pending_short and state == -1 and st.position >= 0:
+            elif st.pending_short and state == -1 and st.position >= 0 and _cycle_allows(cfg, bar_month, -1):
                 if st.position == 1:
                     _close_position(st, date, close, "Reversão L→S")
                 _open_position(st, date, close, -1, "S Trend")
@@ -370,10 +387,10 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 pb_long = close < ma_val
                 pb_short = close > ma_val
 
-            if state == 1 and pb_long:
+            if state == 1 and pb_long and _cycle_allows(cfg, bar_month, 1):
                 _open_position(st, date, close, 1, "L Pullback")
                 st.aguardando_pullback = False
-            elif state == -1 and pb_short:
+            elif state == -1 and pb_short and _cycle_allows(cfg, bar_month, -1):
                 _open_position(st, date, close, -1, "S Pullback")
                 st.aguardando_pullback = False
 

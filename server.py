@@ -8,6 +8,7 @@ Iniciar: python server.py
 import io
 import json
 import math
+import threading
 import importlib.util
 import numpy as np
 import pandas as pd
@@ -40,6 +41,8 @@ def _load_strategy(strategy_file: str):
     if not path.exists():
         raise FileNotFoundError(f"Estratégia '{strategy_file}' não encontrada em strategies/")
     spec = importlib.util.spec_from_file_location(f"strategies.{strategy_file}", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Nao foi possivel carregar estrategia '{strategy_file}'")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -73,8 +76,8 @@ def _download_data_safe(symbol: str, interval: str) -> pd.DataFrame:
     df = df[["Open", "High", "Low", "Close", "Volume"]]
 
     # Remove timezone do índice (backtesting.py não lida com tz-aware index em todos os cenários)
-    if df.index.tz is not None:
-        df.index = df.index.tz_localize(None)
+    if hasattr(df.index, 'tz') and df.index.tz is not None:
+        df.index = df.index.tz_localize(None)  # type: ignore[union-attr]
 
     return df.sort_index()
 
@@ -204,7 +207,7 @@ def _safe(val):
 
 def _df_to_records(df: pd.DataFrame) -> list:
     """Converte DataFrame para lista de dicts, tratando NaN → None."""
-    df = df.where(pd.notnull(df), None)
+    df = df.where(pd.notnull(df), other=None)  # type: ignore[arg-type]
     return df.to_dict(orient="records")
 
 
@@ -232,15 +235,15 @@ def _build_summary(df: pd.DataFrame) -> dict:
     """Calcula métricas resumo do DataFrame filtrado."""
     summary = {"total_params": len(df)}
     if "return_pct" in df.columns and len(df) > 0:
-        summary["avg_return"] = _safe(float(df["return_pct"].mean()))
+        summary["avg_return"] = _safe(float(df["return_pct"].mean()))  # type: ignore[arg-type]
     else:
         summary["avg_return"] = None
     if "sharpe" in df.columns and len(df) > 0:
-        summary["avg_sharpe"] = _safe(float(df["sharpe"].mean()))
+        summary["avg_sharpe"] = _safe(float(df["sharpe"].mean()))  # type: ignore[arg-type]
     else:
         summary["avg_sharpe"] = None
     if "score" in df.columns and len(df) > 0:
-        summary["best_score"] = _safe(float(df["score"].max()))
+        summary["best_score"] = _safe(float(df["score"].max()))  # type: ignore[arg-type]
     else:
         summary["best_score"] = None
     return summary
@@ -251,13 +254,13 @@ def _build_charts(df: pd.DataFrame) -> dict:
     charts = {}
     if all(c in df.columns for c in ["max_dd_pct", "return_pct", "score"]):
         fig = plot_return_vs_drawdown(df)
-        charts["return_vs_drawdown"] = json.loads(fig.to_json())
+        charts["return_vs_drawdown"] = json.loads(fig.to_json())  # type: ignore[arg-type]
     if all(c in df.columns for c in ["sharpe", "return_pct", "win_rate_pct"]):
         fig = plot_return_vs_sharpe(df)
-        charts["return_vs_sharpe"] = json.loads(fig.to_json())
+        charts["return_vs_sharpe"] = json.loads(fig.to_json())  # type: ignore[arg-type]
     if all(c in df.columns for c in ["trades", "return_pct", "profit_factor"]):
         fig = plot_return_vs_trades(df)
-        charts["return_vs_trades"] = json.loads(fig.to_json())
+        charts["return_vs_trades"] = json.loads(fig.to_json())  # type: ignore[arg-type]
     return charts
 
 
@@ -734,7 +737,7 @@ def api_backtest_correlation():
                 hist = t.history(period="2y", interval="1d")
                 if not hist.empty:
                     series = hist["Close"].copy()
-                    series.index = series.index.tz_localize(None).normalize()
+                    series.index = series.index.tz_localize(None).normalize()  # type: ignore[union-attr]
                     series = series[~series.index.duplicated(keep="first")]
                     closes[label] = series
             except Exception:
@@ -759,8 +762,8 @@ def api_backtest_correlation():
         ]
         for i, col in enumerate(returns_df.columns):
             ret = returns_df[col].dropna()
-            skew_val = float(ret.skew())
-            kurt_val = float(ret.kurtosis())
+            skew_val = float(ret.skew())  # type: ignore[arg-type]
+            kurt_val = float(ret.kurtosis())  # type: ignore[arg-type]
             sharpe_val = float(ret.mean() / ret.std() * np.sqrt(252)) if ret.std() > 0 else 0
 
             # Histograma
@@ -940,9 +943,9 @@ def api_backtest_validate():
         _sys.path.insert(0, _ROOT)
 
     try:
-        from monte_carlo_project.monte_carlo      import MonteCarlo
-        from monte_carlo_project.permutation_test import PermutationTestEquity
-        from monte_carlo_project.report           import generate as gen_report
+        from monte_carlo.monte_carlo      import MonteCarlo
+        from monte_carlo.permutation_test import PermutationTestEquity
+        from monte_carlo.report           import generate as gen_report
     except ImportError as e:
         return jsonify({"error": f"Módulo monte_carlo_project não encontrado: {e}"}), 500
 
@@ -1030,6 +1033,12 @@ def api_backtest_validate():
 
 
 # ─── Optimizer ────────────────────────────────────────────────────────────────
+
+# Estado global do otimizador (cancel + progresso)
+_optimizer_cancel = threading.Event()
+_optimizer_progress = {"current": 0, "total": 0, "valid": 0}
+_optimizer_lock = threading.Lock()
+
 
 def _parse_grid_generic(grid_raw, schema):
     """Converte valores do grid usando o CONFIG_SCHEMA da estrategia para tipos corretos."""
@@ -1165,6 +1174,20 @@ def api_optimizer_count():
         return jsonify({"error": str(e), "count": 0}), 400
 
 
+@app.route("/api/optimizer/stop", methods=["POST"])
+def api_optimizer_stop():
+    """Para a otimizacao em andamento e retorna resultados parciais."""
+    _optimizer_cancel.set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/optimizer/progress", methods=["GET"])
+def api_optimizer_progress():
+    """Retorna o progresso atual da otimizacao."""
+    with _optimizer_lock:
+        return jsonify(dict(_optimizer_progress))
+
+
 def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label):
     """Logica generica de otimizacao que funciona com qualquer estrategia."""
     import time
@@ -1183,13 +1206,22 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
     if total > 100000:
         return jsonify({"error": f"Grid muito grande ({total} combinacoes). Reduza os parametros."}), 400
 
-    # Adicionar capital aos parametros se a estrategia suportar
-    base_extra = {"initial_capital": capital}
+    # Reset cancel flag e progresso
+    _optimizer_cancel.clear()
+    with _optimizer_lock:
+        _optimizer_progress["current"] = 0
+        _optimizer_progress["total"] = total
+        _optimizer_progress["valid"] = 0
 
+    base_extra = {"initial_capital": capital}
     results = []
     t0 = time.time()
+    stopped = False
 
-    for params in combos:
+    for i, params in enumerate(combos):
+        if _optimizer_cancel.is_set():
+            stopped = True
+            break
         try:
             run_params = {**base_extra, **params}
             if prepare:
@@ -1200,13 +1232,23 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
                 results.append(row)
         except Exception:
             pass
+        with _optimizer_lock:
+            _optimizer_progress["current"] = i + 1
+            _optimizer_progress["valid"] = len(results)
 
     elapsed = time.time() - t0
+    tested = _optimizer_progress["current"]
+
+    # Reset progresso
+    with _optimizer_lock:
+        _optimizer_progress["current"] = 0
+        _optimizer_progress["total"] = 0
+        _optimizer_progress["valid"] = 0
 
     if not results:
         return jsonify({
-            "results": [], "total_tested": total, "valid_count": 0,
-            "elapsed": round(elapsed, 1), "best": None,
+            "results": [], "total_tested": tested, "valid_count": 0,
+            "elapsed": round(elapsed, 1), "best": None, "stopped": stopped,
         })
 
     results_df = pd.DataFrame(results)
@@ -1237,7 +1279,7 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
 
     return jsonify({
         "results": all_records,
-        "total_tested": total,
+        "total_tested": tested,
         "valid_count": len(results),
         "elapsed": round(elapsed, 1),
         "best": best,
@@ -1247,6 +1289,7 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
         "interval": interval_label,
         "metric_columns": metric_cols,
         "param_columns": param_cols,
+        "stopped": stopped,
     })
 
 
@@ -1352,4 +1395,4 @@ if __name__ == "__main__":
     print("║   Backtesting API — Flask Server       ║")
     print("║   http://localhost:5000                ║")
     print("╚════════════════════════════════════════╝")
-    app.run(debug=True, port=5000, host="0.0.0.0")
+    app.run(debug=True, port=5000, host="0.0.0.0", threaded=True)

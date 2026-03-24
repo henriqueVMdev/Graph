@@ -1,27 +1,26 @@
-# Backtesting Strategy Dashboard
+Backtesting Strategy Dashboard
 
 Dashboard interativo para analise de resultados de backtesting + engine da Estrategia DePaula v2.
 
 Duas interfaces disponiveis: Streamlit (tudo-em-um) ou Flask + Vue.js (backend/frontend separados).
 
-## Instalacao
+Instalacao
 
-```bash
-# Backend (Python)
+bash
+Backend (Python)
 pip install -r requirements.txt
 
-# Frontend (Node)
+Frontend (Node)
 cd frontend
 npm install
-```
 
-## Como Rodar
+Como Rodar
 
-### Opcao 1 - Streamlit (interface simples)
+#Opcao 1 - Streamlit (interface simples)
 
-```bash
+bash
 streamlit run app.py
-```
+
 
 Abre em `http://localhost:8501`.
 

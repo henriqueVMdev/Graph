@@ -90,40 +90,55 @@
       </label>
 
       <template v-if="store.useCustomGrid && schemaFields.length > 0">
-        <div v-for="field in schemaFields" :key="field.key" class="mb-3">
-          <label class="label">{{ field.label }}</label>
+        <div v-for="field in schemaFields" :key="field.key" class="mb-2">
 
-          <!-- select: toggle buttons for each option -->
-          <div v-if="field.type === 'select'" class="flex flex-wrap gap-1">
-            <button
-              v-for="opt in field.options" :key="opt"
-              class="tag text-xs"
-              :class="(store.customGrid[field.key] || []).includes(opt) ? 'tag-active' : 'tag-inactive'"
-              @click="toggleArrayItem(field.key, opt)"
-            >{{ opt }}</button>
-          </div>
-
-          <!-- checkbox: ON/OFF toggles -->
-          <div v-else-if="field.type === 'checkbox'" class="flex gap-1">
-            <button
-              v-for="v in [true, false]" :key="String(v)"
-              class="tag"
-              :class="(store.customGrid[field.key] || []).includes(v) ? 'tag-active' : 'tag-inactive'"
-              @click="toggleArrayItem(field.key, v)"
-            >{{ v ? 'ON' : 'OFF' }}</button>
-          </div>
+          <!-- select / checkbox: dropdown multi-select -->
+          <template v-if="field.type === 'select' || field.type === 'checkbox'">
+            <label class="label">{{ field.label }}</label>
+            <div class="relative" v-click-outside="() => closeDropdown(field.key)">
+              <button
+                @click="toggleDropdown(field.key)"
+                class="input-field text-left flex items-center justify-between cursor-pointer"
+              >
+                <span class="truncate text-xs">{{ dropdownLabel(field) }}</span>
+                <svg class="w-3 h-3 shrink-0 text-gray-500 transition-transform" :class="openDropdown === field.key ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div
+                v-if="openDropdown === field.key"
+                class="absolute z-30 left-0 right-0 mt-1 bg-surface-700 border border-surface-500 rounded-md shadow-lg max-h-48 overflow-y-auto"
+              >
+                <label
+                  v-for="opt in dropdownOptions(field)"
+                  :key="String(opt.value)"
+                  class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-600 cursor-pointer text-xs"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="isSelected(field.key, opt.value)"
+                    @change="toggleArrayItem(field.key, opt.value)"
+                    class="accent-accent-yellow"
+                  />
+                  <span class="text-gray-300">{{ opt.label }}</span>
+                </label>
+              </div>
+            </div>
+          </template>
 
           <!-- number: min/max/step range -->
-          <div v-else-if="field.type === 'number'" class="space-y-1">
+          <template v-else-if="field.type === 'number'">
+            <label class="label">{{ field.label }}</label>
             <div class="grid grid-cols-3 gap-1">
-              <input type="number" v-model.number="ranges[field.key].min" class="input-field" placeholder="min" />
-              <input type="number" v-model.number="ranges[field.key].max" class="input-field" placeholder="max" />
-              <input type="number" v-model.number="ranges[field.key].step" class="input-field" placeholder="step" />
+              <input type="number" v-model.number="ranges[field.key].min" class="input-field text-xs" placeholder="min" />
+              <input type="number" v-model.number="ranges[field.key].max" class="input-field text-xs" placeholder="max" />
+              <input type="number" v-model.number="ranges[field.key].step" class="input-field text-xs" placeholder="step" />
             </div>
-            <div class="text-xs text-gray-600">
+            <div class="text-xs text-gray-600 mt-0.5">
               {{ (store.customGrid[field.key] || []).length }} valores
             </div>
-          </div>
+          </template>
+
         </div>
       </template>
 
@@ -159,13 +174,38 @@
       <div v-if="store.comboCount > 50000" class="text-accent-red-light text-xs mb-2">
         Muitas combinacoes! Pode demorar bastante.
       </div>
+      <!-- Progress bar -->
+      <div v-if="store.isRunning && store.progress.total > 0" class="mb-2">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>{{ store.progress.current }} / {{ store.progress.total }}</span>
+          <span>{{ Math.round(store.progress.current / store.progress.total * 100) }}%</span>
+        </div>
+        <div class="w-full h-1.5 bg-surface-600 rounded-full overflow-hidden">
+          <div
+            class="h-full bg-accent-yellow rounded-full transition-all duration-300"
+            :style="{ width: (store.progress.current / store.progress.total * 100) + '%' }"
+          />
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+          {{ store.progress.valid }} validos
+        </div>
+      </div>
+
+      <!-- Run / Stop buttons -->
       <button
+        v-if="!store.isRunning"
         @click="store.run()"
-        :disabled="store.isRunning || store.comboCount === 0"
-        class="w-full py-2.5 rounded-lg font-semibold text-sm transition-all duration-200"
-        :class="store.isRunning ? 'bg-surface-600 text-gray-500 cursor-wait' : 'bg-accent-yellow text-surface-900 hover:bg-accent-yellow/90'"
+        :disabled="store.comboCount === 0"
+        class="w-full py-2.5 rounded-lg font-semibold text-sm bg-accent-yellow text-surface-900 hover:bg-accent-yellow/90 transition-all duration-200"
       >
-        {{ store.isRunning ? 'Otimizando...' : 'Rodar Otimizacao' }}
+        Rodar Otimizacao
+      </button>
+      <button
+        v-else
+        @click="store.stop()"
+        class="w-full py-2.5 rounded-lg font-semibold text-sm bg-accent-red text-white hover:bg-accent-red/80 transition-all duration-200"
+      >
+        Parar Otimizacao
       </button>
     </section>
   </aside>
@@ -176,6 +216,55 @@ import { ref, computed, watch, reactive, onMounted } from 'vue'
 import { useOptimizerStore } from '@/stores/optimizer.js'
 
 const store = useOptimizerStore()
+
+// Dropdown state
+const openDropdown = ref(null)
+
+function toggleDropdown(key) {
+  openDropdown.value = openDropdown.value === key ? null : key
+}
+
+function closeDropdown(key) {
+  if (openDropdown.value === key) openDropdown.value = null
+}
+
+function dropdownOptions(field) {
+  if (field.type === 'select') {
+    return (field.options || []).map(o => ({ value: o, label: o }))
+  }
+  // checkbox
+  return [
+    { value: true, label: 'ON' },
+    { value: false, label: 'OFF' },
+  ]
+}
+
+function dropdownLabel(field) {
+  const selected = store.customGrid[field.key] || []
+  if (selected.length === 0) return 'Nenhum'
+  if (field.type === 'checkbox') {
+    return selected.map(v => v ? 'ON' : 'OFF').join(', ')
+  }
+  return selected.join(', ')
+}
+
+function isSelected(key, value) {
+  const arr = store.customGrid[key] || []
+  return arr.includes(value)
+}
+
+// v-click-outside directive
+const vClickOutside = {
+  mounted(el, binding) {
+    el._clickOutside = (e) => {
+      if (!el.contains(e.target)) binding.value()
+    }
+    document.addEventListener('mousedown', el._clickOutside)
+  },
+  unmounted(el) {
+    document.removeEventListener('mousedown', el._clickOutside)
+  },
+}
 
 // Grid modes disponiveis
 const gridModes = computed(() => {
@@ -288,15 +377,6 @@ onMounted(() => {
   @apply bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30;
 }
 .btn-inactive {
-  @apply bg-surface-700 text-gray-500 border border-surface-500 hover:text-gray-300;
-}
-.tag {
-  @apply px-2 py-1 rounded text-xs font-medium transition cursor-pointer;
-}
-.tag-active {
-  @apply bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30;
-}
-.tag-inactive {
   @apply bg-surface-700 text-gray-500 border border-surface-500 hover:text-gray-300;
 }
 </style>

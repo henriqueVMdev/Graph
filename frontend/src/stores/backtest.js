@@ -87,6 +87,10 @@ export const useBacktestStore = defineStore('backtest', () => {
         }
       }
     }
+    // Defaults do ciclo sazonal (generico, nao depende da estrategia)
+    defaults.cycle_filter = false
+    defaults.cycle_long_months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    defaults.cycle_short_months = [1,2,3,4,5,6,7,8,9,10,11,12]
     // Mantém valores existentes que coincidem com o schema (evita reset total)
     params.value = { ...defaults, ...params.value }
   }

@@ -46,11 +46,8 @@
         >↺ Regenerar</button>
       </div>
       <div v-if="gbmLoading" class="flex items-center justify-center h-32 text-gray-500 text-sm gap-2">
-        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-        </svg>
-        Calculando simulações...
+        <span class="dollar-loader-sm">$</span>
+        Calculando simulacoes...
       </div>
       <div v-else-if="gbmError" class="text-red-400 text-xs p-3 bg-red-400/10 rounded-lg">{{ gbmError }}</div>
       <div v-show="!gbmLoading && !gbmError" ref="gbmChart" style="min-height:520px;" class="w-full"></div>

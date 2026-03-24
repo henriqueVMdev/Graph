@@ -16,14 +16,14 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from monte_carlo_project.strategy      import SMACrossover, SMACrossConfig, download_data
-from monte_carlo_project.monte_carlo   import MonteCarlo
-from monte_carlo_project.permutation_test import PermutationTest
-from monte_carlo_project.visualizer    import (
+from monte_carlo.strategy      import SMACrossover, SMACrossConfig, download_data
+from monte_carlo.monte_carlo   import MonteCarlo
+from monte_carlo.permutation_test import PermutationTest
+from monte_carlo.visualizer    import (
     broom_chart, drawdown_distribution, sharpe_distribution,
     permutation_test_chart, summary_dashboard,
 )
-from monte_carlo_project.report import generate as gen_report, save as save_report
+from monte_carlo.report import generate as gen_report, save as save_report
 
 
 def main():

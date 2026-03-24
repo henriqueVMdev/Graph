@@ -6,7 +6,7 @@ import OptimizerView from '@/views/OptimizerView.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard',
+    redirect: '/optimizer',
   },
   {
     path: '/dashboard',

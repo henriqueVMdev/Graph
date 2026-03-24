@@ -7,6 +7,8 @@ import {
   getOptimizerCount,
   runOptimizer,
   runOptimizerCsv,
+  stopOptimizer,
+  getOptimizerProgress,
 } from '@/api/client.js'
 
 export const useOptimizerStore = defineStore('optimizer', () => {
@@ -46,6 +48,8 @@ export const useOptimizerStore = defineStore('optimizer', () => {
   const comboCount = ref(0)
   const results = ref(null)
   const error = ref(null)
+  const progress = ref({ current: 0, total: 0, valid: 0 })
+  let _progressTimer = null
 
   // Grid ativo (custom ou preset)
   const activeGrid = computed(() => {
@@ -146,10 +150,29 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     }
   }
 
+  function _startProgressPolling() {
+    _stopProgressPolling()
+    _progressTimer = setInterval(async () => {
+      try {
+        const { data } = await getOptimizerProgress()
+        progress.value = data
+      } catch { /* ignore */ }
+    }, 500)
+  }
+
+  function _stopProgressPolling() {
+    if (_progressTimer) {
+      clearInterval(_progressTimer)
+      _progressTimer = null
+    }
+  }
+
   async function run() {
     isRunning.value = true
     error.value = null
     results.value = null
+    progress.value = { current: 0, total: 0, valid: 0 }
+    _startProgressPolling()
 
     try {
       let resp
@@ -183,8 +206,15 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     } catch (e) {
       error.value = e.response?.data?.error || e.message
     } finally {
+      _stopProgressPolling()
       isRunning.value = false
     }
+  }
+
+  async function stop() {
+    try {
+      await stopOptimizer()
+    } catch { /* ignore */ }
   }
 
   function downloadCsv() {
@@ -204,8 +234,8 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     interval, csvFile, startDate, endDate,
     gridMode, customGrid, useCustomGrid, activeGrid, strategyFile,
     capital, minTrades, rankBy, topN,
-    isRunning, comboCount, results, error,
+    isRunning, comboCount, results, error, progress,
     fetchAssets, fetchStrategies, selectStrategy, fetchGrids,
-    updateComboCount, run, downloadCsv,
+    updateComboCount, run, stop, downloadCsv,
   }
 })
