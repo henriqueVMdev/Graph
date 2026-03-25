@@ -151,11 +151,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useOptimizerStore } from '@/stores/optimizer.js'
 import OptimizerSidebar from '@/components/optimizer/OptimizerSidebar.vue'
 
 const store = useOptimizerStore()
+const router = useRouter()
+
+// Quando a otimizacao termina, envia o melhor resultado pro backtest
+watch(() => store.isRunning, (running, wasRunning) => {
+  if (wasRunning && !running && store.results?.best) {
+    store.sendBestToBacktest()
+    router.push('/backtest')
+  }
+})
 
 const sidebarOpen = ref(true)
 function toggleSidebar() {

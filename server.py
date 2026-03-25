@@ -1,7 +1,4 @@
 """
-Flask REST API — Backtesting Strategy Dashboard
-Substitui o Streamlit como servidor. Mantém toda lógica Python intacta.
-
 Iniciar: python server.py
 """
 

@@ -26,7 +26,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Parâmetros carregados do Dashboard
+          Parametros carregados automaticamente
         </span>
         <button @click="paramsBanner = false" class="text-gray-400 hover:text-gray-200">✕</button>
       </div>
@@ -107,8 +107,11 @@ const paramsBanner = ref(false)
 onMounted(async () => {
   await Promise.all([store.fetchAssets(), store.fetchStrategies()])
   if (store.pendingParams) {
-    store.applyPendingParams()
+    const flags = store.applyPendingParams()
     paramsBanner.value = true
+    if (flags?.autoRun) {
+      store.runBacktest()
+    }
   }
 })
 </script>

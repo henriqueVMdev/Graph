@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import {
   getAssets,
   getStrategies,
@@ -10,6 +10,7 @@ import {
   stopOptimizer,
   getOptimizerProgress,
 } from '@/api/client.js'
+import { useBacktestStore } from '@/stores/backtest.js'
 
 export const useOptimizerStore = defineStore('optimizer', () => {
   // Assets
@@ -217,6 +218,44 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     } catch { /* ignore */ }
   }
 
+  function sendBestToBacktest() {
+    if (!results.value?.best) return false
+    const best = results.value.best
+    const schema = selectedStrategy.value?.schema || []
+
+    // Mapa reverso: label -> key
+    const reverseMap = {}
+    for (const section of schema) {
+      for (const field of (section.fields || [])) {
+        const label = field.label || field.key
+        reverseMap[label] = field.key
+      }
+    }
+
+    // Extrai params com chaves raw
+    const paramLabels = results.value.param_columns || []
+    const rawParams = {}
+    for (const label of paramLabels) {
+      const key = reverseMap[label] || label
+      if (best[label] !== undefined) {
+        rawParams[key] = best[label]
+      }
+    }
+
+    const btStore = useBacktestStore()
+    btStore.pendingParams = {
+      ...rawParams,
+      strategy_file: strategyFile.value,
+      _symbol: selectedSymbol.value,
+      _symbolLabel: selectedAssetLabel.value,
+      _interval: interval.value,
+      _dataSource: dataSource.value,
+      _capital: capital.value,
+      autoRun: true,
+    }
+    return true
+  }
+
   function downloadCsv() {
     if (!results.value?.csv_data) return
     const blob = new Blob([results.value.csv_data], { type: 'text/csv;charset=utf-8;' })
@@ -236,6 +275,6 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     capital, minTrades, rankBy, topN,
     isRunning, comboCount, results, error, progress,
     fetchAssets, fetchStrategies, selectStrategy, fetchGrids,
-    updateComboCount, run, stop, downloadCsv,
+    updateComboCount, run, stop, sendBestToBacktest, downloadCsv,
   }
 })

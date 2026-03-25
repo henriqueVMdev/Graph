@@ -95,7 +95,7 @@ export const useBacktestStore = defineStore('backtest', () => {
     params.value = { ...defaults, ...params.value }
   }
 
-  /** Pré-preenche estratégia e params com dados vindos do Dashboard */
+  /** Pré-preenche estratégia e params com dados vindos do Dashboard ou Optimizer */
   function applyPendingParams() {
     if (!pendingParams.value) return
     const pending = pendingParams.value
@@ -106,11 +106,25 @@ export const useBacktestStore = defineStore('backtest', () => {
       if (strat) selectStrategy(strat)
     }
 
-    // Sobrescreve params com os valores enviados (exceto strategy_file)
-    const { strategy_file, ...rest } = pending
+    // Configura dados do ativo se vieram do optimizer
+    if (pending._symbol) {
+      dataSource.value = pending._dataSource || 'asset'
+      selectedSymbol.value = pending._symbol
+      selectedAssetLabel.value = pending._symbolLabel || pending._symbol
+      interval.value = pending._interval || '1d'
+    }
+
+    // Sobrescreve params com os valores enviados (exceto campos internos)
+    const {
+      strategy_file, autoRun,
+      _symbol, _symbolLabel, _interval, _dataSource, _capital,
+      ...rest
+    } = pending
+    if (_capital) rest.initial_capital = _capital
     params.value = { ...params.value, ...rest }
 
     pendingParams.value = null
+    return { autoRun }
   }
 
   async function runBacktest() {
