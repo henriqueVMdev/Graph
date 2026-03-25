@@ -56,14 +56,26 @@
 
         <!-- Asset selector -->
         <template v-if="store.dataSource === 'asset'">
+          <label class="text-xs text-gray-400 block mb-1">Categoria</label>
+          <select v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
+            <option value="">Selecione a categoria</option>
+            <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+
           <label class="text-xs text-gray-400 block mb-1">Ativo</label>
-          <select v-model="selectedKey" @change="onAssetChange" class="form-select w-full mb-2 text-xs">
-            <option value="">-- selecione --</option>
-            <optgroup v-for="(items, cat) in store.assets" :key="cat" :label="cat">
-              <option v-for="(ticker, label) in items" :key="ticker" :value="`${label}|||${ticker}`">
-                {{ label }}
-              </option>
-            </optgroup>
+          <select
+            v-model="selectedKey"
+            @change="onAssetChange"
+            :disabled="!selectedCategory"
+            class="form-select w-full mb-2 text-xs"
+            :class="!selectedCategory ? 'opacity-40 cursor-not-allowed' : ''"
+          >
+            <option value="">Selecione o ativo</option>
+            <option
+              v-for="(ticker, label) in (store.assets[selectedCategory] || {})"
+              :key="ticker"
+              :value="`${label}|||${ticker}`"
+            >{{ label }}</option>
           </select>
 
           <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
@@ -214,6 +226,7 @@ import { useBacktestStore } from '@/stores/backtest.js'
 import NumInput from '@/components/NumInput.vue'
 
 const store = useBacktestStore()
+const selectedCategory = ref('')
 const selectedKey = ref('')
 const timeframes = ['1d', '1h', '4h', '1wk', '1mo']
 
@@ -239,6 +252,12 @@ function toggleMonth(key, month) {
 function onStrategyChange(file) {
   const strat = store.strategies.find(s => s.file === file)
   if (strat) store.selectStrategy(strat)
+}
+
+function onCategoryChange() {
+  selectedKey.value = ''
+  store.selectedAssetLabel = ''
+  store.selectedSymbol = ''
 }
 
 function onAssetChange() {

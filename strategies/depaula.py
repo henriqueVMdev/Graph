@@ -119,6 +119,51 @@ CONFIG_SCHEMA = [
         ],
     },
     {
+        "title": "Saida Parcial",
+        "fields": [
+            {
+                "key": "use_parcial",
+                "label": "Usar Parcial",
+                "type": "checkbox",
+                "default": False,
+            },
+            {
+                "key": "parcial_pct",
+                "label": "Realizar (%)",
+                "type": "number",
+                "default": 50.0,
+                "min": 1,
+                "max": 99,
+                "step": 5,
+                "show_if": "use_parcial",
+            },
+            {
+                "key": "parcial_mode",
+                "label": "Alvo Parcial",
+                "type": "select",
+                "default": "Banda",
+                "options": ["Banda", "Alvo Fixo"],
+                "show_if": "use_parcial",
+            },
+            {
+                "key": "parcial_banda_pct",
+                "label": "Banda Parcial (%)",
+                "type": "number",
+                "default": 1.5,
+                "step": 0.5,
+                "show_if": "use_parcial",
+            },
+            {
+                "key": "parcial_alvo_fixo",
+                "label": "Alvo Fixo Parcial (%)",
+                "type": "number",
+                "default": 2.0,
+                "step": 0.5,
+                "show_if": "use_parcial",
+            },
+        ],
+    },
+    {
         "title": "Stop Loss",
         "fields": [
             {
@@ -344,6 +389,11 @@ def run(df, params: dict) -> dict:
         stop_band_pct=float(params.get("stop_band_pct", 1.5)),
         use_pullback=bool(params.get("use_pullback", True)),
         use_entry_zone=bool(params.get("use_entry_zone", False)),
+        use_parcial=bool(params.get("use_parcial", False)),
+        parcial_pct=float(params.get("parcial_pct", 50.0)),
+        parcial_mode=params.get("parcial_mode", "Banda"),
+        parcial_banda_pct=float(params.get("parcial_banda_pct", 1.5)),
+        parcial_alvo_fixo=float(params.get("parcial_alvo_fixo", 2.0)),
         initial_capital=float(params.get("initial_capital", 1000.0)),
         cycle_filter=bool(params.get("cycle_filter", False)),
         cycle_long_months=params.get("cycle_long_months", []),
@@ -385,6 +435,9 @@ def run(df, params: dict) -> dict:
             "exit_price": _safe(float(t.exit_price)),
             "exit_comment": t.exit_comment,
             "pnl_pct": _safe(float(t.pnl_pct)),
+            "partial_exit_price": _safe(float(t.partial_exit_price)) if t.partial_exit_price else None,
+            "partial_exit_date": t.partial_exit_date[:10] if t.partial_exit_date else None,
+            "partial_pct_closed": t.partial_pct_closed if t.partial_pct_closed else None,
         }
         for t in trades
     ]

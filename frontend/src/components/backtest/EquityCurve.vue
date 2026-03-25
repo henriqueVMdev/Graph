@@ -87,6 +87,9 @@ async function render() {
       hovertemplate:
         `<b>${trade.comment}</b><br>` +
         `Entrada: $${trade.entry_price?.toFixed(2)}<br>` +
+        (trade.partial_exit_price
+          ? `Parcial: $${trade.partial_exit_price?.toFixed(2)} (${Math.round((trade.partial_pct_closed || 0) * 100)}%)<br>`
+          : '') +
         `Saida: $${trade.exit_price?.toFixed(2)}<br>` +
         `P&L: ${trade.pnl_pct?.toFixed(2)}%<br>` +
         `Motivo: ${trade.exit_comment}<extra></extra>`,

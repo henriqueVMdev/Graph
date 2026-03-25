@@ -53,6 +53,13 @@ class Config:
     atr_length: int = 14
     hysteresis: float = 0.2
 
+    # Saida parcial
+    use_parcial: bool = False
+    parcial_pct: float = 50.0           # % da posicao a realizar
+    parcial_mode: str = "Banda"         # "Banda" ou "Alvo Fixo"
+    parcial_banda_pct: float = 1.5      # % da MA para banda parcial
+    parcial_alvo_fixo: float = 2.0      # % fixo do preco de entrada
+
     # Backtest
     initial_capital: float = 1000.0
     start_date: Optional[str] = None
@@ -172,6 +179,10 @@ def prepare_indicators(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     df["StopUpperBand"] = df["MA"] * (1 + cfg.stop_band_pct / 100)
     df["StopLowerBand"] = df["MA"] * (1 - cfg.stop_band_pct / 100)
 
+    # Bandas de saida parcial
+    df["PartialUpperBand"] = df["MA"] * (1 + cfg.parcial_banda_pct / 100)
+    df["PartialLowerBand"] = df["MA"] * (1 - cfg.parcial_banda_pct / 100)
+
     # Slope e Angle (barra a barra)
     ma_vals = df["MA"].values
     atr_vals = df["ATR"].values
@@ -225,6 +236,9 @@ class Trade:
     exit_price: float = 0.0
     exit_comment: str = ""
     pnl_pct: float = 0.0
+    partial_exit_price: float = 0.0
+    partial_exit_date: str = ""
+    partial_pct_closed: float = 0.0
 
 
 @dataclass
@@ -237,6 +251,8 @@ class BacktestState:
     equity: float = 1000.0
     trades: list = field(default_factory=list)
     current_trade: Optional[Trade] = None
+    partial_taken: bool = False
+    position_size: float = 1.0  # 1.0 = full, reduz apos parcial
 
 
 def _cycle_allows(cfg: Config, month: int, direction: int) -> bool:
@@ -282,6 +298,8 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
         lower_band = row["LowerBand"]
         stop_upper = row["StopUpperBand"]
         stop_lower = row["StopLowerBand"]
+        partial_upper = row["PartialUpperBand"]
+        partial_lower = row["PartialLowerBand"]
         in_entry_zone = bool(row["InEntryZone"])
 
         if np.isnan(ma_val) or np.isnan(atr_val):
@@ -293,6 +311,35 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
             st.aguardando_pullback = False
             st.pending_long = (state == 1)
             st.pending_short = (state == -1)
+
+        # --- SAIDA PARCIAL (antes do TP/SL) ---
+        if (cfg.use_parcial and st.position != 0
+                and not st.partial_taken and st.current_trade is not None):
+            parcial_price = None
+            if cfg.parcial_mode == "Banda":
+                parcial_price = partial_upper if st.position == 1 else partial_lower
+            elif cfg.parcial_mode == "Alvo Fixo":
+                if st.position == 1:
+                    parcial_price = st.entry_price * (1 + cfg.parcial_alvo_fixo / 100)
+                else:
+                    parcial_price = st.entry_price * (1 - cfg.parcial_alvo_fixo / 100)
+
+            if parcial_price is not None:
+                hit_parcial = False
+                if st.position == 1 and high >= parcial_price:
+                    hit_parcial = True
+                elif st.position == -1 and low <= parcial_price:
+                    hit_parcial = True
+
+                if hit_parcial:
+                    fraction = cfg.parcial_pct / 100.0
+                    partial_pnl = st.position * (parcial_price - st.entry_price) / st.entry_price * 100
+                    st.equity *= (1 + partial_pnl / 100 * fraction)
+                    st.position_size -= fraction
+                    st.partial_taken = True
+                    st.current_trade.partial_exit_price = parcial_price
+                    st.current_trade.partial_exit_date = date
+                    st.current_trade.partial_pct_closed = fraction
 
         # --- SAÍDAS INTRABAR (TP + SL checados contra High/Low) ---
         if st.position != 0 and st.current_trade is not None:
@@ -397,7 +444,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
         # Equity mark-to-market
         if st.position != 0 and st.current_trade is not None:
             unrealized = st.position * (close - st.entry_price) / st.entry_price
-            equity_curve.append(st.equity * (1 + unrealized))
+            equity_curve.append(st.equity * (1 + unrealized * st.position_size))
         else:
             equity_curve.append(st.equity)
 
@@ -413,6 +460,8 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
 def _open_position(st: BacktestState, date: str, price: float, direction: int, comment: str):
     st.position = direction
     st.entry_price = price
+    st.partial_taken = False
+    st.position_size = 1.0
     st.current_trade = Trade(
         entry_date=date,
         entry_price=price,
@@ -430,14 +479,26 @@ def _close_position(st: BacktestState, date: str, price: float, comment: str):
     trade.exit_date = date
     trade.exit_price = price
     trade.exit_comment = comment
-    trade.pnl_pct = trade.direction * (price - trade.entry_price) / trade.entry_price * 100
 
-    # Atualiza equity
-    st.equity *= (1 + trade.pnl_pct / 100)
+    remaining_pnl = trade.direction * (price - trade.entry_price) / trade.entry_price * 100
+
+    # Se houve saida parcial, aplica apenas o PnL da parte restante
+    st.equity *= (1 + remaining_pnl / 100 * st.position_size)
+
+    # PnL total combinado (parcial + restante)
+    if st.partial_taken and trade.partial_pct_closed > 0:
+        partial_pnl = trade.direction * (trade.partial_exit_price - trade.entry_price) / trade.entry_price * 100
+        trade.pnl_pct = (trade.partial_pct_closed * partial_pnl
+                         + st.position_size * remaining_pnl)
+    else:
+        trade.pnl_pct = remaining_pnl
+
     st.trades.append(trade)
     st.position = 0
     st.entry_price = 0.0
     st.current_trade = None
+    st.partial_taken = False
+    st.position_size = 1.0
 
 
 # ==============================
