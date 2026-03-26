@@ -60,6 +60,10 @@ class Config:
     parcial_banda_pct: float = 1.5      # % da MA para banda parcial
     parcial_alvo_fixo: float = 2.0      # % fixo do preco de entrada
 
+    # Position sizing
+    use_position_sizing: bool = False
+    risk_per_trade: float = 1.0  # % do capital arriscado por trade
+
     # Backtest
     initial_capital: float = 1000.0
     start_date: Optional[str] = None
@@ -253,6 +257,7 @@ class BacktestState:
     current_trade: Optional[Trade] = None
     partial_taken: bool = False
     position_size: float = 1.0  # 1.0 = full, reduz apos parcial
+    position_fraction: float = 1.0  # fracao do capital alocada (position sizing)
 
 
 def _cycle_allows(cfg: Config, month: int, direction: int) -> bool:
@@ -334,7 +339,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 if hit_parcial:
                     fraction = cfg.parcial_pct / 100.0
                     partial_pnl = st.position * (parcial_price - st.entry_price) / st.entry_price * 100
-                    st.equity *= (1 + partial_pnl / 100 * fraction)
+                    st.equity *= (1 + partial_pnl / 100 * fraction * st.position_fraction)
                     st.position_size -= fraction
                     st.partial_taken = True
                     st.current_trade.partial_exit_price = parcial_price
@@ -417,12 +422,12 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
             if st.pending_long and state == 1 and st.position <= 0 and _cycle_allows(cfg, bar_month, 1):
                 if st.position == -1:
                     _close_position(st, date, close, "Reversão S→L")
-                _open_position(st, date, close, 1, "L Trend")
+                _open_position(st, date, close, 1, "L Trend", cfg, atr_val)
                 st.pending_long = False
             elif st.pending_short and state == -1 and st.position >= 0 and _cycle_allows(cfg, bar_month, -1):
                 if st.position == 1:
                     _close_position(st, date, close, "Reversão L→S")
-                _open_position(st, date, close, -1, "S Trend")
+                _open_position(st, date, close, -1, "S Trend", cfg, atr_val)
                 st.pending_short = False
 
         # B. Reentrada por Pullback
@@ -435,16 +440,16 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 pb_short = close > ma_val
 
             if state == 1 and pb_long and _cycle_allows(cfg, bar_month, 1):
-                _open_position(st, date, close, 1, "L Pullback")
+                _open_position(st, date, close, 1, "L Pullback", cfg, atr_val)
                 st.aguardando_pullback = False
             elif state == -1 and pb_short and _cycle_allows(cfg, bar_month, -1):
-                _open_position(st, date, close, -1, "S Pullback")
+                _open_position(st, date, close, -1, "S Pullback", cfg, atr_val)
                 st.aguardando_pullback = False
 
         # Equity mark-to-market
         if st.position != 0 and st.current_trade is not None:
             unrealized = st.position * (close - st.entry_price) / st.entry_price
-            equity_curve.append(st.equity * (1 + unrealized * st.position_size))
+            equity_curve.append(st.equity * (1 + unrealized * st.position_size * st.position_fraction))
         else:
             equity_curve.append(st.equity)
 
@@ -457,11 +462,36 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     return st
 
 
-def _open_position(st: BacktestState, date: str, price: float, direction: int, comment: str):
+def _calc_stop_distance_pct(cfg: Config, price: float, atr_val: float) -> float:
+    """Calcula a distancia do stop em % do preco de entrada."""
+    if not cfg.use_stop:
+        return 0.0
+    if cfg.stop_type == "ATR":
+        return (cfg.stop_atr_mult * atr_val / price) * 100 if price > 0 else 0.0
+    elif cfg.stop_type == "Fixo (%)":
+        return cfg.stop_fixo_pct
+    elif cfg.stop_type == "Banda Stop":
+        return cfg.stop_band_pct
+    return 0.0
+
+
+def _open_position(st: BacktestState, date: str, price: float, direction: int, comment: str,
+                   cfg: Config = None, atr_val: float = 0.0):
     st.position = direction
     st.entry_price = price
     st.partial_taken = False
     st.position_size = 1.0
+
+    # Position sizing baseado em risco
+    if cfg and cfg.use_position_sizing and cfg.use_stop:
+        stop_dist = _calc_stop_distance_pct(cfg, price, atr_val)
+        if stop_dist > 0:
+            st.position_fraction = min(cfg.risk_per_trade / stop_dist, 1.0)
+        else:
+            st.position_fraction = 1.0
+    else:
+        st.position_fraction = 1.0
+
     st.current_trade = Trade(
         entry_date=date,
         entry_price=price,
@@ -480,18 +510,19 @@ def _close_position(st: BacktestState, date: str, price: float, comment: str):
     trade.exit_price = price
     trade.exit_comment = comment
 
+    frac = st.position_fraction
     remaining_pnl = trade.direction * (price - trade.entry_price) / trade.entry_price * 100
 
     # Se houve saida parcial, aplica apenas o PnL da parte restante
-    st.equity *= (1 + remaining_pnl / 100 * st.position_size)
+    st.equity *= (1 + remaining_pnl / 100 * st.position_size * frac)
 
-    # PnL total combinado (parcial + restante)
+    # PnL total combinado (parcial + restante), ja ponderado pelo sizing
     if st.partial_taken and trade.partial_pct_closed > 0:
         partial_pnl = trade.direction * (trade.partial_exit_price - trade.entry_price) / trade.entry_price * 100
         trade.pnl_pct = (trade.partial_pct_closed * partial_pnl
-                         + st.position_size * remaining_pnl)
+                         + st.position_size * remaining_pnl) * frac
     else:
-        trade.pnl_pct = remaining_pnl
+        trade.pnl_pct = remaining_pnl * frac
 
     st.trades.append(trade)
     st.position = 0
@@ -499,6 +530,7 @@ def _close_position(st: BacktestState, date: str, price: float, comment: str):
     st.current_trade = None
     st.partial_taken = False
     st.position_size = 1.0
+    st.position_fraction = 1.0
 
 
 # ==============================

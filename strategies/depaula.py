@@ -209,6 +209,27 @@ CONFIG_SCHEMA = [
         ],
     },
     {
+        "title": "Position Sizing",
+        "fields": [
+            {
+                "key": "use_position_sizing",
+                "label": "Position Sizing por Risco",
+                "type": "checkbox",
+                "default": False,
+            },
+            {
+                "key": "risk_per_trade",
+                "label": "Risco por Trade (%)",
+                "type": "number",
+                "default": 1.0,
+                "min": 0.1,
+                "max": 100,
+                "step": 0.1,
+                "show_if": "use_position_sizing",
+            },
+        ],
+    },
+    {
         "title": "Entrada",
         "fields": [
             {
@@ -427,6 +448,8 @@ def run(df, params: dict) -> dict:
         parcial_mode=params.get("parcial_mode", "Banda"),
         parcial_banda_pct=float(params.get("parcial_banda_pct", 1.5)),
         parcial_alvo_fixo=float(params.get("parcial_alvo_fixo", 2.0)),
+        use_position_sizing=bool(params.get("use_position_sizing", False)),
+        risk_per_trade=float(params.get("risk_per_trade", 1.0)),
         initial_capital=float(params.get("initial_capital", 1000.0)),
         cycle_filter=bool(params.get("cycle_filter", False)),
         cycle_long_months=params.get("cycle_long_months", []),
