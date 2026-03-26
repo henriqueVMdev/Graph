@@ -19,6 +19,9 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
   const accountSize = ref(50000)
   const numSims = ref(1000)
 
+  // Pending params (vindos do Dashboard)
+  const pendingParams = ref(null)
+
   // Resultados
   const isRunning = ref(false)
   const results = ref(null)
@@ -61,6 +64,33 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     params.value = { ...defaults, ...params.value }
   }
 
+  function applyPendingParams() {
+    if (!pendingParams.value) return
+    const pending = pendingParams.value
+
+    if (pending.strategy_file && strategies.value.length > 0) {
+      const strat = strategies.value.find(s => s.file === pending.strategy_file)
+      if (strat) selectStrategy(strat)
+    }
+
+    if (pending._symbol) {
+      dataSource.value = pending._dataSource || 'asset'
+      selectedSymbol.value = pending._symbol
+      selectedAssetLabel.value = pending._symbolLabel || pending._symbol
+      interval.value = pending._interval || '1d'
+    }
+
+    const {
+      strategy_file, autoRun,
+      _symbol, _symbolLabel, _interval, _dataSource, _capital,
+      ...rest
+    } = pending
+    params.value = { ...params.value, ...rest }
+
+    pendingParams.value = null
+    return { autoRun }
+  }
+
   async function runSimulation() {
     if (!selectedSymbol.value || !selectedStrategy.value) {
       error.value = 'Selecione um ativo e uma estrategia'
@@ -90,9 +120,11 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
 
   return {
     assets, strategies, selectedStrategy, params,
+    pendingParams,
     dataSource, selectedAssetLabel, selectedSymbol, interval,
     accountSize, numSims,
     isRunning, results, error,
-    fetchAssets, fetchStrategies, selectStrategy, runSimulation,
+    fetchAssets, fetchStrategies, selectStrategy,
+    applyPendingParams, runSimulation,
   }
 })

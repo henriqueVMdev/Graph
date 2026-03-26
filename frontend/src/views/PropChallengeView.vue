@@ -20,6 +20,17 @@
 
     <!-- Main content -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- Parametros carregados banner -->
+      <div v-if="paramsBanner" class="card p-3 border-accent-yellow/40 bg-accent-yellow/5 text-accent-yellow text-sm flex items-center justify-between">
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Parametros carregados do Dashboard
+        </span>
+        <button @click="paramsBanner = false" class="text-gray-400 hover:text-gray-200">x</button>
+      </div>
+
       <!-- Error -->
       <div v-if="store.error" class="card p-3 border-accent-red text-accent-red-light text-sm">
         {{ store.error }}
@@ -291,7 +302,13 @@ watch(() => store.results, async (res) => {
   drawChart(phase2ChartEl.value, res.phase2_curves, res.account_size, 0.05)
 })
 
+const paramsBanner = ref(false)
+
 onMounted(async () => {
   await Promise.all([store.fetchAssets(), store.fetchStrategies()])
+  if (store.pendingParams) {
+    store.applyPendingParams()
+    paramsBanner.value = true
+  }
 })
 </script>
