@@ -101,24 +101,28 @@
         </div>
 
         <!-- Best config -->
-        <div v-if="store.results.best" class="card p-4">
+        <div v-if="store.results.best" class="card p-4 overflow-hidden">
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">1.</span> Melhor Configuracao</h2>
           <div class="grid grid-cols-2 gap-4">
-            <div>
+            <div class="min-w-0">
               <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Metricas</h3>
-              <div class="space-y-1">
-                <div v-for="col in metricCols" :key="col" class="flex justify-between text-sm">
-                  <span class="text-gray-500">{{ col }}</span>
-                  <span class="text-gray-200 font-medium">{{ formatVal(store.results.best[col]) }}</span>
+              <div class="divide-y divide-surface-600">
+                <div v-for="col in metricCols" :key="col" class="flex justify-between items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-700/50">
+                  <span class="text-gray-400 text-sm truncate shrink">{{ col }}</span>
+                  <span class="text-sm font-bold tabular-nums shrink-0" :class="metricValClass(col, store.results.best[col])">
+                    {{ formatVal(store.results.best[col]) }}
+                  </span>
                 </div>
               </div>
             </div>
-            <div>
+            <div class="min-w-0">
               <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Parametros</h3>
-              <div class="space-y-1">
-                <div v-for="col in paramCols" :key="col" class="flex justify-between text-sm">
-                  <span class="text-gray-500">{{ col }}</span>
-                  <span class="text-gray-200 font-medium">{{ formatVal(store.results.best[col]) }}</span>
+              <div class="divide-y divide-surface-600">
+                <div v-for="col in paramCols" :key="col" class="flex justify-between items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-700/50">
+                  <span class="text-gray-400 text-sm truncate shrink">{{ col }}</span>
+                  <span class="text-sm font-bold text-accent-yellow tabular-nums shrink-0">
+                    {{ formatVal(store.results.best[col]) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -194,8 +198,7 @@ const paramCols = computed(() => {
 })
 
 const tableCols = computed(() => {
-  const pShort = paramCols.value.slice(0, 4)
-  return [...metricCols.value, ...pShort]
+  return [...metricCols.value, ...paramCols.value]
 })
 
 const bestScore = computed(() => {
@@ -209,6 +212,16 @@ function formatVal(v) {
   if (typeof v === 'boolean') return v ? 'SIM' : 'NAO'
   if (typeof v === 'number') return Number.isInteger(v) ? v : v.toFixed(2)
   return String(v)
+}
+
+function metricValClass(col, val) {
+  if (typeof val !== 'number') return 'text-gray-100'
+  if (col === 'Retorno (%)' || col === 'Sharpe' || col === 'Profit Factor' || col === 'Score') {
+    return val >= 0 ? 'text-green-400' : 'text-red-400'
+  }
+  if (col === 'Max DD (%)') return 'text-red-400'
+  if (col === 'Win Rate (%)') return val >= 50 ? 'text-green-400' : 'text-amber-400'
+  return 'text-gray-100'
 }
 
 function colClass(col, val) {

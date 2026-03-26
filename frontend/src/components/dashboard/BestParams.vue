@@ -20,18 +20,20 @@
             class="card p-3"
           >
             <p class="text-xs text-gray-400 mb-2">{{ data.label }}</p>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <div
                 v-for="(count, val) in sortedCounts(data.counts)"
                 :key="val"
                 class="flex items-center gap-2"
               >
-                <div
-                  class="h-2.5 bg-accent-yellow rounded-sm shrink-0 transition-all"
-                  :style="{ width: barWidth(count, data.counts) }"
-                ></div>
-                <span class="text-xs text-gray-300 truncate">{{ val }}</span>
-                <span class="text-xs text-gray-500 ml-auto shrink-0">{{ count }}</span>
+                <div class="flex-1 min-w-0 h-2.5 bg-surface-600 rounded-sm overflow-hidden">
+                  <div
+                    class="h-full bg-accent-yellow rounded-sm transition-all"
+                    :style="{ width: barWidth(count, data.counts) }"
+                  ></div>
+                </div>
+                <span class="text-xs text-gray-300 shrink-0 max-w-[5rem] truncate text-right">{{ val }}</span>
+                <span class="text-xs text-gray-500 shrink-0 w-5 text-right tabular-nums">{{ count }}</span>
               </div>
             </div>
           </div>
