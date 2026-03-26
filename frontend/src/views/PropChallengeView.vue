@@ -74,6 +74,15 @@
           <p class="text-xs text-gray-500 mt-2">
             {{ store.results.overall.passed }} aprovados de {{ store.results.num_sims }} simulacoes
           </p>
+          <div v-if="store.results.overall.est_total_days" class="mt-3 pt-3 border-t border-surface-500">
+            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Tempo Estimado Total</p>
+            <p class="text-2xl font-bold font-mono text-accent-yellow">
+              {{ formatDays(store.results.overall.est_total_days) }}
+            </p>
+            <p v-if="store.results.trade_stats.avg_days_between_trades" class="text-[10px] text-gray-600 mt-1">
+              ~1 trade a cada {{ store.results.trade_stats.avg_days_between_trades }} dias
+            </p>
+          </div>
         </div>
 
         <!-- Fases -->
@@ -98,6 +107,14 @@
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Aprovados / Reprovados</span>
                 <span class="font-mono text-gray-300">{{ store.results.phase1.passed }} / {{ store.results.phase1.failed }}</span>
+              </div>
+              <div v-if="store.results.phase1.median_trades_to_pass" class="flex justify-between text-xs">
+                <span class="text-gray-400">Trades p/ aprovar (mediana)</span>
+                <span class="font-mono text-gray-300">{{ store.results.phase1.median_trades_to_pass }}</span>
+              </div>
+              <div v-if="store.results.phase1.est_days" class="flex justify-between text-xs">
+                <span class="text-gray-400">Tempo estimado</span>
+                <span class="font-mono text-accent-yellow">{{ formatDays(store.results.phase1.est_days) }}</span>
               </div>
               <!-- Progress bar -->
               <div class="w-full bg-surface-600 rounded-full h-2 mt-1">
@@ -130,6 +147,14 @@
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Aprovados / Reprovados</span>
                 <span class="font-mono text-gray-300">{{ store.results.phase2.passed }} / {{ store.results.phase2.failed }}</span>
+              </div>
+              <div v-if="store.results.phase2.median_trades_to_pass" class="flex justify-between text-xs">
+                <span class="text-gray-400">Trades p/ aprovar (mediana)</span>
+                <span class="font-mono text-gray-300">{{ store.results.phase2.median_trades_to_pass }}</span>
+              </div>
+              <div v-if="store.results.phase2.est_days" class="flex justify-between text-xs">
+                <span class="text-gray-400">Tempo estimado</span>
+                <span class="font-mono text-accent-yellow">{{ formatDays(store.results.phase2.est_days) }}</span>
               </div>
               <!-- Progress bar -->
               <div class="w-full bg-surface-600 rounded-full h-2 mt-1">
@@ -204,6 +229,17 @@ const phase2ChartEl = ref(null)
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
   setTimeout(() => window.dispatchEvent(new Event('resize')), 310)
+}
+
+function formatDays(days) {
+  if (days == null) return '-'
+  if (days < 7) return `${Math.round(days)} dias`
+  if (days < 30) {
+    const weeks = Math.round(days / 7)
+    return `~${weeks} semana${weeks > 1 ? 's' : ''} (${Math.round(days)}d)`
+  }
+  const months = (days / 30).toFixed(1)
+  return `~${months} mes${months > 1 ? 'es' : ''} (${Math.round(days)}d)`
 }
 
 const overallColor = computed(() => {

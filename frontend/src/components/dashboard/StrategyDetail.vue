@@ -36,7 +36,7 @@
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
-        Parâmetros enviados para Backtesting Live
+        {{ sentMessage }}
       </div>
     </Transition>
 
@@ -61,7 +61,7 @@ const store = useDashboardStore()
 const btStore = useBacktestStore()
 const propStore = usePropChallengeStore()
 const router = useRouter()
-const sentMessage = ref(false)
+const sentMessage = ref('')
 
 const detail = computed(() => store.selectedDetail)
 
@@ -101,7 +101,7 @@ function formatVal(v) {
 function sendToBacktest() {
   if (!store.backtestParams) return
   btStore.pendingParams = { ...store.backtestParams, strategy_file: 'depaula' }
-  sentMessage.value = true
+  sentMessage.value = 'Parametros enviados para Backtesting Live'
   setTimeout(() => {
     router.push('/backtest')
   }, 600)
@@ -109,8 +109,13 @@ function sendToBacktest() {
 
 function sendToProp() {
   if (!store.backtestParams) return
-  propStore.pendingParams = { ...store.backtestParams, strategy_file: 'depaula' }
-  sentMessage.value = true
+  const ativo = detail.value?.ativo || store.asset || ''
+  propStore.pendingParams = {
+    ...store.backtestParams,
+    strategy_file: 'depaula',
+    _ativo: ativo,
+  }
+  sentMessage.value = 'Parametros enviados para Prop Challenge'
   setTimeout(() => {
     router.push('/prop-challenge')
   }, 600)

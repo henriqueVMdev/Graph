@@ -64,6 +64,23 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     params.value = { ...defaults, ...params.value }
   }
 
+  function _resolveAsset(ativoName) {
+    // Busca o ticker na lista de assets pelo nome (parcial, case-insensitive)
+    if (!ativoName) return null
+    const search = ativoName.toLowerCase().replace(/[^a-z0-9]/g, '')
+    for (const category of Object.values(assets.value)) {
+      for (const [label, ticker] of Object.entries(category)) {
+        const labelNorm = label.toLowerCase().replace(/[^a-z0-9]/g, '')
+        const tickerNorm = ticker.toLowerCase().replace(/[^a-z0-9]/g, '')
+        if (labelNorm.includes(search) || search.includes(labelNorm)
+            || tickerNorm.includes(search) || search.includes(tickerNorm)) {
+          return { label, ticker }
+        }
+      }
+    }
+    return null
+  }
+
   function applyPendingParams() {
     if (!pendingParams.value) return
     const pending = pendingParams.value
@@ -73,16 +90,24 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
       if (strat) selectStrategy(strat)
     }
 
+    // Resolve ativo: aceita _symbol direto (do optimizer) ou _ativo (do dashboard)
     if (pending._symbol) {
       dataSource.value = pending._dataSource || 'asset'
       selectedSymbol.value = pending._symbol
       selectedAssetLabel.value = pending._symbolLabel || pending._symbol
       interval.value = pending._interval || '1d'
+    } else if (pending._ativo) {
+      const found = _resolveAsset(pending._ativo)
+      if (found) {
+        dataSource.value = 'asset'
+        selectedSymbol.value = found.ticker
+        selectedAssetLabel.value = found.label
+      }
     }
 
     const {
       strategy_file, autoRun,
-      _symbol, _symbolLabel, _interval, _dataSource, _capital,
+      _symbol, _symbolLabel, _interval, _dataSource, _capital, _ativo,
       ...rest
     } = pending
     params.value = { ...params.value, ...rest }

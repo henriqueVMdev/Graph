@@ -1487,6 +1487,9 @@ def api_prop_challenge_simulate():
         if not symbol:
             return jsonify({"error": "symbol obrigatorio"}), 400
 
+        # Forca initial_capital = account_size para o backtest
+        cfg_dict["initial_capital"] = account_size
+
         df_data = _download_data_safe(symbol, interval_label)
         module = _load_strategy(strategy_file)
         result_dict = module.run(df_data.copy(), cfg_dict)
@@ -1586,6 +1589,42 @@ def api_prop_challenge_simulate():
         avg_win = float(np.mean(wins)) if wins else 0
         avg_loss = float(np.mean(losses)) if losses else 0
 
+        # Frequencia media de trades (dias entre trades)
+        avg_days_between_trades = None
+        trade_dates = []
+        for t in trades:
+            d = t.get("entry_date", "")
+            if d:
+                try:
+                    trade_dates.append(pd.Timestamp(d))
+                except Exception:
+                    pass
+        if len(trade_dates) >= 2:
+            trade_dates.sort()
+            total_span = (trade_dates[-1] - trade_dates[0]).days
+            avg_days_between_trades = total_span / (len(trade_dates) - 1) if len(trade_dates) > 1 else None
+
+        # Tempo estimado de aprovacao por fase (em dias)
+        # Baseado na media de trades dos que passaram * frequencia de trades
+        p1_passed_trades = [r["num_trades"] for r in phase1_results if r["passed"]]
+        p2_passed_trades = [r["num_trades"] for r in phase2_results if r["passed"]]
+
+        p1_avg_trades = float(np.mean(p1_passed_trades)) if p1_passed_trades else None
+        p2_avg_trades = float(np.mean(p2_passed_trades)) if p2_passed_trades else None
+        p1_median_trades = float(np.median(p1_passed_trades)) if p1_passed_trades else None
+        p2_median_trades = float(np.median(p2_passed_trades)) if p2_passed_trades else None
+
+        def _estimate_days(num_trades, avg_interval):
+            if num_trades is None or avg_interval is None:
+                return None
+            return round(num_trades * avg_interval, 1)
+
+        p1_est_days = _estimate_days(p1_median_trades, avg_days_between_trades)
+        p2_est_days = _estimate_days(p2_median_trades, avg_days_between_trades)
+        total_est_days = None
+        if p1_est_days is not None and p2_est_days is not None:
+            total_est_days = round(p1_est_days + p2_est_days, 1)
+
         return jsonify({
             "account_size": account_size,
             "num_sims": num_sims,
@@ -1599,6 +1638,7 @@ def api_prop_challenge_simulate():
                 "avg_win": round(avg_win, 2),
                 "avg_loss": round(avg_loss, 2),
                 "avg_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_days_between_trades": round(avg_days_between_trades, 1) if avg_days_between_trades else None,
             },
             "phase1": {
                 "target_pct": phase1_target * 100,
@@ -1607,6 +1647,9 @@ def api_prop_challenge_simulate():
                 "passed": phase1_pass,
                 "failed": num_sims - phase1_pass,
                 "pass_rate": round(phase1_pass / num_sims * 100, 2),
+                "avg_trades_to_pass": round(p1_avg_trades, 1) if p1_avg_trades else None,
+                "median_trades_to_pass": round(p1_median_trades, 1) if p1_median_trades else None,
+                "est_days": p1_est_days,
             },
             "phase2": {
                 "target_pct": phase2_target * 100,
@@ -1615,10 +1658,14 @@ def api_prop_challenge_simulate():
                 "passed": phase2_pass,
                 "failed": phase1_pass - phase2_pass,
                 "pass_rate": round(phase2_pass / phase1_pass * 100, 2) if phase1_pass > 0 else 0,
+                "avg_trades_to_pass": round(p2_avg_trades, 1) if p2_avg_trades else None,
+                "median_trades_to_pass": round(p2_median_trades, 1) if p2_median_trades else None,
+                "est_days": p2_est_days,
             },
             "overall": {
                 "passed": both_pass,
                 "pass_rate": round(both_pass / num_sims * 100, 2),
+                "est_total_days": total_est_days,
             },
             "phase1_curves": phase1_curves,
             "phase2_curves": phase2_curves,

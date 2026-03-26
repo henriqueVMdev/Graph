@@ -119,7 +119,7 @@
           <div
             v-for="field in section.fields"
             :key="field.key"
-            v-show="!field.show_if || store.params[field.show_if]"
+            v-show="field.key !== 'initial_capital' && (!field.show_if || store.params[field.show_if])"
             class="mb-2"
           >
             <template v-if="field.type === 'checkbox'">
