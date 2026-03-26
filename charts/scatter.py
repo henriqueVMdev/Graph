@@ -22,7 +22,11 @@ def plot_return_vs_drawdown(df: pd.DataFrame):
         template="plotly_white",
     )
     fig.update_traces(marker=dict(size=8, opacity=0.7, line=dict(width=0.5, color="DarkSlateGrey")))
-    fig.update_layout(height=500)
+    fig.update_layout(
+        height=500,
+        xaxis_title="Max Drawdown (%)",
+        yaxis_title="Retorno (%)",
+    )
     return fig
 
 
@@ -46,7 +50,11 @@ def plot_return_vs_sharpe(df: pd.DataFrame):
         template="plotly_white",
     )
     fig.update_traces(marker=dict(size=8, opacity=0.7, line=dict(width=0.5, color="DarkSlateGrey")))
-    fig.update_layout(height=500)
+    fig.update_layout(
+        height=500,
+        xaxis_title="Sharpe Ratio",
+        yaxis_title="Retorno (%)",
+    )
     return fig
 
 
@@ -78,5 +86,9 @@ def plot_return_vs_trades(df: pd.DataFrame):
         template="plotly_white",
     )
     fig.update_traces(marker=dict(size=8, opacity=0.7, line=dict(width=0.5, color="DarkSlateGrey")))
-    fig.update_layout(height=500)
+    fig.update_layout(
+        height=500,
+        xaxis_title="Trades",
+        yaxis_title="Retorno (%)",
+    )
     return fig

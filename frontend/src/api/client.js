@@ -32,6 +32,10 @@ export function getStrategy(rank, rows) {
   return api.post('/strategy', { rank, rows })
 }
 
+export function filterChart(rows, chartType, chartFilters) {
+  return api.post('/filter-chart', { rows, chart_type: chartType, chart_filters: chartFilters })
+}
+
 // ─── Backtest API ────────────────────────────────────────────────────────────
 
 export function getAssets() {

@@ -20,10 +20,13 @@ const DARK_LAYOUT = {
  */
 export function applyDarkTheme(plotlyJson) {
   if (!plotlyJson) return plotlyJson
+  const orig = plotlyJson.layout || {}
   plotlyJson.layout = {
-    ...plotlyJson.layout,
+    ...orig,
     ...DARK_LAYOUT,
-    margin: { ...(plotlyJson.layout?.margin || {}), ...DARK_LAYOUT.margin },
+    xaxis: { ...orig.xaxis, ...DARK_LAYOUT.xaxis },
+    yaxis: { ...orig.yaxis, ...DARK_LAYOUT.yaxis },
+    margin: { ...(orig.margin || {}), ...DARK_LAYOUT.margin },
   }
   return plotlyJson
 }

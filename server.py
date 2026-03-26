@@ -562,6 +562,54 @@ def api_filter():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/filter-chart", methods=["POST"])
+def api_filter_chart():
+    """
+    Filtra os dados brutos e regenera um unico grafico scatter.
+    Recebe: rows, chart_type, chart_filters
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        rows = body.get("rows", [])
+        chart_type = body.get("chart_type", "")
+        chart_filters = body.get("chart_filters", {})
+
+        if not rows:
+            return jsonify({"error": "rows obrigatorio"}), 400
+
+        df = pd.DataFrame(rows)
+        from config import NUMERIC_COLUMNS
+        for col in NUMERIC_COLUMNS:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # Aplica filtros visuais do grafico
+        if "return_min" in chart_filters and chart_filters["return_min"] is not None:
+            df = df[df["return_pct"] >= chart_filters["return_min"]]
+        if "dd_max" in chart_filters and chart_filters["dd_max"] is not None:
+            df = df[df["max_dd_pct"] >= chart_filters["dd_max"]]
+        if "sharpe_min" in chart_filters and chart_filters["sharpe_min"] is not None:
+            df = df[df["sharpe"] >= chart_filters["sharpe_min"]]
+        if "trades_min" in chart_filters and chart_filters["trades_min"] is not None:
+            df = df[df["trades"] >= chart_filters["trades_min"]]
+
+        chart_json = None
+        if chart_type == "return_vs_drawdown" and all(c in df.columns for c in ["max_dd_pct", "return_pct", "score"]):
+            chart_json = json.loads(plot_return_vs_drawdown(df).to_json())  # type: ignore[arg-type]
+        elif chart_type == "return_vs_sharpe" and all(c in df.columns for c in ["sharpe", "return_pct", "win_rate_pct"]):
+            chart_json = json.loads(plot_return_vs_sharpe(df).to_json())  # type: ignore[arg-type]
+        elif chart_type == "return_vs_trades" and all(c in df.columns for c in ["trades", "return_pct", "profit_factor"]):
+            chart_json = json.loads(plot_return_vs_trades(df).to_json())  # type: ignore[arg-type]
+
+        return jsonify({
+            "chart": chart_json,
+            "count": len(df),
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/strategy", methods=["POST"])
 def api_strategy():
     """
