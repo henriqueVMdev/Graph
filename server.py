@@ -60,11 +60,25 @@ def _download_data_safe(symbol: str, interval: str) -> pd.DataFrame:
     if "USDT" in symbol.upper():
         yf_symbol = symbol.upper().replace("USDT", "-USD")
 
-    # yfinance não suporta intervalo "4h" — converte para "1h"
-    yf_interval = interval if interval != "4h" else "1h"
+    # yfinance nao suporta 2h e 4h diretamente — baixa 1h e resampla
+    # Intervalos intraday tem limite de periodo no yfinance
+    resample_rule = None
+    yf_interval = interval
+    yf_period = "max"
+
+    if interval in ("2h", "4h"):
+        yf_interval = "1h"
+        yf_period = "2y"
+        resample_rule = "2h" if interval == "2h" else "4h"
+    elif interval == "15m":
+        yf_period = "60d"
+    elif interval == "30m":
+        yf_period = "60d"
+    elif interval == "1h":
+        yf_period = "2y"
 
     ticker = yf.Ticker(yf_symbol)
-    df = ticker.history(period="max", interval=yf_interval)
+    df = ticker.history(period=yf_period, interval=yf_interval)
 
     if df.empty:
         raise ValueError(f"Nenhum dado retornado para '{yf_symbol}' (intervalo={yf_interval})")
@@ -72,9 +86,19 @@ def _download_data_safe(symbol: str, interval: str) -> pd.DataFrame:
     # Garante colunas padrão
     df = df[["Open", "High", "Low", "Close", "Volume"]]
 
-    # Remove timezone do índice (backtesting.py não lida com tz-aware index em todos os cenários)
+    # Remove timezone do índice
     if hasattr(df.index, 'tz') and df.index.tz is not None:
         df.index = df.index.tz_localize(None)  # type: ignore[union-attr]
+
+    # Resampla para 2h ou 4h a partir de 1h
+    if resample_rule:
+        df = df.resample(resample_rule).agg({
+            "Open": "first",
+            "High": "max",
+            "Low": "min",
+            "Close": "last",
+            "Volume": "sum",
+        }).dropna()
 
     return df.sort_index()
 

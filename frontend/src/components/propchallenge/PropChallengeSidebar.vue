@@ -183,7 +183,7 @@ import NumInput from '@/components/NumInput.vue'
 const store = usePropChallengeStore()
 const selectedCategory = ref('')
 const selectedKey = ref('')
-const timeframes = ['1d', '1h', '4h', '1wk', '1mo']
+const timeframes = ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']
 const accountSizes = [5000, 10000, 25000, 50000, 100000, 200000]
 
 function formatK(n) {

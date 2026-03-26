@@ -55,7 +55,7 @@
 
         <label class="label">Timeframe</label>
         <select v-model="store.interval" class="input-field mb-2">
-          <option v-for="tf in ['1d', '1h', '4h', '1wk', '1mo']" :key="tf" :value="tf">{{ tf }}</option>
+          <option v-for="tf in ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']" :key="tf" :value="tf">{{ tf }}</option>
         </select>
 
         <div class="grid grid-cols-2 gap-2">

@@ -228,7 +228,7 @@ import NumInput from '@/components/NumInput.vue'
 const store = useBacktestStore()
 const selectedCategory = ref('')
 const selectedKey = ref('')
-const timeframes = ['1d', '1h', '4h', '1wk', '1mo']
+const timeframes = ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']
 
 const months = [
   { n: 1, label: 'Jan' }, { n: 2, label: 'Fev' }, { n: 3, label: 'Mar' },
