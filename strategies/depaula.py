@@ -65,6 +65,7 @@ CONFIG_SCHEMA = [
                 "type": "number",
                 "default": -0.5,
                 "step": 0.1,
+                "optimizer_hidden": True,
             },
             {
                 "key": "hysteresis",
@@ -102,6 +103,7 @@ CONFIG_SCHEMA = [
                 "type": "number",
                 "default": 3.0,
                 "step": 0.5,
+                "optimizer_hidden": True,
             },
             {
                 "key": "alvo_fixo",

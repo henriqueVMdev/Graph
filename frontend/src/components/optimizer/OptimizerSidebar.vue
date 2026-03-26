@@ -325,12 +325,13 @@ const gridModes = computed(() => {
   return modes.length > 0 ? modes : ['rapido', 'completo', 'custom']
 })
 
-// Schema fields da estrategia selecionada (flat list)
+// Schema fields da estrategia selecionada (flat list, sem campos ocultos no optimizer)
 const schemaFields = computed(() => {
   const schema = store.selectedStrategy?.schema || []
   const fields = []
   for (const section of schema) {
     for (const field of (section.fields || [])) {
+      if (field.optimizer_hidden) continue
       fields.push(field)
     }
   }
