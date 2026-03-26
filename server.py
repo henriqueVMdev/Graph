@@ -1299,6 +1299,8 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
         })
 
     results_df = pd.DataFrame(results)
+    results_df.insert(0, "Ativo", symbol_label)
+    results_df.insert(1, "Timeframe", interval_label)
     results_df = results_df.sort_values(rank_by, ascending=False).reset_index(drop=True)
     results_df.index += 1
     results_df.index.name = "Rank"
