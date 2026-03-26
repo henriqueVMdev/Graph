@@ -52,11 +52,22 @@
       <!-- Results -->
       <template v-if="store.results && !store.isRunning">
         <!-- Header -->
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-gray-400">
-            <span class="font-semibold text-gray-200">{{ store.results.symbol }}</span>
-            <span v-if="store.results.interval !== '-'"> / {{ store.results.interval }}</span>
-            <span v-if="store.selectedStrategy" class="text-gray-500"> - {{ store.selectedStrategy.name }}</span>
+        <div class="card p-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-xs text-gray-500">Ativo</span>
+              <span class="font-semibold text-gray-200">{{ store.results.symbol || '-' }}</span>
+            </div>
+            <span class="text-surface-500">|</span>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-xs text-gray-500">Timeframe</span>
+              <span class="font-semibold text-gray-200">{{ store.results.interval || '-' }}</span>
+            </div>
+            <span v-if="store.selectedStrategy" class="text-surface-500">|</span>
+            <div v-if="store.selectedStrategy" class="flex items-center gap-2 text-sm">
+              <span class="text-xs text-gray-500">Estrategia</span>
+              <span class="font-semibold text-gray-200">{{ store.selectedStrategy.name }}</span>
+            </div>
           </div>
           <button
             @click="store.downloadCsv()"
