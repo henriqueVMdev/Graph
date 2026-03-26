@@ -122,4 +122,9 @@ export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, st
   })
 }
 
+// Prop Challenge API
+export function runPropChallenge(payload) {
+  return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })
+}
+
 export default api

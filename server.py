@@ -1455,6 +1455,180 @@ def _kurt_desc(val: float) -> str:
     return "normal"
 
 
+# Prop Challenge
+@app.route("/api/prop-challenge/simulate", methods=["POST"])
+def api_prop_challenge_simulate():
+    """
+    Simula desafio de mesa prop usando trades de um backtest.
+    Faz Monte Carlo reamostrando trades para estimar probabilidade de aprovacao.
+
+    Body JSON:
+    {
+      "strategy_file": "depaula",
+      "data_source": "asset",
+      "symbol": "BTC-USD",
+      "symbol_label": "Bitcoin",
+      "interval": "1d",
+      "config": { ... },
+      "account_size": 50000,
+      "num_sims": 1000
+    }
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        strategy_file = body.get("strategy_file", "depaula") or "depaula"
+        cfg_dict = body.get("config", {})
+        account_size = float(body.get("account_size", 50000))
+        num_sims = int(body.get("num_sims", 1000))
+        symbol = body.get("symbol", "")
+        symbol_label = body.get("symbol_label", symbol)
+        interval_label = body.get("interval", "1d")
+
+        if not symbol:
+            return jsonify({"error": "symbol obrigatorio"}), 400
+
+        df_data = _download_data_safe(symbol, interval_label)
+        module = _load_strategy(strategy_file)
+        result_dict = module.run(df_data.copy(), cfg_dict)
+
+        trades = result_dict.get("trades", [])
+        if len(trades) < 5:
+            return jsonify({"error": "Poucos trades para simular (minimo 5)"}), 400
+
+        pnl_pcts = [t["pnl_pct"] for t in trades]
+
+        rng = np.random.default_rng(42)
+
+        # Regras do desafio
+        phase1_target = 0.10   # +10%
+        phase2_target = 0.05   # +5%
+        max_loss = -0.10       # -10% total
+        daily_max_loss = -0.05 # -5% em um dia
+
+        def simulate_phase(pnl_pool, target, starting_balance):
+            """Simula uma fase do desafio. Retorna (passed, final_balance, equity_curve)."""
+            balance = starting_balance
+            peak = starting_balance
+            curve = [balance]
+
+            # Sorteia trades aleatorios ate atingir target ou ser reprovado
+            max_trades = len(pnl_pool) * 3  # limite para evitar loop infinito
+            for _ in range(max_trades):
+                trade_pnl_pct = rng.choice(pnl_pool)
+                pnl_value = balance * (trade_pnl_pct / 100.0)
+                balance += pnl_value
+                curve.append(balance)
+
+                # Verifica perda diaria (trade individual)
+                daily_change = (balance - curve[-2]) / curve[-2] if curve[-2] != 0 else 0
+                if daily_change <= daily_max_loss:
+                    return False, balance, curve
+
+                # Verifica perda total
+                total_change = (balance - starting_balance) / starting_balance
+                if total_change <= max_loss:
+                    return False, balance, curve
+
+                # Verifica se atingiu o alvo
+                if total_change >= target:
+                    return True, balance, curve
+
+            # Nao atingiu em max_trades
+            return False, balance, curve
+
+        # Monte Carlo
+        phase1_pass = 0
+        phase2_pass = 0
+        both_pass = 0
+        phase1_curves = []
+        phase2_curves = []
+        phase1_results = []
+        phase2_results = []
+
+        for i in range(num_sims):
+            # Fase 1
+            p1_passed, p1_balance, p1_curve = simulate_phase(
+                pnl_pcts, phase1_target, account_size
+            )
+            phase1_results.append({
+                "passed": p1_passed,
+                "final_balance": round(p1_balance, 2),
+                "pnl_pct": round((p1_balance - account_size) / account_size * 100, 2),
+                "num_trades": len(p1_curve) - 1,
+            })
+
+            if p1_passed:
+                phase1_pass += 1
+                # Fase 2: comeca com o saldo da conta original (reseta)
+                p2_passed, p2_balance, p2_curve = simulate_phase(
+                    pnl_pcts, phase2_target, account_size
+                )
+                phase2_results.append({
+                    "passed": p2_passed,
+                    "final_balance": round(p2_balance, 2),
+                    "pnl_pct": round((p2_balance - account_size) / account_size * 100, 2),
+                    "num_trades": len(p2_curve) - 1,
+                })
+                if p2_passed:
+                    phase2_pass += 1
+                    both_pass += 1
+
+            # Salva algumas curvas de exemplo (primeiras 50)
+            if i < 50:
+                phase1_curves.append([round(v, 2) for v in p1_curve])
+                if p1_passed:
+                    phase2_curves.append([round(v, 2) for v in p2_curve])
+
+        # Estatisticas dos trades originais
+        wins = [p for p in pnl_pcts if p > 0]
+        losses = [p for p in pnl_pcts if p <= 0]
+        win_rate = len(wins) / len(pnl_pcts) * 100 if pnl_pcts else 0
+        avg_win = float(np.mean(wins)) if wins else 0
+        avg_loss = float(np.mean(losses)) if losses else 0
+
+        return jsonify({
+            "account_size": account_size,
+            "num_sims": num_sims,
+            "total_trades": len(trades),
+            "symbol": symbol_label,
+            "interval": interval_label,
+            "strategy": strategy_file,
+            "trade_stats": {
+                "total": len(pnl_pcts),
+                "win_rate": round(win_rate, 2),
+                "avg_win": round(avg_win, 2),
+                "avg_loss": round(avg_loss, 2),
+                "avg_pnl": round(float(np.mean(pnl_pcts)), 4),
+            },
+            "phase1": {
+                "target_pct": phase1_target * 100,
+                "max_loss_pct": abs(max_loss) * 100,
+                "daily_max_loss_pct": abs(daily_max_loss) * 100,
+                "passed": phase1_pass,
+                "failed": num_sims - phase1_pass,
+                "pass_rate": round(phase1_pass / num_sims * 100, 2),
+            },
+            "phase2": {
+                "target_pct": phase2_target * 100,
+                "max_loss_pct": abs(max_loss) * 100,
+                "daily_max_loss_pct": abs(daily_max_loss) * 100,
+                "passed": phase2_pass,
+                "failed": phase1_pass - phase2_pass,
+                "pass_rate": round(phase2_pass / phase1_pass * 100, 2) if phase1_pass > 0 else 0,
+            },
+            "overall": {
+                "passed": both_pass,
+                "pass_rate": round(both_pass / num_sims * 100, 2),
+            },
+            "phase1_curves": phase1_curves,
+            "phase2_curves": phase2_curves,
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 if __name__ == "__main__":
     print("╔════════════════════════════════════════╗")
     print("║   Backtesting API — Flask Server       ║")

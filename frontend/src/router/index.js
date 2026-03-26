@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 import BacktestView from '@/views/BacktestView.vue'
 import OptimizerView from '@/views/OptimizerView.vue'
+import PropChallengeView from '@/views/PropChallengeView.vue'
 
 const routes = [
   {
@@ -22,6 +23,11 @@ const routes = [
     path: '/optimizer',
     name: 'optimizer',
     component: OptimizerView,
+  },
+  {
+    path: '/prop-challenge',
+    name: 'prop-challenge',
+    component: PropChallengeView,
   },
 ]
 
