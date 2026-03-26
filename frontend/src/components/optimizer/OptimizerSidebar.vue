@@ -167,11 +167,16 @@
 
     <!-- Ciclo Sazonal -->
     <section>
-      <h3 class="sidebar-title">Ciclo Sazonal</h3>
-      <p class="text-[10px] text-gray-500 mb-2">
-        Meses permitidos para LONG e SHORT quando cycle_filter estiver ativo no grid.
-      </p>
-      <div class="space-y-2">
+      <button
+        @click="showCycleMonths = !showCycleMonths"
+        class="w-full flex items-center justify-between py-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider hover:text-gray-300 transition-colors cursor-pointer"
+      >
+        <span>Ciclo Sazonal</span>
+        <svg class="w-3.5 h-3.5 transition-transform" :class="showCycleMonths ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div v-if="showCycleMonths" class="space-y-2 mt-2">
         <div>
           <p class="text-[10px] text-green-400 font-semibold mb-1">LONG</p>
           <div class="grid grid-cols-6 gap-1">
@@ -257,6 +262,7 @@ const store = useOptimizerStore()
 
 // Dropdown state
 const openDropdown = ref(null)
+const showCycleMonths = ref(false)
 
 function toggleDropdown(key) {
   openDropdown.value = openDropdown.value === key ? null : key
