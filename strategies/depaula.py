@@ -256,6 +256,8 @@ OPTIMIZER_GRIDS = {
         "use_norm":      [True, False],
         "atr_length":    [14],
         "hysteresis":    [0.1, 0.2, 0.5],
+        "use_parcial":   [False],
+        "cycle_filter":  [False],
     },
     "completo": {
         "ma_type":       ["SMA", "EMA", "HMA", "WMA"],
@@ -276,6 +278,12 @@ OPTIMIZER_GRIDS = {
         "use_norm":      [True, False],
         "atr_length":    [10, 14, 21],
         "hysteresis":    [0.0, 0.1, 0.2, 0.5],
+        "use_parcial":       [False, True],
+        "parcial_pct":       [25, 50, 75],
+        "parcial_mode":      ["Banda", "Alvo Fixo"],
+        "parcial_banda_pct": [1.0, 1.5, 2.0, 3.0],
+        "parcial_alvo_fixo": [1.0, 2.0, 3.0, 5.0],
+        "cycle_filter":      [False, True],
     },
     "custom": {
         "ma_type":       ["EMA", "SMA", "HMA"],
@@ -293,6 +301,12 @@ OPTIMIZER_GRIDS = {
         "use_norm":      [False],
         "atr_length":    [14],
         "hysteresis":    [0.2],
+        "use_parcial":       [False, True],
+        "parcial_pct":       [50],
+        "parcial_mode":      ["Banda"],
+        "parcial_banda_pct": [1.0, 1.5, 2.0],
+        "parcial_alvo_fixo": [2.0],
+        "cycle_filter":      [False, True],
     },
 }
 
@@ -329,6 +343,23 @@ def is_valid_config(params):
             return False
     if exit_mode == "Alvo Fixo + Tendência":
         if params.get("pct_up", 3.0) != 3.0:
+            return False
+
+    # Saida parcial: se desativada, params parciais devem estar no default
+    if not params.get("use_parcial", False):
+        if params.get("parcial_pct", 50.0) != 50.0:
+            return False
+        if params.get("parcial_mode", "Banda") != "Banda":
+            return False
+        if params.get("parcial_banda_pct", 1.5) != 1.5:
+            return False
+        if params.get("parcial_alvo_fixo", 2.0) != 2.0:
+            return False
+    else:
+        parcial_mode = params.get("parcial_mode", "Banda")
+        if parcial_mode == "Banda" and params.get("parcial_alvo_fixo", 2.0) != 2.0:
+            return False
+        if parcial_mode == "Alvo Fixo" and params.get("parcial_banda_pct", 1.5) != 1.5:
             return False
 
     return True

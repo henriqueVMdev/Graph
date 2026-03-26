@@ -1233,7 +1233,7 @@ def api_optimizer_progress():
         return jsonify(dict(_optimizer_progress))
 
 
-def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label):
+def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label, fixed_params=None):
     """Logica generica de otimizacao que funciona com qualquer estrategia."""
     import time
 
@@ -1259,6 +1259,8 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
         _optimizer_progress["valid"] = 0
 
     base_extra = {"initial_capital": capital}
+    if fixed_params:
+        base_extra.update(fixed_params)
     results = []
     t0 = time.time()
     stopped = False
@@ -1356,12 +1358,19 @@ def api_optimizer_run():
         if body.get("data_source", "asset") != "asset":
             return jsonify({"error": "Use upload CSV via multipart"}), 400
 
+        # Params fixos (ciclo sazonal)
+        fixed_params = {}
+        if body.get("cycle_long_months"):
+            fixed_params["cycle_long_months"] = body["cycle_long_months"]
+        if body.get("cycle_short_months"):
+            fixed_params["cycle_short_months"] = body["cycle_short_months"]
+
         df_data = _download_data_safe(symbol, interval)
         module = _load_strategy(strategy_file)
 
         return _run_optimizer_generic(
             df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
-            symbol_label, interval,
+            symbol_label, interval, fixed_params=fixed_params,
         )
 
     except Exception as e:
@@ -1399,11 +1408,20 @@ def api_optimizer_run_csv():
         if df_data is None:
             return jsonify({"error": "Nao foi possivel ler o CSV"}), 400
 
+        # Params fixos (ciclo sazonal)
+        fixed_params = {}
+        cycle_long = request.form.get("cycle_long_months")
+        cycle_short = request.form.get("cycle_short_months")
+        if cycle_long:
+            fixed_params["cycle_long_months"] = json.loads(cycle_long)
+        if cycle_short:
+            fixed_params["cycle_short_months"] = json.loads(cycle_short)
+
         module = _load_strategy(strategy_file)
 
         return _run_optimizer_generic(
             df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
-            file_obj.filename or "CSV", "-",
+            file_obj.filename or "CSV", "-", fixed_params=fixed_params,
         )
 
     except Exception as e:

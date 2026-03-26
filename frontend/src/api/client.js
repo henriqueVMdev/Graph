@@ -105,7 +105,7 @@ export function runOptimizer(payload) {
   return api.post('/optimizer/run', payload, { timeout: 600000 })
 }
 
-export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, strategyFile = 'depaula') {
+export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, strategyFile = 'depaula', cycleLongMonths = null, cycleShortMonths = null) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('grid', JSON.stringify(grid))
@@ -114,6 +114,8 @@ export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, st
   formData.append('rank_by', rankBy)
   formData.append('top_n', topN)
   formData.append('strategy_file', strategyFile)
+  if (cycleLongMonths) formData.append('cycle_long_months', JSON.stringify(cycleLongMonths))
+  if (cycleShortMonths) formData.append('cycle_short_months', JSON.stringify(cycleShortMonths))
   return api.post('/optimizer/run-csv', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 600000,

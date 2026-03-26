@@ -38,6 +38,10 @@ export const useOptimizerStore = defineStore('optimizer', () => {
   const customGrid = ref({})
   const useCustomGrid = ref(false)
 
+  // Ciclo sazonal (params fixos, nao variam no grid)
+  const cycleLongMonths = ref([1,2,3,4,5,6,7,8,9,10,11,12])
+  const cycleShortMonths = ref([1,2,3,4,5,6,7,8,9,10,11,12])
+
   // Backtest config
   const capital = ref(1000)
   const minTrades = ref(5)
@@ -186,6 +190,8 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           rankBy.value,
           topN.value,
           strategyFile.value,
+          cycleLongMonths.value,
+          cycleShortMonths.value,
         )
       } else {
         resp = await runOptimizer({
@@ -201,6 +207,8 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           top_n: topN.value,
           start_date: startDate.value || null,
           end_date: endDate.value || null,
+          cycle_long_months: cycleLongMonths.value,
+          cycle_short_months: cycleShortMonths.value,
         })
       }
       results.value = resp.data
@@ -272,6 +280,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     dataSource, selectedCategory, selectedAssetLabel, selectedSymbol,
     interval, csvFile, startDate, endDate,
     gridMode, customGrid, useCustomGrid, activeGrid, strategyFile,
+    cycleLongMonths, cycleShortMonths,
     capital, minTrades, rankBy, topN,
     isRunning, comboCount, results, error, progress,
     fetchAssets, fetchStrategies, selectStrategy, fetchGrids,

@@ -165,6 +165,44 @@
       <input type="number" v-model.number="store.topN" min="5" max="200" class="input-field mb-2" />
     </section>
 
+    <!-- Ciclo Sazonal -->
+    <section>
+      <h3 class="sidebar-title">Ciclo Sazonal</h3>
+      <p class="text-[10px] text-gray-500 mb-2">
+        Meses permitidos para LONG e SHORT quando cycle_filter estiver ativo no grid.
+      </p>
+      <div class="space-y-2">
+        <div>
+          <p class="text-[10px] text-green-400 font-semibold mb-1">LONG</p>
+          <div class="grid grid-cols-6 gap-1">
+            <button
+              v-for="m in months"
+              :key="'L' + m.n"
+              @click="toggleMonth('long', m.n)"
+              class="py-1 text-[10px] rounded font-medium transition-colors"
+              :class="store.cycleLongMonths.includes(m.n)
+                ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                : 'bg-surface-600 text-gray-500 border border-surface-500'"
+            >{{ m.label }}</button>
+          </div>
+        </div>
+        <div>
+          <p class="text-[10px] text-red-400 font-semibold mb-1">SHORT</p>
+          <div class="grid grid-cols-6 gap-1">
+            <button
+              v-for="m in months"
+              :key="'S' + m.n"
+              @click="toggleMonth('short', m.n)"
+              class="py-1 text-[10px] rounded font-medium transition-colors"
+              :class="store.cycleShortMonths.includes(m.n)
+                ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                : 'bg-surface-600 text-gray-500 border border-surface-500'"
+            >{{ m.label }}</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Combo count + run -->
     <section>
       <div class="flex items-center justify-between text-gray-400 mb-2">
@@ -264,6 +302,21 @@ const vClickOutside = {
   unmounted(el) {
     document.removeEventListener('mousedown', el._clickOutside)
   },
+}
+
+// Meses para ciclo sazonal
+const months = [
+  { n: 1, label: 'Jan' }, { n: 2, label: 'Fev' }, { n: 3, label: 'Mar' },
+  { n: 4, label: 'Abr' }, { n: 5, label: 'Mai' }, { n: 6, label: 'Jun' },
+  { n: 7, label: 'Jul' }, { n: 8, label: 'Ago' }, { n: 9, label: 'Set' },
+  { n: 10, label: 'Out' }, { n: 11, label: 'Nov' }, { n: 12, label: 'Dez' },
+]
+
+function toggleMonth(type, monthNum) {
+  const arr = type === 'long' ? store.cycleLongMonths : store.cycleShortMonths
+  const idx = arr.indexOf(monthNum)
+  if (idx >= 0) arr.splice(idx, 1)
+  else arr.push(monthNum)
 }
 
 // Grid modes disponiveis
