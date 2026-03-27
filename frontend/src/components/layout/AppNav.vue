@@ -8,14 +8,14 @@
         class="nav-link"
         :class="{ active: route.path === '/dashboard' }"
       >
-        Dashboard
+        Parametros
       </RouterLink>
       <RouterLink
         to="/backtest"
         class="nav-link"
         :class="{ active: route.path === '/backtest' }"
       >
-        Backtesting Live
+        Backtesting
       </RouterLink>
       <RouterLink
         to="/optimizer"
