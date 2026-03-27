@@ -38,7 +38,6 @@ export const useBacktestStore = defineStore('backtest', () => {
   const correlationData = ref(null)
   const correlationLoading = ref(false)
   const correlationError = ref(null)
-  const selectedCompareLabels = ref([])
 
   // ─── Computed ─────────────────────────────────────────────────────────────
 
@@ -178,7 +177,6 @@ export const useBacktestStore = defineStore('backtest', () => {
     dataSource, selectedAssetLabel, selectedSymbol, interval, csvFile,
     isRunning, results, error,
     correlationData, correlationLoading, correlationError,
-    selectedCompareLabels,
     fetchAssets, fetchStrategies, selectStrategy,
     applyPendingParams, runBacktest, fetchCorrelation,
   }

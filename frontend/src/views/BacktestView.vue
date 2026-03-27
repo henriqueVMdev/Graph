@@ -38,10 +38,6 @@
 
       <!-- No results placeholder -->
       <div v-if="!store.results && !store.isRunning" class="flex flex-col items-center justify-center h-64 text-center">
-        <svg class="w-12 h-12 text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
         <p class="text-gray-400 text-sm">Configure os parâmetros e clique em "Executar Backtest"</p>
       </div>
 

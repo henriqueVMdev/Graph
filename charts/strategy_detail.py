@@ -3,22 +3,6 @@ import streamlit as st
 from config import COLUMN_DISPLAY
 
 
-# Mapeamento dos campos do CSV para os parametros do backtesting
-PARAM_MAP = {
-    "ma": "bt_ma_type",
-    "periodo": "bt_ma_length",
-    "lookback": "bt_lookback",
-    "angulo": "bt_th_up",
-    "saida": "bt_exit_mode",
-    "banda_pct": "bt_pct_up",
-    "alvo_fixo_pct": "bt_alvo_fixo",
-    "flat": "bt_exit_on_flat",
-    "stop": "bt_stop",
-    "stop_param": "bt_stop_param",
-    "pullback": "bt_use_pullback",
-    "entry_zone": "bt_use_entry_zone",
-}
-
 
 def _copy_params_to_backtest(row: pd.Series):
     """Copia parametros da estrategia selecionada para o session_state do backtesting."""

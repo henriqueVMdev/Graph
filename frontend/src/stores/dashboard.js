@@ -7,8 +7,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const files = ref([])
   const rawRows = ref([])        // Dataset completo (sem filtros)
   const asset = ref('')
-  const filename = ref('')
-  const filterRanges = ref({})   // Ranges reais do CSV para os sliders
   const filters = ref({
     min_trades: 0,
     min_sharpe: null,
@@ -65,8 +63,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
   function _applyLoadResponse(data) {
     rawRows.value = data.raw_rows || []
     asset.value = data.asset || ''
-    filename.value = data.filename || ''
-    filterRanges.value = data.filter_ranges || {}
     summary.value = data.summary || null
     charts.value = data.charts || {}
     table.value = data.table || []
@@ -129,7 +125,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   return {
-    files, rawRows, asset, filename, filterRanges, filters,
+    files, rawRows, asset, filters,
     summary, charts, table, bestParams,
     selectedRank, selectedDetail, backtestParams,
     loading, error, hasData, filteredCount,

@@ -15,7 +15,7 @@
             <!-- 1º select: Categoria -->
             <select
               v-model="slot.catName"
-              @change="slot.label = null; slot.ticker = null; syncStoreLabels()"
+              @change="slot.label = null; slot.ticker = null"
               class="bg-surface-700 border border-surface-500 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-accent-yellow transition-colors appearance-none cursor-pointer"
               style="min-width:150px;"
             >
@@ -27,7 +27,7 @@
             <select
               v-model="slot.label"
               :disabled="!slot.catName"
-              @change="slot.ticker = store.assets[slot.catName]?.[slot.label]; syncStoreLabels()"
+              @change="slot.ticker = store.assets[slot.catName]?.[slot.label]"
               class="border text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition-colors appearance-none"
               :class="slot.catName
                 ? 'bg-surface-700 border-surface-500 text-gray-200 focus:border-accent-yellow cursor-pointer'
@@ -312,13 +312,6 @@ function addSlot() {
 
 function removeSlot(si) {
   slots.value.splice(si, 1)
-  syncStoreLabels()
-}
-
-function syncStoreLabels() {
-  store.selectedCompareLabels = slots.value
-    .filter(s => s.label)
-    .map(s => s.label)
 }
 
 const selectedSlotCount = computed(() => slots.value.filter(s => s.label).length)

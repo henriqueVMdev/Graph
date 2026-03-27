@@ -246,19 +246,6 @@ CONFIG_SCHEMA = [
             },
         ],
     },
-    {
-        "title": "Capital",
-        "fields": [
-            {
-                "key": "initial_capital",
-                "label": "Capital Inicial",
-                "type": "number",
-                "default": 1000.0,
-                "min": 100,
-                "step": 100,
-            },
-        ],
-    },
 ]
 
 

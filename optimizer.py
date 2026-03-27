@@ -17,7 +17,6 @@ import pandas as pd
 from dataclasses import asdict
 from typing import Dict, List, Any
 import argparse
-import sys
 import time
 
 from backtesting import (
@@ -244,11 +243,7 @@ def optimize(df: pd.DataFrame, grid: Dict, base_cfg: Config, rank_by: str = "Sco
     print(f"\n  Combinações a testar: {total}")
 
     if total > 50000:
-        print(f"  AVISO: Muitas combinações! Considere usar --mode rapido")
-        print(f"  Estimativa: ~{total * 0.05:.0f} segundos")
-        resp = input("  Continuar? (s/n): ").strip().lower()
-        if resp != "s":
-            sys.exit(0)
+        print(f"  AVISO: {total} combinações — pode demorar ~{total * 0.05:.0f}s")
 
     results = []
     t0 = time.time()
