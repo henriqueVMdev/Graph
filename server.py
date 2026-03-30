@@ -1062,9 +1062,50 @@ def api_backtest_validate():
         avg_loss  = float(np.mean(losses)) if losses else 0.0
         expectancy = win_rate / 100 * avg_win + (1 - win_rate / 100) * avg_loss
 
+        # Sortino
+        neg_pnls = [p for p in pnls if p < 0]
+        ds_std = float(np.std(neg_pnls)) if len(neg_pnls) > 1 else 0
+        sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0.0
+
+        # Calmar
+        ic_val = float(metrics_in.get("initial_capital", arr_eq[0]))
+        n_days = len(arr_eq)
+        cagr = ((arr_eq[-1] / ic_val) ** (252 / n_days) - 1) * 100 if n_days > 0 and ic_val > 0 else 0
+        max_dd_val = float(metrics_in.get("max_dd", 0)) or 0
+        calmar = float(cagr / abs(max_dd_val)) if abs(max_dd_val) > 0 else 0.0
+
+        # Omega
+        gains_sum = sum(p for p in pnls if p > 0)
+        losses_sum = abs(sum(p for p in pnls if p < 0))
+        omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0.0
+
+        # Sterling (CAGR / media dos N piores drawdowns)
+        peak_eq = np.maximum.accumulate(arr_eq)
+        dd_eq = (arr_eq - peak_eq) / peak_eq * 100
+        dd_neg = dd_eq[dd_eq < 0]
+        n_worst = min(5, len(dd_neg))
+        if n_worst > 0:
+            worst_dds = sorted(dd_neg)[:n_worst]
+            avg_worst = abs(float(np.mean(worst_dds)))
+            sterling = float(cagr / avg_worst) if avg_worst > 0 else 0.0
+        else:
+            sterling = 0.0
+
+        # Burke (CAGR / sqrt(soma dos N piores drawdowns^2))
+        if n_worst > 0:
+            burke_denom = float(np.sqrt(np.sum(np.array(worst_dds) ** 2)))
+            burke = float(cagr / burke_denom) if burke_denom > 0 else 0.0
+        else:
+            burke = 0.0
+
         original = {
             **{k: _safe(v) for k, v in metrics_in.items()},
             "sharpe":     _safe(sharpe),
+            "sortino":    _safe(sortino),
+            "calmar":     _safe(calmar),
+            "omega":      _safe(omega),
+            "sterling":   _safe(sterling),
+            "burke":      _safe(burke),
             "avg_win":    _safe(avg_win),
             "avg_loss":   _safe(avg_loss),
             "expectancy": _safe(expectancy),
@@ -1178,6 +1219,32 @@ def _calc_optimizer_row(result, params, param_labels):
     else:
         sharpe = 0.0
 
+    # Sortino
+    neg_pnls = [p for p in pnls if p < 0]
+    ds_std = float(np.std(neg_pnls)) if len(neg_pnls) > 1 else 0
+    sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0.0
+
+    # Calmar
+    calmar = float(total_return / abs(max_dd)) if abs(max_dd) > 0 else 0.0
+
+    # Omega
+    gains_sum = sum(p for p in pnls if p > 0)
+    losses_sum = abs(sum(p for p in pnls if p < 0))
+    omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0.0
+
+    # Sterling (total_return / media dos N piores drawdowns)
+    eq_vals = [t.get("_equity", 0) for t in trades]
+    sterling = 0.0
+    burke = 0.0
+    if abs(max_dd) > 0 and len(pnls) > 0:
+        neg_pnls_sorted = sorted([p for p in pnls if p < 0])
+        n_w = min(5, len(neg_pnls_sorted))
+        if n_w > 0:
+            avg_worst = abs(float(np.mean(neg_pnls_sorted[:n_w])))
+            sterling = float(total_return / avg_worst) if avg_worst > 0 else 0.0
+            burke_d = float(np.sqrt(np.sum(np.array(neg_pnls_sorted[:n_w]) ** 2)))
+            burke = float(total_return / burke_d) if burke_d > 0 else 0.0
+
     # Score composto
     score = total_return * (win_rate / 100) / max(abs(max_dd), 1)
 
@@ -1190,6 +1257,11 @@ def _calc_optimizer_row(result, params, param_labels):
         "Avg Loss (%)": round(avg_loss, 2),
         "Profit Factor": round(pf, 2),
         "Sharpe": round(sharpe, 2),
+        "Sortino": round(sortino, 2),
+        "Calmar": round(calmar, 2),
+        "Omega": round(omega, 2),
+        "Sterling": round(sterling, 2),
+        "Burke": round(burke, 2),
         "Score": round(score, 2),
     }
     # Adiciona parametros com labels amigaveis

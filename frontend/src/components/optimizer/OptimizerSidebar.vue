@@ -158,7 +158,7 @@
 
       <label class="label">Rankear por</label>
       <select v-model="store.rankBy" class="input-field mb-2">
-        <option v-for="r in ['Score','Retorno (%)','Sharpe','Profit Factor','Win Rate (%)']" :key="r" :value="r">{{ r }}</option>
+        <option v-for="r in ['Score','Retorno (%)','Sharpe','Sortino','Calmar','Omega','Sterling','Burke','Profit Factor','Win Rate (%)']" :key="r" :value="r">{{ r }}</option>
       </select>
 
       <label class="label">Top-N</label>

@@ -463,6 +463,39 @@ def run(df, params: dict) -> dict:
     dd = (eq - peak) / peak * 100
     max_dd = float(dd.min())
 
+    # Sortino (downside deviation only)
+    pnls = [t.pnl_pct for t in trades]
+    neg = [p for p in pnls if p < 0]
+    downside_std = float(np.std(neg)) if len(neg) > 1 else 0
+    sortino = float(np.mean(pnls) / downside_std * np.sqrt(len(pnls))) if downside_std > 0 else 0
+
+    # Calmar (CAGR / |max_dd|)
+    n_days = len(bt_df)
+    cagr = ((result.equity / cfg.initial_capital) ** (252 / n_days) - 1) * 100 if n_days > 0 else 0
+    calmar = float(cagr / abs(max_dd)) if abs(max_dd) > 0 else 0
+
+    # Omega (integral gains / integral losses acima/abaixo de threshold=0)
+    gains_sum = sum(p for p in pnls if p > 0)
+    losses_sum = abs(sum(p for p in pnls if p < 0))
+    omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0
+
+    # Sterling (CAGR / media dos N piores drawdowns)
+    dd_series = dd[dd < 0]
+    n_worst = min(5, len(dd_series))
+    if n_worst > 0:
+        worst_dds = sorted(dd_series)[:n_worst]
+        avg_worst_dd = abs(float(np.mean(worst_dds)))
+        sterling = float(cagr / avg_worst_dd) if avg_worst_dd > 0 else 0
+    else:
+        sterling = 0
+
+    # Burke (CAGR / sqrt(soma dos drawdowns^2))
+    if len(dd_series) > 0:
+        burke_denom = float(np.sqrt(np.sum(np.array(sorted(dd_series)[:n_worst]) ** 2)))
+        burke = float(cagr / burke_denom) if burke_denom > 0 else 0
+    else:
+        burke = 0
+
     # ── Equity curve ──────────────────────────────────────────────────────
     dates = [str(idx)[:10] for idx in bt_df.index]
     equity_values = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
@@ -495,6 +528,11 @@ def run(df, params: dict) -> dict:
             "profit_factor": _safe(profit_factor),
             "avg_win": _safe(avg_win),
             "avg_loss": _safe(avg_loss),
+            "sortino": _safe(sortino),
+            "calmar": _safe(calmar),
+            "omega": _safe(omega),
+            "sterling": _safe(sterling),
+            "burke": _safe(burke),
             "initial_capital": float(cfg.initial_capital),
         },
         "equity_curve": {

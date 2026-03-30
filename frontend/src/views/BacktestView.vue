@@ -54,8 +54,14 @@
           <span v-if="store.results.interval !== '-'"> · {{ store.results.interval }}</span>
         </div>
 
-        <!-- 6 metric cards -->
+        <!-- Metric cards -->
         <MetricCards :metrics="store.results.metrics" />
+
+        <!-- Risk Radar -->
+        <div class="card p-4">
+          <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Radar de Risco</h2>
+          <RiskRadar :metrics="store.results.metrics" />
+        </div>
 
         <!-- Equity curve -->
         <div class="card p-4">
@@ -93,6 +99,7 @@ function toggleSidebar() {
 import { useBacktestStore } from '@/stores/backtest.js'
 import BacktestSidebar from '@/components/backtest/BacktestSidebar.vue'
 import MetricCards from '@/components/backtest/MetricCards.vue'
+import RiskRadar from '@/components/backtest/RiskRadar.vue'
 import EquityCurve from '@/components/backtest/EquityCurve.vue'
 import MonteCarloSection from '@/components/backtest/MonteCarloSection.vue'
 import CorrelationSection from '@/components/backtest/CorrelationSection.vue'

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-11 gap-3">
     <div class="metric-card">
       <span class="metric-label">Capital Final</span>
       <span class="metric-value text-gray-100">${{ fmtMoney(metrics.final_equity) }}</span>
@@ -30,6 +30,36 @@
         :class="metrics.profit_factor == null ? 'text-gray-400' : metrics.profit_factor >= 1.5 ? 'text-accent-green-light' : metrics.profit_factor >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'"
       >
         {{ metrics.profit_factor != null ? Number(metrics.profit_factor).toFixed(2) : '∞' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Sortino</span>
+      <span class="metric-value" :class="(metrics.sortino ?? 0) >= 1 ? 'text-accent-green-light' : 'text-gray-100'">
+        {{ metrics.sortino != null ? Number(metrics.sortino).toFixed(2) : '-' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Calmar</span>
+      <span class="metric-value" :class="(metrics.calmar ?? 0) >= 3 ? 'text-accent-green-light' : (metrics.calmar ?? 0) >= 1 ? 'text-accent-yellow' : 'text-gray-100'">
+        {{ metrics.calmar != null ? Number(metrics.calmar).toFixed(2) : '-' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Omega</span>
+      <span class="metric-value" :class="(metrics.omega ?? 0) >= 1.5 ? 'text-accent-green-light' : (metrics.omega ?? 0) >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
+        {{ metrics.omega != null ? Number(metrics.omega).toFixed(2) : '-' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Sterling</span>
+      <span class="metric-value" :class="(metrics.sterling ?? 0) >= 3 ? 'text-accent-green-light' : (metrics.sterling ?? 0) >= 1 ? 'text-accent-yellow' : 'text-gray-100'">
+        {{ metrics.sterling != null ? Number(metrics.sterling).toFixed(2) : '-' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Burke</span>
+      <span class="metric-value" :class="(metrics.burke ?? 0) >= 1 ? 'text-accent-green-light' : 'text-gray-100'">
+        {{ metrics.burke != null ? Number(metrics.burke).toFixed(2) : '-' }}
       </span>
     </div>
   </div>

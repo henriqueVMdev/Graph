@@ -194,8 +194,32 @@ def calc_metrics(st: BacktestState, cfg: Config) -> Dict[str, Any]:
     else:
         sharpe = 0
 
+    # Sortino (downside deviation only)
+    neg = [p for p in pnls if p < 0]
+    ds_std = float(np.std(neg)) if len(neg) > 1 else 0
+    sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0
+
+    # Calmar (retorno / |max_dd|)
+    calmar = float(total_return / abs(max_dd)) if abs(max_dd) > 0 else 0
+
+    # Omega (soma ganhos / soma perdas)
+    gains_sum = sum(p for p in pnls if p > 0)
+    losses_sum = abs(sum(p for p in pnls if p < 0))
+    omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0
+
+    # Sterling (retorno / media dos N piores perdas)
+    neg_sorted = sorted(neg)
+    n_w = min(5, len(neg_sorted))
+    if n_w > 0:
+        avg_worst = abs(float(np.mean(neg_sorted[:n_w])))
+        sterling = float(total_return / avg_worst) if avg_worst > 0 else 0
+        burke_d = float(np.sqrt(np.sum(np.array(neg_sorted[:n_w]) ** 2)))
+        burke = float(total_return / burke_d) if burke_d > 0 else 0
+    else:
+        sterling = 0
+        burke = 0
+
     # Score composto: penaliza drawdown, valoriza consistência
-    # Score = Retorno * (WinRate/100) / max(|MaxDD|, 1)
     score = total_return * (win_rate / 100) / max(abs(max_dd), 1)
 
     return {
@@ -207,6 +231,11 @@ def calc_metrics(st: BacktestState, cfg: Config) -> Dict[str, Any]:
         "Avg Loss (%)": round(avg_loss, 2),
         "Profit Factor": round(profit_factor, 2),
         "Sharpe": round(sharpe, 2),
+        "Sortino": round(sortino, 2),
+        "Calmar": round(calmar, 2),
+        "Omega": round(omega, 2),
+        "Sterling": round(sterling, 2),
+        "Burke": round(burke, 2),
         "Score": round(score, 2),
         # Parâmetros
         "MA": cfg.ma_type,
@@ -369,7 +398,7 @@ def main():
                         help="Tamanho do grid de busca")
     parser.add_argument("--top", type=int, default=10, help="Quantos resultados mostrar (default: 10)")
     parser.add_argument("--rank-by", type=str, default="Score",
-                        choices=["Score", "Retorno (%)", "Sharpe", "Profit Factor", "Win Rate (%)"],
+                        choices=["Score", "Retorno (%)", "Sharpe", "Sortino", "Calmar", "Omega", "Sterling", "Burke", "Profit Factor", "Win Rate (%)"],
                         help="Métrica para ranking (default: Score)")
     parser.add_argument("--capital", type=float, default=1000.0)
     parser.add_argument("--start-date", type=str, default=None)
