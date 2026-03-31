@@ -496,6 +496,55 @@ def run(df, params: dict) -> dict:
     else:
         burke = 0
 
+    # ── Drawdown analytics ────────────────────────────────────────────────
+    # Recovery Factor: retorno liquido / |max drawdown|
+    net_profit = result.equity - cfg.initial_capital
+    recovery_factor = _safe(float(net_profit / abs(max_dd * cfg.initial_capital / 100))) if max_dd < 0 else None
+
+    # Ulcer Index: sqrt(mean(dd^2)) — penaliza drawdowns longos e profundos
+    ulcer_index = _safe(float(np.sqrt(np.mean(dd ** 2)))) if len(dd) > 0 else None
+
+    # Episodios de drawdown: sequencias continuas com dd < 0
+    dd_episodes = []
+    in_dd = False
+    ep_start = None
+    ep_peak_idx = None
+    for k, val in enumerate(dd):
+        if val < 0 and not in_dd:
+            in_dd = True
+            ep_start = k
+            ep_peak_idx = k
+        elif val < 0 and in_dd:
+            if val < dd[ep_peak_idx]:
+                ep_peak_idx = k
+        elif val >= 0 and in_dd:
+            in_dd = False
+            ep_trough = float(dd[ep_start:k].min())
+            ep_len    = k - ep_start
+            dd_episodes.append({
+                "start": dates[ep_start] if ep_start < len(bt_df) else None,
+                "end":   dates[k - 1]   if (k - 1) < len(bt_df) else None,
+                "trough": _safe(ep_trough),
+                "length_bars": ep_len,
+            })
+    # Episodio ainda aberto no final da serie
+    if in_dd and ep_start is not None:
+        ep_trough = float(dd[ep_start:].min())
+        dd_episodes.append({
+            "start": dates[ep_start],
+            "end":   dates[-1],
+            "trough": _safe(ep_trough),
+            "length_bars": len(dd) - ep_start,
+        })
+
+    avg_dd       = _safe(float(np.mean([e["trough"] for e in dd_episodes]))) if dd_episodes else None
+    avg_dd_len   = _safe(float(np.mean([e["length_bars"] for e in dd_episodes]))) if dd_episodes else None
+    n_dd_episodes = len(dd_episodes)
+
+    # Serie de drawdown diario para o grafico
+    dd_dates  = dates
+    dd_values = [_safe(float(v)) for v in dd.tolist()]
+
     # ── Equity curve ──────────────────────────────────────────────────────
     dates = [str(idx)[:10] for idx in bt_df.index]
     equity_values = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
@@ -533,7 +582,17 @@ def run(df, params: dict) -> dict:
             "omega": _safe(omega),
             "sterling": _safe(sterling),
             "burke": _safe(burke),
+            "recovery_factor": recovery_factor,
+            "ulcer_index": ulcer_index,
+            "avg_dd": avg_dd,
+            "avg_dd_length": avg_dd_len,
+            "n_dd_episodes": n_dd_episodes,
             "initial_capital": float(cfg.initial_capital),
+        },
+        "drawdown": {
+            "dates":    dd_dates,
+            "values":   dd_values,
+            "episodes": dd_episodes,
         },
         "equity_curve": {
             "dates": dates,

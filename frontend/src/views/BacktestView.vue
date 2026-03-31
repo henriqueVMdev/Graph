@@ -73,6 +73,15 @@
           />
         </div>
 
+        <!-- Drawdown -->
+        <div class="card p-4">
+          <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Analise de Drawdown</h2>
+          <DrawdownSection
+            :metrics="store.results.metrics"
+            :drawdown="store.results.drawdown"
+          />
+        </div>
+
         <!-- Walk-Forward Analysis -->
         <div class="card p-4">
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Walk-Forward Analysis</h2>
@@ -110,6 +119,7 @@ import EquityCurve from '@/components/backtest/EquityCurve.vue'
 import MonteCarloSection from '@/components/backtest/MonteCarloSection.vue'
 import CorrelationSection from '@/components/backtest/CorrelationSection.vue'
 import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
+import DrawdownSection from '@/components/backtest/DrawdownSection.vue'
 
 const store = useBacktestStore()
 const paramsBanner = ref(false)
