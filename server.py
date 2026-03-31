@@ -1373,8 +1373,9 @@ def api_backtest_validate():
 
 # Estado global do otimizador (cancel + progresso)
 _optimizer_cancel = threading.Event()
-_optimizer_progress = {"current": 0, "total": 0, "valid": 0}
+_optimizer_progress = {"current": 0, "total": 0, "valid": 0, "status": "idle"}
 _optimizer_lock = threading.Lock()
+_optimizer_result_store = {"data": None, "error": None}
 
 
 def _parse_grid_generic(grid_raw, schema):
@@ -1556,8 +1557,8 @@ def api_optimizer_progress():
         return jsonify(dict(_optimizer_progress))
 
 
-def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label, fixed_params=None):
-    """Logica generica de otimizacao que funciona com qualquer estrategia."""
+def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label, fixed_params=None):
+    """Logica generica de otimizacao. Retorna (data_dict, error_str) — sem jsonify."""
     import time
 
     schema = getattr(module, "CONFIG_SCHEMA", [])
@@ -1570,16 +1571,16 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
     total = len(combos)
 
     if total == 0:
-        return jsonify({"error": "Nenhuma combinacao gerada. Verifique o grid."}), 400
+        return None, "Nenhuma combinacao gerada. Verifique o grid."
     if total > 100000:
-        return jsonify({"error": f"Grid muito grande ({total} combinacoes). Reduza os parametros."}), 400
+        return None, f"Grid muito grande ({total} combinacoes). Reduza os parametros."
 
-    # Reset cancel flag e progresso
     _optimizer_cancel.clear()
     with _optimizer_lock:
         _optimizer_progress["current"] = 0
         _optimizer_progress["total"] = total
         _optimizer_progress["valid"] = 0
+        _optimizer_progress["status"] = "running"
 
     base_extra = {"initial_capital": capital}
     if fixed_params:
@@ -1609,21 +1610,17 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
     elapsed = time.time() - t0
     tested = _optimizer_progress["current"]
 
-    # Reset progresso
-    with _optimizer_lock:
-        _optimizer_progress["current"] = 0
-        _optimizer_progress["total"] = 0
-        _optimizer_progress["valid"] = 0
-
     if not results:
-        return jsonify({
+        return {
             "results": [], "total_tested": tested, "valid_count": 0,
             "elapsed": round(elapsed, 1), "best": None, "stopped": stopped,
-        })
+        }, None
 
     results_df = pd.DataFrame(results)
-    results_df.insert(0, "Ativo", symbol_label)
-    results_df.insert(1, "Timeframe", interval_label)
+    from datetime import datetime as _dt
+    results_df.insert(0, "Data", _dt.now().strftime("%Y-%m-%d %H:%M"))
+    results_df.insert(1, "Ativo", symbol_label)
+    results_df.insert(2, "Timeframe", interval_label)
     results_df = results_df.sort_values(rank_by, ascending=False).reset_index(drop=True)
     results_df.index += 1
     results_df.index.name = "Rank"
@@ -1645,11 +1642,10 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
     best = {k: _safe(v) if isinstance(v, float) else v for k, v in best_row.to_dict().items()}
     csv_string = results_df.to_csv(index=True, index_label="Rank", encoding="utf-8-sig")
 
-    # Colunas de metricas e parametros para o frontend
     metric_cols = ["Retorno (%)", "Max DD (%)", "Trades", "Win Rate (%)", "Profit Factor", "Sharpe", "Score"]
     param_cols = [param_labels.get(k, k) for k in sorted(typed_grid.keys())]
 
-    return jsonify({
+    return {
         "results": all_records,
         "total_tested": tested,
         "valid_count": len(results),
@@ -1662,12 +1658,51 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
         "metric_columns": metric_cols,
         "param_columns": param_cols,
         "stopped": stopped,
-    })
+    }, None
+
+
+def _optimizer_worker(df_data, module, grid_raw, capital, min_trades, rank_by, top_n, symbol_label, interval_label, fixed_params):
+    """Executa a otimizacao em background thread e armazena o resultado."""
+    try:
+        data, err = _run_optimizer_compute(
+            df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
+            symbol_label, interval_label, fixed_params,
+        )
+        if err:
+            _optimizer_result_store["data"] = None
+            _optimizer_result_store["error"] = err
+            with _optimizer_lock:
+                _optimizer_progress["status"] = "error"
+        else:
+            _optimizer_result_store["data"] = data
+            _optimizer_result_store["error"] = None
+            with _optimizer_lock:
+                _optimizer_progress["status"] = "done"
+    except Exception as e:
+        import traceback as _tb
+        _optimizer_result_store["data"] = None
+        _optimizer_result_store["error"] = str(e) + "\n" + _tb.format_exc()
+        with _optimizer_lock:
+            _optimizer_progress["status"] = "error"
+
+
+@app.route("/api/optimizer/result", methods=["GET"])
+def api_optimizer_result():
+    """Retorna o resultado armazenado da ultima otimizacao."""
+    with _optimizer_lock:
+        status = _optimizer_progress.get("status", "idle")
+    if status in ("starting", "running"):
+        return jsonify({"status": status}), 202
+    if _optimizer_result_store["error"]:
+        return jsonify({"error": _optimizer_result_store["error"]}), 500
+    if _optimizer_result_store["data"] is None:
+        return jsonify({"error": "Nenhum resultado disponivel"}), 404
+    return jsonify(_optimizer_result_store["data"])
 
 
 @app.route("/api/optimizer/run", methods=["POST"])
 def api_optimizer_run():
-    """Roda a otimizacao completa para qualquer estrategia."""
+    """Inicia a otimizacao em background e retorna imediatamente."""
     try:
         body = request.get_json(force=True) or {}
         strategy_file = body.get("strategy_file", "depaula")
@@ -1683,7 +1718,6 @@ def api_optimizer_run():
         if body.get("data_source", "asset") != "asset":
             return jsonify({"error": "Use upload CSV via multipart"}), 400
 
-        # Params fixos (ciclo sazonal)
         fixed_params = {}
         if body.get("cycle_long_months"):
             fixed_params["cycle_long_months"] = body["cycle_long_months"]
@@ -1693,10 +1727,20 @@ def api_optimizer_run():
         df_data = _download_data_safe(symbol, interval)
         module = _load_strategy(strategy_file)
 
-        return _run_optimizer_generic(
-            df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
-            symbol_label, interval, fixed_params=fixed_params,
+        _optimizer_result_store["data"] = None
+        _optimizer_result_store["error"] = None
+        with _optimizer_lock:
+            _optimizer_progress["status"] = "starting"
+
+        t = threading.Thread(
+            target=_optimizer_worker,
+            args=(df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
+                  symbol_label, interval, fixed_params),
+            daemon=True,
         )
+        t.start()
+
+        return jsonify({"status": "started"})
 
     except Exception as e:
         import traceback
@@ -1705,7 +1749,7 @@ def api_optimizer_run():
 
 @app.route("/api/optimizer/run-csv", methods=["POST"])
 def api_optimizer_run_csv():
-    """Roda otimizacao com dados de CSV upload para qualquer estrategia."""
+    """Inicia otimizacao com CSV em background e retorna imediatamente."""
     try:
         if "file" not in request.files:
             return jsonify({"error": "Arquivo CSV obrigatorio"}), 400
@@ -1733,7 +1777,6 @@ def api_optimizer_run_csv():
         if df_data is None:
             return jsonify({"error": "Nao foi possivel ler o CSV"}), 400
 
-        # Params fixos (ciclo sazonal)
         fixed_params = {}
         cycle_long = request.form.get("cycle_long_months")
         cycle_short = request.form.get("cycle_short_months")
@@ -1744,10 +1787,20 @@ def api_optimizer_run_csv():
 
         module = _load_strategy(strategy_file)
 
-        return _run_optimizer_generic(
-            df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
-            file_obj.filename or "CSV", "-", fixed_params=fixed_params,
+        _optimizer_result_store["data"] = None
+        _optimizer_result_store["error"] = None
+        with _optimizer_lock:
+            _optimizer_progress["status"] = "starting"
+
+        t = threading.Thread(
+            target=_optimizer_worker,
+            args=(df_data, module, grid_raw, capital, min_trades, rank_by, top_n,
+                  file_obj.filename or "CSV", "-", fixed_params),
+            daemon=True,
         )
+        t.start()
+
+        return jsonify({"status": "started"})
 
     except Exception as e:
         import traceback

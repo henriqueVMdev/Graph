@@ -5,10 +5,11 @@ import {
   getStrategies,
   getOptimizerGrids,
   getOptimizerCount,
-  runOptimizer,
-  runOptimizerCsv,
+  startOptimizer,
+  startOptimizerCsv,
   stopOptimizer,
   getOptimizerProgress,
+  getOptimizerResult,
 } from '@/api/client.js'
 import { useBacktestStore } from '@/stores/backtest.js'
 
@@ -176,13 +177,13 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     isRunning.value = true
     error.value = null
     results.value = null
-    progress.value = { current: 0, total: 0, valid: 0 }
-    _startProgressPolling()
+    progress.value = { current: 0, total: 0, valid: 0, status: 'idle' }
 
     try {
-      let resp
+      // Dispara o job — retorna imediatamente com {status: "started"}
+      let startResp
       if (dataSource.value === 'csv' && csvFile.value) {
-        resp = await runOptimizerCsv(
+        startResp = await startOptimizerCsv(
           csvFile.value,
           activeGrid.value,
           capital.value,
@@ -194,7 +195,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           cycleShortMonths.value,
         )
       } else {
-        resp = await runOptimizer({
+        startResp = await startOptimizer({
           strategy_file: strategyFile.value,
           data_source: 'asset',
           symbol: selectedSymbol.value,
@@ -211,7 +212,40 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           cycle_short_months: cycleShortMonths.value,
         })
       }
-      results.value = resp.data
+
+      if (startResp.data.error) {
+        error.value = startResp.data.error
+        return
+      }
+
+      // Aguarda conclusao via polling de progresso
+      await new Promise((resolve) => {
+        _stopProgressPolling()
+        _progressTimer = setInterval(async () => {
+          try {
+            const { data } = await getOptimizerProgress()
+            progress.value = data
+            if (data.status === 'done' || data.status === 'error') {
+              _stopProgressPolling()
+              resolve()
+            }
+            // 'starting' e 'running' continuam no loop
+          } catch { /* ignora erros de rede durante polling */ }
+        }, 500)
+      })
+
+      // Busca resultado
+      if (progress.value.status === 'done') {
+        const resultResp = await getOptimizerResult()
+        results.value = resultResp.data
+      } else {
+        try {
+          const errResp = await getOptimizerResult()
+          error.value = errResp.data?.error || 'Otimizacao falhou no servidor'
+        } catch (fetchErr) {
+          error.value = fetchErr.response?.data?.error || 'Otimizacao falhou no servidor'
+        }
+      }
     } catch (e) {
       error.value = e.response?.data?.error || e.message
     } finally {
@@ -259,7 +293,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
       _interval: interval.value,
       _dataSource: dataSource.value,
       _capital: capital.value,
-      autoRun: true,
+      autoRun: false,
     }
     return true
   }

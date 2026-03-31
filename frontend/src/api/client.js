@@ -105,11 +105,11 @@ export function getOptimizerProgress() {
   return api.get('/optimizer/progress')
 }
 
-export function runOptimizer(payload) {
-  return api.post('/optimizer/run', payload, { timeout: 600000 })
+export function startOptimizer(payload) {
+  return api.post('/optimizer/run', payload)
 }
 
-export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, strategyFile = 'depaula', cycleLongMonths = null, cycleShortMonths = null) {
+export function startOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, strategyFile = 'depaula', cycleLongMonths = null, cycleShortMonths = null) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('grid', JSON.stringify(grid))
@@ -122,8 +122,11 @@ export function runOptimizerCsv(file, grid, capital, minTrades, rankBy, topN, st
   if (cycleShortMonths) formData.append('cycle_short_months', JSON.stringify(cycleShortMonths))
   return api.post('/optimizer/run-csv', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 600000,
   })
+}
+
+export function getOptimizerResult() {
+  return api.get('/optimizer/result')
 }
 
 // Prop Challenge API
