@@ -1,5 +1,48 @@
 <template>
-  <div ref="chartEl" style="width:100%;height:380px"></div>
+  <div>
+    <div ref="chartEl" style="width:100%;height:380px"></div>
+    <div class="mt-2">
+      <button
+        @click="showDesc = !showDesc"
+        class="text-xs text-gray-400 hover:text-gray-200 transition-colors flex items-center gap-1"
+      >
+        <svg
+          class="w-3 h-3 transition-transform duration-200"
+          :class="showDesc ? 'rotate-90' : ''"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        Descricao
+      </button>
+      <div v-show="showDesc" class="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-gray-400">
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Sharpe</span> —
+          Retorno ajustado pelo risco total (volatilidade). Quanto maior, melhor o retorno por unidade de risco assumido.
+        </div>
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Sortino</span> —
+          Similar ao Sharpe, mas penaliza apenas a volatilidade negativa (downside). Ignora oscilacoes positivas.
+        </div>
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Calmar</span> —
+          Retorno dividido pelo maior drawdown. Mede a capacidade de recuperacao apos a pior queda.
+        </div>
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Omega</span> —
+          Razao entre a soma dos ganhos e a soma das perdas. Acima de 1 indica mais ganho que perda total.
+        </div>
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Sterling</span> —
+          Retorno dividido pela media das N piores quedas. Avalia consistencia contra perdas severas.
+        </div>
+        <div class="bg-surface-800/50 rounded p-2">
+          <span class="text-gray-200 font-medium">Burke</span> —
+          Retorno dividido pela raiz da soma dos quadrados das N piores quedas. Penaliza mais as perdas extremas.
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -11,6 +54,7 @@ const props = defineProps({
 })
 
 const chartEl = ref(null)
+const showDesc = ref(false)
 
 const LABELS = ['Sharpe', 'Sortino', 'Calmar', 'Omega', 'Sterling', 'Burke']
 const KEYS   = ['sharpe', 'sortino', 'calmar', 'omega', 'sterling', 'burke']

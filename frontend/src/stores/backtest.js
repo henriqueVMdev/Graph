@@ -6,6 +6,7 @@ import {
   runBacktestAsset,
   runBacktestCsv,
   getCorrelation,
+  runWfa as runWfaApi,
 } from '@/api/client.js'
 
 export const useBacktestStore = defineStore('backtest', () => {
@@ -38,6 +39,12 @@ export const useBacktestStore = defineStore('backtest', () => {
   const correlationData = ref(null)
   const correlationLoading = ref(false)
   const correlationError = ref(null)
+
+  // ─── Walk-Forward Analysis ────────────────────────────────────────────────
+  const wfaResults = ref(null)
+  const wfaLoading = ref(false)
+  const wfaError   = ref(null)
+  const wfaConfig  = ref({ n_windows: 10, is_pct: 0.70, optimize_is_samples: 0 })
 
   // ─── Computed ─────────────────────────────────────────────────────────────
 
@@ -157,6 +164,36 @@ export const useBacktestStore = defineStore('backtest', () => {
     }
   }
 
+  async function runWfa() {
+    if (dataSource.value === 'csv') {
+      wfaError.value = 'WFA requer um ativo (yfinance). Modo CSV nao suportado.'
+      return
+    }
+    if (!selectedSymbol.value) {
+      wfaError.value = 'Selecione um ativo para executar WFA'
+      return
+    }
+    wfaLoading.value = true
+    wfaError.value   = null
+    wfaResults.value = null
+    try {
+      const { data } = await runWfaApi({
+        symbol:        selectedSymbol.value,
+        interval:      interval.value,
+        strategy_file: selectedStrategy.value?.file || 'depaula',
+        config:        params.value,
+        n_windows:            wfaConfig.value.n_windows,
+        is_pct:               wfaConfig.value.is_pct,
+        optimize_is_samples:  wfaConfig.value.optimize_is_samples,
+      })
+      wfaResults.value = data
+    } catch (e) {
+      wfaError.value = e.response?.data?.error || e.message
+    } finally {
+      wfaLoading.value = false
+    }
+  }
+
   async function fetchCorrelation(tickers) {
     if (Object.keys(tickers).length < 2) return
     correlationLoading.value = true
@@ -177,7 +214,8 @@ export const useBacktestStore = defineStore('backtest', () => {
     dataSource, selectedAssetLabel, selectedSymbol, interval, csvFile,
     isRunning, results, error,
     correlationData, correlationLoading, correlationError,
+    wfaResults, wfaLoading, wfaError, wfaConfig,
     fetchAssets, fetchStrategies, selectStrategy,
-    applyPendingParams, runBacktest, fetchCorrelation,
+    applyPendingParams, runBacktest, fetchCorrelation, runWfa,
   }
 })

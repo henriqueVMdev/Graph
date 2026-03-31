@@ -779,6 +779,233 @@ def api_backtest_run():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
+def _extract_param_specs(module):
+    """Extrai params para otimizacao IS a partir de OPTIMIZER_GRIDS['rapido'].
+    Retorna (specs_dict, numeric_keys_list).
+    """
+    grids = getattr(module, 'OPTIMIZER_GRIDS', {})
+    grid  = grids.get('rapido', grids.get('default', {}))
+    if not grid:
+        return {}, []
+    specs = {}
+    numeric_keys = []
+    for key, values in grid.items():
+        if not values or len(values) < 2:
+            continue
+        specs[key] = list(values)
+        if all(isinstance(v, (int, float)) for v in values):
+            numeric_keys.append(key)
+    return specs, numeric_keys
+
+
+def _random_config_from_grid(base_config, param_specs, rng):
+    """Gera uma config aleatoria a partir das listas de valores do grid."""
+    cfg = dict(base_config)
+    for key, values in param_specs.items():
+        cfg[key] = values[int(rng.integers(0, len(values)))]
+    # Mantém simetria de params derivados
+    if 'th_up' in cfg:
+        cfg['th_dn'] = -abs(float(cfg['th_up']))
+    if 'pct_up' in cfg:
+        cfg['pct_dn'] = cfg['pct_up']
+    return cfg
+
+
+def _compute_window_metrics(df_slice, module, cfg_dict):
+    """Roda a estrategia em um slice do DataFrame e retorna metricas WFA.
+    Retorna None se o slice for pequeno demais ou nao gerar trades suficientes.
+    """
+    if len(df_slice) < 20:
+        return None
+    try:
+        result = module.run(df_slice.copy(), cfg_dict)
+    except Exception:
+        return None
+
+    metrics = result.get("metrics", {})
+    n_trades = int(metrics.get("total_trades", 0))
+    if n_trades < 2:
+        return None
+
+    eq_values = result.get("equity_curve", {}).get("values", [])
+    eq_dates  = result.get("equity_curve", {}).get("dates", [])
+
+    # Sharpe a partir dos retornos diarios da curva de equity
+    sharpe = 0.0
+    if len(eq_values) > 2:
+        arr = np.array(eq_values, dtype=float)
+        rets = np.diff(arr) / np.where(arr[:-1] != 0, arr[:-1], 1.0)
+        rets = rets[np.isfinite(rets)]
+        if len(rets) > 1 and rets.std() > 0:
+            sharpe = float(rets.mean() / rets.std() * np.sqrt(252))
+
+    return {
+        "return_pct":    _safe(float(metrics.get("total_return", 0.0))),
+        "sharpe":        _safe(sharpe),
+        "n_trades":      n_trades,
+        "max_dd":        _safe(float(metrics.get("max_dd", 0.0))),
+        "equity_values": [_safe(float(v)) for v in eq_values],
+        "equity_dates":  eq_dates,
+    }
+
+
+@app.route("/api/backtest/wfa", methods=["POST"])
+def api_backtest_wfa():
+    """
+    Walk-Forward Analysis.
+    Input JSON: { symbol, interval, strategy_file, config, n_windows, is_pct }
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        symbol        = body.get("symbol", "")
+        interval      = body.get("interval", "1d")
+        strategy_file = body.get("strategy_file", "depaula") or "depaula"
+        cfg_dict      = body.get("config", {})
+        n_windows            = int(max(3, min(30, body.get("n_windows", 10))))
+        is_pct               = float(max(0.5, min(0.85, body.get("is_pct", 0.70))))
+        optimize_is_samples  = int(max(0, min(200, body.get("optimize_is_samples", 0))))
+
+        if not symbol:
+            return jsonify({"error": "symbol obrigatorio para WFA"}), 400
+
+        df = _download_data_safe(symbol, interval)
+        total_bars = len(df)
+
+        if total_bars < n_windows * 20:
+            return jsonify({
+                "error": f"Dados insuficientes ({total_bars} barras) para {n_windows} janelas. "
+                         f"Reduza o numero de janelas ou use um timeframe maior."
+            }), 400
+
+        module = _load_strategy(strategy_file)
+        param_specs, numeric_keys = (
+            _extract_param_specs(module) if optimize_is_samples > 0 else ({}, [])
+        )
+
+        step_size = total_bars // n_windows
+        is_bars   = int(step_size * is_pct)
+        oos_bars  = step_size - is_bars
+
+        windows = []
+        for i in range(n_windows):
+            is_start  = i * step_size
+            is_end    = is_start + is_bars
+            oos_start = is_end
+            oos_end   = min(oos_start + oos_bars, total_bars)
+
+            if oos_end <= oos_start:
+                continue
+
+            df_is  = df.iloc[is_start:is_end]
+            df_oos = df.iloc[oos_start:oos_end]
+
+            # IS optimization: random-sample the grid, keep best Sharpe config
+            if optimize_is_samples > 0 and param_specs:
+                best_sharpe = float('-inf')
+                window_cfg  = dict(cfg_dict)
+                win_rng     = np.random.default_rng(42 + i)
+                for _ in range(optimize_is_samples):
+                    trial_cfg = _random_config_from_grid(cfg_dict, param_specs, win_rng)
+                    trial_m   = _compute_window_metrics(df_is, module, trial_cfg)
+                    if trial_m is not None and (trial_m['sharpe'] or 0) > best_sharpe:
+                        best_sharpe = trial_m['sharpe']
+                        window_cfg  = trial_cfg
+            else:
+                window_cfg = dict(cfg_dict)
+
+            is_m  = _compute_window_metrics(df_is,  module, window_cfg)
+            oos_m = _compute_window_metrics(df_oos, module, window_cfg)
+
+            if is_m is None or oos_m is None:
+                continue
+
+            # Annualized return: (1 + r)^(365/days) - 1
+            is_days  = max((df_is.index[-1]  - df_is.index[0]).days,  1)
+            oos_days = max((df_oos.index[-1] - df_oos.index[0]).days, 1)
+            is_ann  = _safe(((1 + (is_m["return_pct"]  or 0) / 100) ** (365 / is_days)  - 1) * 100)
+            oos_ann = _safe(((1 + (oos_m["return_pct"] or 0) / 100) ** (365 / oos_days) - 1) * 100)
+
+            windows.append({
+                "window_idx":       i,
+                "is_start":         str(df_is.index[0])[:10],
+                "is_end":           str(df_is.index[-1])[:10],
+                "oos_start":        str(df_oos.index[0])[:10],
+                "oos_end":          str(df_oos.index[-1])[:10],
+                "is_return":        is_m["return_pct"],
+                "oos_return":       oos_m["return_pct"],
+                "is_annualized":    is_ann,
+                "oos_annualized":   oos_ann,
+                "is_sharpe":        is_m["sharpe"],
+                "oos_sharpe":       oos_m["sharpe"],
+                "is_trades":        is_m["n_trades"],
+                "oos_trades":       oos_m["n_trades"],
+                "is_equity":        is_m["equity_values"],
+                "oos_equity":       oos_m["equity_values"],
+                "is_dates":         is_m["equity_dates"],
+                "oos_dates":        oos_m["equity_dates"],
+                "optimal_params":   {k: window_cfg.get(k) for k in numeric_keys} if numeric_keys else None,
+            })
+
+        if not windows:
+            return jsonify({"error": "Nenhuma janela gerou trades suficientes. Tente reduzir o numero de janelas."}), 400
+
+        # Concatena a curva OOS reescalando cada segmento para continuidade
+        oos_dates_all  = []
+        oos_values_all = []
+        running_base   = None
+
+        for w in windows:
+            raw_vals  = w["oos_equity"]
+            raw_dates = w["oos_dates"]
+            if not raw_vals:
+                continue
+            initial = raw_vals[0] if raw_vals[0] else 1.0
+            if running_base is None:
+                oos_dates_all.extend(raw_dates)
+                oos_values_all.extend(raw_vals)
+                running_base = raw_vals[-1]
+            else:
+                scale = (running_base / initial) if initial != 0 else 1.0
+                scaled = [v * scale if v is not None else None for v in raw_vals]
+                oos_dates_all.extend(raw_dates)
+                oos_values_all.extend(scaled)
+                running_base = scaled[-1]
+
+        # WFE = media(oos_annualized / is_annualized) para janelas com is_annualized > 0
+        # WFE > 0.5 e geralmente aceitavel
+        wfe_ratios = []
+        for w in windows:
+            ia = w["is_annualized"]
+            oa = w["oos_annualized"]
+            if ia is not None and ia > 0 and oa is not None:
+                wfe_ratios.append(oa / ia)
+
+        wfe = float(np.mean(wfe_ratios)) if wfe_ratios else 0.0
+
+        ann_oos = [w["oos_annualized"] for w in windows if w["oos_annualized"] is not None]
+        ann_is  = [w["is_annualized"]  for w in windows if w["is_annualized"]  is not None]
+        avg_oos_annualized = float(np.mean(ann_oos)) if ann_oos else 0.0
+        avg_is_annualized  = float(np.mean(ann_is))  if ann_is  else 0.0
+        avg_oos_return = float(np.mean([w["oos_return"] for w in windows if w["oos_return"] is not None]))
+        avg_is_return  = float(np.mean([w["is_return"]  for w in windows if w["is_return"]  is not None]))
+
+        return jsonify({
+            "windows":              windows,
+            "oos_equity_curve":     {"dates": oos_dates_all, "values": oos_values_all},
+            "wfe":                  _safe(wfe),
+            "avg_oos_annualized":   _safe(avg_oos_annualized),
+            "avg_is_annualized":    _safe(avg_is_annualized),
+            "avg_oos_return":       _safe(avg_oos_return),
+            "avg_is_return":        _safe(avg_is_return),
+            "n_valid_windows":      len(windows),
+            "param_keys":           numeric_keys,
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 @app.route("/api/backtest/correlation", methods=["POST"])
 def api_backtest_correlation():
     """

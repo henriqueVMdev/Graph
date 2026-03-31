@@ -84,6 +84,10 @@ export function runValidation(payload) {
   return api.post('/backtest/validate', payload, { timeout: 180000 })
 }
 
+export function runWfa(payload) {
+  return api.post('/backtest/wfa', payload, { timeout: 180000 })
+}
+
 // Optimizer API
 export function getOptimizerGrids(strategyFile = 'depaula') {
   return api.get('/optimizer/grids', { params: { strategy: strategyFile } })

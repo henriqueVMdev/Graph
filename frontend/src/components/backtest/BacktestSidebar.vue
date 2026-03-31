@@ -200,6 +200,74 @@
         </template>
       </div>
 
+      <!-- ── Walk-Forward Analysis ─────────────────────────────────── -->
+      <div class="border-t border-surface-600 pt-3 mt-1">
+        <p class="text-xs font-semibold text-gray-300 mb-3">Walk-Forward Analysis</p>
+
+        <label class="text-xs text-gray-400 block mb-1">
+          Janelas WFA
+          <span class="text-accent-yellow font-semibold ml-1">{{ store.wfaConfig.n_windows }}</span>
+        </label>
+        <input
+          type="range"
+          v-model.number="store.wfaConfig.n_windows"
+          min="5" max="20" step="1"
+          class="w-full h-1.5 accent-yellow-400 mb-3"
+        />
+
+        <label class="text-xs text-gray-400 block mb-1">
+          % In-Sample
+          <span class="text-accent-yellow font-semibold ml-1">{{ Math.round(store.wfaConfig.is_pct * 100) }}%</span>
+        </label>
+        <input
+          type="range"
+          v-model.number="store.wfaConfig.is_pct"
+          min="0.50" max="0.80" step="0.05"
+          class="w-full h-1.5 accent-yellow-400 mb-3"
+        />
+
+        <!-- Otimizar IS toggle -->
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-xs text-gray-400">Otimizar IS</label>
+          <button
+            @click="store.wfaConfig.optimize_is_samples = store.wfaConfig.optimize_is_samples > 0 ? 0 : 40"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.wfaConfig.optimize_is_samples > 0 ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.wfaConfig.optimize_is_samples > 0 ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.wfaConfig.optimize_is_samples > 0">
+          <label class="text-xs text-gray-400 block mb-1">
+            Amostras IS
+            <span class="text-accent-yellow font-semibold ml-1">{{ store.wfaConfig.optimize_is_samples }}</span>
+          </label>
+          <input
+            type="range"
+            v-model.number="store.wfaConfig.optimize_is_samples"
+            min="20" max="100" step="10"
+            class="w-full h-1.5 accent-yellow-400 mb-3"
+          />
+        </template>
+
+        <button
+          @click="store.runWfa()"
+          :disabled="store.wfaLoading || !store.results"
+          class="btn-secondary w-full py-2 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <span v-if="store.wfaLoading" class="dollar-loader-sm">$</span>
+          <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          {{ store.wfaLoading ? 'Calculando...' : 'Executar WFA' }}
+        </button>
+      </div>
+
       <!-- ── Botão Run ───────────────────────────────────────────────── -->
       <button
         @click="store.runBacktest()"

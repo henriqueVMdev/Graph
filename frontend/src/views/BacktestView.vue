@@ -73,6 +73,12 @@
           />
         </div>
 
+        <!-- Walk-Forward Analysis -->
+        <div class="card p-4">
+          <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Walk-Forward Analysis</h2>
+          <WalkForwardSection />
+        </div>
+
         <!-- Monte Carlo -->
         <div class="card p-4">
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Monte Carlo · Simulação de Capital</h2>
@@ -103,6 +109,7 @@ import RiskRadar from '@/components/backtest/RiskRadar.vue'
 import EquityCurve from '@/components/backtest/EquityCurve.vue'
 import MonteCarloSection from '@/components/backtest/MonteCarloSection.vue'
 import CorrelationSection from '@/components/backtest/CorrelationSection.vue'
+import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 
 const store = useBacktestStore()
 const paramsBanner = ref(false)
