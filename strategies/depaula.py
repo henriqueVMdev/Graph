@@ -496,76 +496,84 @@ def run(df, params: dict) -> dict:
     else:
         burke = 0
 
-    # ── Drawdown analytics ────────────────────────────────────────────────
-    # Recovery Factor: retorno liquido / |max drawdown|
-    net_profit = result.equity - cfg.initial_capital
-    recovery_factor = _safe(float(net_profit / abs(max_dd * cfg.initial_capital / 100))) if max_dd < 0 else None
+    # _fast=True: skip all display-only work (used by optimizer and WFA IS sampling)
+    _fast = bool(params.get("_fast", False))
 
-    # Ulcer Index: sqrt(mean(dd^2)) — penaliza drawdowns longos e profundos
-    ulcer_index = _safe(float(np.sqrt(np.mean(dd ** 2)))) if len(dd) > 0 else None
-
-    # Episodios de drawdown: sequencias continuas com dd < 0
-    dd_episodes = []
-    in_dd = False
-    ep_start = None
-    ep_peak_idx = None
-    for k, val in enumerate(dd):
-        if val < 0 and not in_dd:
-            in_dd = True
-            ep_start = k
-            ep_peak_idx = k
-        elif val < 0 and in_dd:
-            if val < dd[ep_peak_idx]:
-                ep_peak_idx = k
-        elif val >= 0 and in_dd:
-            in_dd = False
-            ep_trough = float(dd[ep_start:k].min())
-            ep_len    = k - ep_start
-            dd_episodes.append({
-                "start": dates[ep_start] if ep_start < len(bt_df) else None,
-                "end":   dates[k - 1]   if (k - 1) < len(bt_df) else None,
-                "trough": _safe(ep_trough),
-                "length_bars": ep_len,
-            })
-    # Episodio ainda aberto no final da serie
-    if in_dd and ep_start is not None:
-        ep_trough = float(dd[ep_start:].min())
-        dd_episodes.append({
-            "start": dates[ep_start],
-            "end":   dates[-1],
-            "trough": _safe(ep_trough),
-            "length_bars": len(dd) - ep_start,
-        })
-
-    avg_dd       = _safe(float(np.mean([e["trough"] for e in dd_episodes]))) if dd_episodes else None
-    avg_dd_len   = _safe(float(np.mean([e["length_bars"] for e in dd_episodes]))) if dd_episodes else None
-    n_dd_episodes = len(dd_episodes)
-
-    # Serie de drawdown diario para o grafico
-    dd_dates  = dates
-    dd_values = [_safe(float(v)) for v in dd.tolist()]
-
-    # ── Equity curve ──────────────────────────────────────────────────────
+    # dates is needed by dd_episodes and equity_curve
     dates = [str(idx)[:10] for idx in bt_df.index]
-    equity_values = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
 
-    # ── Trades ────────────────────────────────────────────────────────────
-    trades_list = [
-        {
-            "entry_date": t.entry_date[:10] if t.entry_date else "",
-            "exit_date": t.exit_date[:10] if t.exit_date else "",
-            "direction": t.direction,
-            "comment": t.comment,
-            "entry_price": _safe(float(t.entry_price)),
-            "exit_price": _safe(float(t.exit_price)),
-            "exit_comment": t.exit_comment,
-            "pnl_pct": _safe(float(t.pnl_pct)),
-            "partial_exit_price": _safe(float(t.partial_exit_price)) if t.partial_exit_price else None,
-            "partial_exit_date": t.partial_exit_date[:10] if t.partial_exit_date else None,
-            "partial_pct_closed": t.partial_pct_closed if t.partial_pct_closed else None,
-        }
-        for t in trades
-    ]
+    if _fast:
+        recovery_factor = None
+        ulcer_index     = None
+        avg_dd          = None
+        avg_dd_len      = None
+        n_dd_episodes   = 0
+        dd_dates        = []
+        dd_values       = []
+        equity_values   = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
+        trades_list     = [{"pnl_pct": _safe(float(t.pnl_pct))} for t in trades]
+    else:
+        # ── Drawdown analytics ────────────────────────────────────────────
+        net_profit = result.equity - cfg.initial_capital
+        recovery_factor = _safe(float(net_profit / abs(max_dd * cfg.initial_capital / 100))) if max_dd < 0 else None
+
+        ulcer_index = _safe(float(np.sqrt(np.mean(dd ** 2)))) if len(dd) > 0 else None
+
+        dd_episodes = []
+        in_dd = False
+        ep_start = None
+        ep_peak_idx = None
+        for k, val in enumerate(dd):
+            if val < 0 and not in_dd:
+                in_dd = True
+                ep_start = k
+                ep_peak_idx = k
+            elif val < 0 and in_dd:
+                if val < dd[ep_peak_idx]:
+                    ep_peak_idx = k
+            elif val >= 0 and in_dd:
+                in_dd = False
+                ep_trough = float(dd[ep_start:k].min())
+                ep_len    = k - ep_start
+                dd_episodes.append({
+                    "start": dates[ep_start] if ep_start < len(bt_df) else None,
+                    "end":   dates[k - 1]   if (k - 1) < len(bt_df) else None,
+                    "trough": _safe(ep_trough),
+                    "length_bars": ep_len,
+                })
+        if in_dd and ep_start is not None:
+            ep_trough = float(dd[ep_start:].min())
+            dd_episodes.append({
+                "start": dates[ep_start],
+                "end":   dates[-1],
+                "trough": _safe(ep_trough),
+                "length_bars": len(dd) - ep_start,
+            })
+
+        avg_dd        = _safe(float(np.mean([e["trough"] for e in dd_episodes]))) if dd_episodes else None
+        avg_dd_len    = _safe(float(np.mean([e["length_bars"] for e in dd_episodes]))) if dd_episodes else None
+        n_dd_episodes = len(dd_episodes)
+        dd_dates      = dates
+        dd_values     = [_safe(float(v)) for v in dd.tolist()]
+
+        equity_values = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
+
+        trades_list = [
+            {
+                "entry_date": t.entry_date[:10] if t.entry_date else "",
+                "exit_date": t.exit_date[:10] if t.exit_date else "",
+                "direction": t.direction,
+                "comment": t.comment,
+                "entry_price": _safe(float(t.entry_price)),
+                "exit_price": _safe(float(t.exit_price)),
+                "exit_comment": t.exit_comment,
+                "pnl_pct": _safe(float(t.pnl_pct)),
+                "partial_exit_price": _safe(float(t.partial_exit_price)) if t.partial_exit_price else None,
+                "partial_exit_date": t.partial_exit_date[:10] if t.partial_exit_date else None,
+                "partial_pct_closed": t.partial_pct_closed if t.partial_pct_closed else None,
+            }
+            for t in trades
+        ]
 
     return {
         "metrics": {
@@ -592,7 +600,7 @@ def run(df, params: dict) -> dict:
         "drawdown": {
             "dates":    dd_dates,
             "values":   dd_values,
-            "episodes": dd_episodes,
+            "episodes": dd_episodes if not _fast else [],
         },
         "equity_curve": {
             "dates": dates,

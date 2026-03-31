@@ -818,7 +818,7 @@ def _compute_window_metrics(df_slice, module, cfg_dict):
     if len(df_slice) < 20:
         return None
     try:
-        result = module.run(df_slice.copy(), cfg_dict)
+        result = module.run(df_slice.copy(), {**cfg_dict, "_fast": True})
     except Exception:
         return None
 
@@ -1593,7 +1593,7 @@ def _run_optimizer_generic(df_data, module, grid_raw, capital, min_trades, rank_
             stopped = True
             break
         try:
-            run_params = {**base_extra, **params}
+            run_params = {**base_extra, **params, "_fast": True}
             if prepare:
                 run_params = prepare(dict(run_params))
             result = module.run(df_data.copy(), run_params)
