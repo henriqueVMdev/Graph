@@ -13,13 +13,14 @@ import numpy as np
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def _sharpe_from_curve(equity: np.ndarray) -> float:
+def _sharpe_from_curve(equity: np.ndarray, ann_factor: float = 252.0) -> float:
     arr  = np.asarray(equity, dtype=float)
-    rets = np.diff(arr) / arr[:-1]
+    rets = np.diff(arr) / np.where(arr[:-1] != 0, arr[:-1], 1.0)
+    rets = rets[np.isfinite(rets)]
     if len(rets) < 2:
         return 0.0
-    std = float(rets.std())
-    return float(rets.mean() / std * np.sqrt(252)) if std > 0 else 0.0
+    std = float(rets.std(ddof=1))
+    return float(rets.mean() / std * np.sqrt(ann_factor)) if std > 0 else 0.0
 
 
 def _profit_factor_from_trades(trades: list[dict]) -> float:
