@@ -57,37 +57,53 @@
     <!-- Drawdown area chart + episode markers -->
     <div ref="chartEl" style="min-height:300px;" class="w-full"></div>
 
-    <!-- Episode table -->
-    <div v-if="drawdown.episodes && drawdown.episodes.length" class="overflow-x-auto">
-      <table class="w-full text-xs text-gray-400 border-collapse">
-        <thead>
-          <tr class="border-b border-surface-600 text-gray-500 text-left">
-            <th class="py-1.5 pr-4">#</th>
-            <th class="py-1.5 pr-4">Inicio</th>
-            <th class="py-1.5 pr-4">Fim</th>
-            <th class="py-1.5 pr-4 text-right">Fundo</th>
-            <th class="py-1.5 text-right">Duracao</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(ep, i) in sortedEpisodes"
-            :key="i"
-            class="border-b border-surface-700/50 hover:bg-surface-800/50 transition-colors"
-            :class="i === 0 ? 'text-accent-red-light' : ''"
-          >
-            <td class="py-1.5 pr-4 text-gray-600">{{ i + 1 }}</td>
-            <td class="py-1.5 pr-4">{{ ep.start }}</td>
-            <td class="py-1.5 pr-4">{{ ep.end }}</td>
-            <td class="py-1.5 pr-4 text-right font-mono"
-              :class="ep.trough <= -20 ? 'text-accent-red-light' : ep.trough <= -10 ? 'text-accent-yellow' : 'text-gray-300'"
+    <!-- Episode table (collapsible) -->
+    <div v-if="drawdown.episodes && drawdown.episodes.length">
+      <button
+        @click="showEpisodes = !showEpisodes"
+        class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+      >
+        <svg
+          class="w-3.5 h-3.5 transition-transform duration-200"
+          :class="showEpisodes ? 'rotate-90' : ''"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+        {{ showEpisodes ? 'Ocultar' : 'Ver' }} detalhes dos episodios ({{ sortedEpisodes.length }})
+      </button>
+
+      <div v-if="showEpisodes" class="overflow-x-auto mt-2">
+        <table class="w-full text-xs text-gray-400 border-collapse">
+          <thead>
+            <tr class="border-b border-surface-600 text-gray-500 text-left">
+              <th class="py-1.5 pr-4">#</th>
+              <th class="py-1.5 pr-4">Inicio</th>
+              <th class="py-1.5 pr-4">Fim</th>
+              <th class="py-1.5 pr-4 text-right">Fundo</th>
+              <th class="py-1.5 text-right">Duracao</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(ep, i) in sortedEpisodes"
+              :key="i"
+              class="border-b border-surface-700/50 hover:bg-surface-800/50 transition-colors"
+              :class="i === 0 ? 'text-accent-red-light' : ''"
             >
-              {{ ep.trough != null ? ep.trough.toFixed(2) + '%' : '—' }}
-            </td>
-            <td class="py-1.5 text-right font-mono text-gray-300">{{ ep.length_bars }} barras</td>
-          </tr>
-        </tbody>
-      </table>
+              <td class="py-1.5 pr-4 text-gray-600">{{ i + 1 }}</td>
+              <td class="py-1.5 pr-4">{{ ep.start }}</td>
+              <td class="py-1.5 pr-4">{{ ep.end }}</td>
+              <td class="py-1.5 pr-4 text-right font-mono"
+                :class="ep.trough <= -20 ? 'text-accent-red-light' : ep.trough <= -10 ? 'text-accent-yellow' : 'text-gray-300'"
+              >
+                {{ ep.trough != null ? ep.trough.toFixed(2) + '%' : '—' }}
+              </td>
+              <td class="py-1.5 text-right font-mono text-gray-300">{{ ep.length_bars }} barras</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -103,6 +119,7 @@ const props = defineProps({
 })
 
 const chartEl = ref(null)
+const showEpisodes = ref(false)
 
 // ── Computed helpers ──────────────────────────────────────────────────────
 

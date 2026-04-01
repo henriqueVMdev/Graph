@@ -535,6 +535,7 @@ async function runValidation() {
       n_sims:        valSims.value,
       n_perms:       valPerms.value,
       seed:          42,
+      interval:      store.results.interval || '1d',
       strategy_label: store.selectedStrategy?.name || 'Estratégia',
       asset_label:   store.results.symbol || '-',
     })

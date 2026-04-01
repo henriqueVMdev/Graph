@@ -793,7 +793,7 @@ def _extract_param_specs(module):
         if not values or len(values) < 2:
             continue
         specs[key] = list(values)
-        if all(isinstance(v, (int, float)) for v in values):
+        if all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in values):
             numeric_keys.append(key)
     return specs, numeric_keys
 
@@ -811,7 +811,15 @@ def _random_config_from_grid(base_config, param_specs, rng):
     return cfg
 
 
-def _compute_window_metrics(df_slice, module, cfg_dict):
+# Barras por ano por timeframe — usado para anualizar Sharpe corretamente
+_BARS_PER_YEAR = {
+    '1m': 98280, '5m': 19656, '15m': 6552, '30m': 3276,
+    '1h': 1638,  '2h': 819,   '4h': 410,
+    '1d': 252,   '1wk': 52,   '1mo': 12,
+}
+
+
+def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
     """Roda a estrategia em um slice do DataFrame e retorna metricas WFA.
     Retorna None se o slice for pequeno demais ou nao gerar trades suficientes.
     """
@@ -830,14 +838,16 @@ def _compute_window_metrics(df_slice, module, cfg_dict):
     eq_values = result.get("equity_curve", {}).get("values", [])
     eq_dates  = result.get("equity_curve", {}).get("dates", [])
 
-    # Sharpe a partir dos retornos diarios da curva de equity
+    # Sharpe anualizado com fator correto para o timeframe (ddof=1 = variancia amostral)
     sharpe = 0.0
     if len(eq_values) > 2:
+        ann_factor = _BARS_PER_YEAR.get(interval, 252)
         arr = np.array(eq_values, dtype=float)
         rets = np.diff(arr) / np.where(arr[:-1] != 0, arr[:-1], 1.0)
         rets = rets[np.isfinite(rets)]
-        if len(rets) > 1 and rets.std() > 0:
-            sharpe = float(rets.mean() / rets.std() * np.sqrt(252))
+        std = rets.std(ddof=1)
+        if len(rets) > 1 and std > 0:
+            sharpe = float(rets.mean() / std * np.sqrt(ann_factor))
 
     return {
         "return_pct":    _safe(float(metrics.get("total_return", 0.0))),
@@ -906,15 +916,16 @@ def api_backtest_wfa():
                 win_rng     = np.random.default_rng(42 + i)
                 for _ in range(optimize_is_samples):
                     trial_cfg = _random_config_from_grid(cfg_dict, param_specs, win_rng)
-                    trial_m   = _compute_window_metrics(df_is, module, trial_cfg)
-                    if trial_m is not None and (trial_m['sharpe'] or 0) > best_sharpe:
-                        best_sharpe = trial_m['sharpe']
+                    trial_m   = _compute_window_metrics(df_is, module, trial_cfg, interval)
+                    trial_sharpe = trial_m['sharpe'] if trial_m['sharpe'] is not None else 0.0
+                    if trial_sharpe > best_sharpe:
+                        best_sharpe = trial_sharpe
                         window_cfg  = trial_cfg
             else:
                 window_cfg = dict(cfg_dict)
 
-            is_m  = _compute_window_metrics(df_is,  module, window_cfg)
-            oos_m = _compute_window_metrics(df_oos, module, window_cfg)
+            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval)
+            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval)
 
             if is_m is None or oos_m is None:
                 continue
@@ -963,22 +974,24 @@ def api_backtest_wfa():
             if running_base is None:
                 oos_dates_all.extend(raw_dates)
                 oos_values_all.extend(raw_vals)
-                running_base = raw_vals[-1]
+                running_base = next((v for v in reversed(raw_vals) if v is not None), 1.0)
             else:
                 scale = (running_base / initial) if initial != 0 else 1.0
                 scaled = [v * scale if v is not None else None for v in raw_vals]
                 oos_dates_all.extend(raw_dates)
                 oos_values_all.extend(scaled)
-                running_base = scaled[-1]
+                # Usa o ultimo valor nao-nulo para evitar que running_base fique None
+                running_base = next((v for v in reversed(scaled) if v is not None), running_base)
 
         # WFE = media(oos_annualized / is_annualized) para janelas com is_annualized > 0
+        # Razoes clampadas em [-2, 5] para evitar que outliers distorcam a media
         # WFE > 0.5 e geralmente aceitavel
         wfe_ratios = []
         for w in windows:
             ia = w["is_annualized"]
             oa = w["oos_annualized"]
             if ia is not None and ia > 0 and oa is not None:
-                wfe_ratios.append(oa / ia)
+                wfe_ratios.append(min(max(oa / ia, -2.0), 5.0))
 
         wfe = float(np.mean(wfe_ratios)) if wfe_ratios else 0.0
 
@@ -1277,9 +1290,14 @@ def api_backtest_validate():
         perm_result = pt.run(eq_values, trades, n_perms=n_perms)
 
         # ── Métricas originais enriquecidas ──────────────────────────────────
-        arr_eq    = np.array(eq_values, dtype=float)
-        rets_eq   = np.diff(arr_eq) / arr_eq[:-1]
-        sharpe    = float(rets_eq.mean() / rets_eq.std() * np.sqrt(252)) if len(rets_eq) > 1 and rets_eq.std() > 0 else 0.0
+        interval_val = body.get("interval", "1d")
+        ann_factor   = _BARS_PER_YEAR.get(interval_val, 252)
+
+        arr_eq  = np.array(eq_values, dtype=float)
+        rets_eq = np.diff(arr_eq) / np.where(arr_eq[:-1] != 0, arr_eq[:-1], 1.0)
+        rets_eq = rets_eq[np.isfinite(rets_eq)]
+        _std_eq = float(rets_eq.std(ddof=1)) if len(rets_eq) > 1 else 0.0
+        sharpe  = float(rets_eq.mean() / _std_eq * np.sqrt(ann_factor)) if _std_eq > 0 else 0.0
 
         pnls      = [t.get("pnl_pct", 0) for t in trades]
         wins      = [p for p in pnls if p > 0]
@@ -1289,39 +1307,63 @@ def api_backtest_validate():
         avg_loss  = float(np.mean(losses)) if losses else 0.0
         expectancy = win_rate / 100 * avg_win + (1 - win_rate / 100) * avg_loss
 
-        # Sortino
-        neg_pnls = [p for p in pnls if p < 0]
-        ds_std = float(np.std(neg_pnls)) if len(neg_pnls) > 1 else 0
-        sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0.0
+        # Sortino — downside deviation: sqrt(mean(min(pnl, 0)^2)) over all trades
+        _ds_sq  = [min(p, 0) ** 2 for p in pnls]
+        _ds_dev = float(np.sqrt(np.mean(_ds_sq))) if _ds_sq else 0.0
+        sortino = float(np.mean(pnls) / _ds_dev * np.sqrt(len(pnls))) if _ds_dev > 0 else 0.0
 
-        # Calmar
-        ic_val = float(metrics_in.get("initial_capital", arr_eq[0]))
-        n_days = len(arr_eq)
-        cagr = ((arr_eq[-1] / ic_val) ** (252 / n_days) - 1) * 100 if n_days > 0 and ic_val > 0 else 0
+        # Calmar — CAGR uses calendar days derived from equity curve dates
+        ic_val = float(metrics_in.get("initial_capital", arr_eq[0] if len(arr_eq) else 1.0))
+        from datetime import datetime as _dt2
+        if len(eq_dates) > 1:
+            try:
+                _t0 = _dt2.fromisoformat(str(eq_dates[0])[:10])
+                _t1 = _dt2.fromisoformat(str(eq_dates[-1])[:10])
+                _cal_days = max((_t1 - _t0).days, 1)
+            except Exception:
+                _cal_days = max(len(arr_eq) - 1, 1)
+        else:
+            _cal_days = max(len(arr_eq) - 1, 1)
+        cagr = ((arr_eq[-1] / ic_val) ** (365.25 / _cal_days) - 1) * 100 if ic_val > 0 else 0.0
         max_dd_val = float(metrics_in.get("max_dd", 0)) or 0
         calmar = float(cagr / abs(max_dd_val)) if abs(max_dd_val) > 0 else 0.0
 
         # Omega
-        gains_sum = sum(p for p in pnls if p > 0)
+        gains_sum  = sum(p for p in pnls if p > 0)
         losses_sum = abs(sum(p for p in pnls if p < 0))
         omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0.0
 
-        # Sterling (CAGR / media dos N piores drawdowns)
+        # Extract dd episode troughs for Sterling and Burke
         peak_eq = np.maximum.accumulate(arr_eq)
-        dd_eq = (arr_eq - peak_eq) / peak_eq * 100
-        dd_neg = dd_eq[dd_eq < 0]
-        n_worst = min(5, len(dd_neg))
-        if n_worst > 0:
-            worst_dds = sorted(dd_neg)[:n_worst]
-            avg_worst = abs(float(np.mean(worst_dds)))
-            sterling = float(cagr / avg_worst) if avg_worst > 0 else 0.0
+        dd_eq   = (arr_eq - peak_eq) / peak_eq * 100
+        _ep_tr  = []
+        _in_dd  = False
+        _ep_s   = None
+        for _ki, _vi in enumerate(dd_eq):
+            if _vi < 0 and not _in_dd:
+                _in_dd = True
+                _ep_s  = _ki
+            elif _vi >= 0 and _in_dd:
+                _in_dd = False
+                _ep_tr.append(float(dd_eq[_ep_s:_ki].min()))
+        if _in_dd and _ep_s is not None:
+            _ep_tr.append(float(dd_eq[_ep_s:].min()))
+
+        # Sterling (CAGR / mean of N worst episode troughs)
+        if _ep_tr:
+            _nw = min(5, len(_ep_tr))
+            _wt = sorted(_ep_tr)[:_nw]
+            _aw = abs(float(np.mean(_wt)))
+            sterling = float(cagr / _aw) if _aw > 0 else 0.0
         else:
             sterling = 0.0
 
-        # Burke (CAGR / sqrt(soma dos N piores drawdowns^2))
-        if n_worst > 0:
-            burke_denom = float(np.sqrt(np.sum(np.array(worst_dds) ** 2)))
-            burke = float(cagr / burke_denom) if burke_denom > 0 else 0.0
+        # Burke (CAGR / sqrt(sum of N worst episode trough^2))
+        if _ep_tr:
+            _nw = min(5, len(_ep_tr))
+            _wt = sorted(_ep_tr)[:_nw]
+            _bd = float(np.sqrt(np.sum(np.array(_wt) ** 2)))
+            burke = float(cagr / _bd) if _bd > 0 else 0.0
         else:
             burke = 0.0
 
@@ -1440,38 +1482,20 @@ def _calc_optimizer_row(result, params, param_labels):
     avg_win = m.get("avg_win", 0) or 0
     avg_loss = m.get("avg_loss", 0) or 0
 
-    # Sharpe simplificado
+    # Sharpe (trade-level, ddof=1)
     pnls = [t["pnl_pct"] for t in trades if t.get("pnl_pct") is not None]
-    if len(pnls) > 1 and np.std(pnls) > 0:
-        sharpe = float(np.mean(pnls) / np.std(pnls) * np.sqrt(len(pnls)))
+    if len(pnls) > 1:
+        _std = float(np.std(pnls, ddof=1))
+        sharpe = float(np.mean(pnls) / _std * np.sqrt(len(pnls))) if _std > 0 else 0.0
     else:
         sharpe = 0.0
 
-    # Sortino
-    neg_pnls = [p for p in pnls if p < 0]
-    ds_std = float(np.std(neg_pnls)) if len(neg_pnls) > 1 else 0
-    sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0.0
-
-    # Calmar
-    calmar = float(total_return / abs(max_dd)) if abs(max_dd) > 0 else 0.0
-
-    # Omega
-    gains_sum = sum(p for p in pnls if p > 0)
-    losses_sum = abs(sum(p for p in pnls if p < 0))
-    omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0.0
-
-    # Sterling (total_return / media dos N piores drawdowns)
-    eq_vals = [t.get("_equity", 0) for t in trades]
-    sterling = 0.0
-    burke = 0.0
-    if abs(max_dd) > 0 and len(pnls) > 0:
-        neg_pnls_sorted = sorted([p for p in pnls if p < 0])
-        n_w = min(5, len(neg_pnls_sorted))
-        if n_w > 0:
-            avg_worst = abs(float(np.mean(neg_pnls_sorted[:n_w])))
-            sterling = float(total_return / avg_worst) if avg_worst > 0 else 0.0
-            burke_d = float(np.sqrt(np.sum(np.array(neg_pnls_sorted[:n_w]) ** 2)))
-            burke = float(total_return / burke_d) if burke_d > 0 else 0.0
+    # Reuse pre-computed formula-accurate values from the strategy module
+    sortino = m.get("sortino") or 0.0
+    calmar  = m.get("calmar")  or 0.0
+    omega   = m.get("omega")   or 0.0
+    sterling = m.get("sterling") or 0.0
+    burke   = m.get("burke")   or 0.0
 
     # Score composto
     score = total_return * (win_rate / 100) / max(abs(max_dd), 1)
@@ -1718,7 +1742,10 @@ def api_optimizer_run():
         if body.get("data_source", "asset") != "asset":
             return jsonify({"error": "Use upload CSV via multipart"}), 400
 
-        fixed_params = {}
+        # Merge backtest config so non-grid params match the user's backtest settings.
+        # Grid combos override grid params; everything else comes from config.
+        fixed_params = dict(body.get("config", {}))
+        fixed_params["initial_capital"] = capital
         if body.get("cycle_long_months"):
             fixed_params["cycle_long_months"] = body["cycle_long_months"]
         if body.get("cycle_short_months"):

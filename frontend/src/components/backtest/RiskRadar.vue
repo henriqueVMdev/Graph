@@ -1,44 +1,25 @@
 <template>
   <div>
-    <div ref="chartEl" style="width:100%;height:380px"></div>
-    <div class="mt-2">
-      <button
-        @click="showDesc = !showDesc"
-        class="text-xs text-gray-400 hover:text-gray-200 transition-colors flex items-center gap-1"
-      >
-        <svg
-          class="w-3 h-3 transition-transform duration-200"
-          :class="showDesc ? 'rotate-90' : ''"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+    <div class="flex gap-6 items-center">
+      <div ref="chartEl" class="w-1/2 shrink-0" style="height:300px"></div>
+      <div class="flex-1 space-y-2">
+        <div
+          v-for="(label, i) in LABELS" :key="label"
+          class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-surface-800/60 border border-surface-600/50"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-        Descricao
-      </button>
-      <div v-show="showDesc" class="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-gray-400">
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Sharpe</span> —
-          Retorno ajustado pelo risco total (volatilidade). Quanto maior, melhor o retorno por unidade de risco assumido.
-        </div>
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Sortino</span> —
-          Similar ao Sharpe, mas penaliza apenas a volatilidade negativa (downside). Ignora oscilacoes positivas.
-        </div>
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Calmar</span> —
-          Retorno dividido pelo maior drawdown. Mede a capacidade de recuperacao apos a pior queda.
-        </div>
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Omega</span> —
-          Razao entre a soma dos ganhos e a soma das perdas. Acima de 1 indica mais ganho que perda total.
-        </div>
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Sterling</span> —
-          Retorno dividido pela media das N piores quedas. Avalia consistencia contra perdas severas.
-        </div>
-        <div class="bg-surface-800/50 rounded p-2">
-          <span class="text-gray-200 font-medium">Burke</span> —
-          Retorno dividido pela raiz da soma dos quadrados das N piores quedas. Penaliza mais as perdas extremas.
+          <div class="flex-1 min-w-0 mr-3">
+            <div class="text-xs text-gray-400 mb-1">{{ label }}</div>
+            <div class="h-1 bg-surface-600 rounded-full overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :class="barColor(KEYS[i])"
+                :style="{ width: barWidth(KEYS[i]) + '%' }"
+              />
+            </div>
+          </div>
+          <span class="text-base font-bold font-mono shrink-0" :class="valueClass(KEYS[i])">
+            {{ metrics[KEYS[i]] != null ? Number(metrics[KEYS[i]]).toFixed(2) : '-' }}
+          </span>
         </div>
       </div>
     </div>
@@ -54,10 +35,45 @@ const props = defineProps({
 })
 
 const chartEl = ref(null)
-const showDesc = ref(false)
 
 const LABELS = ['Sharpe', 'Sortino', 'Calmar', 'Omega', 'Sterling', 'Burke']
 const KEYS   = ['sharpe', 'sortino', 'calmar', 'omega', 'sterling', 'burke']
+
+const CAPS = { sharpe: 5, sortino: 8, calmar: 10, omega: 4, sterling: 10, burke: 5 }
+
+const THRESHOLDS = {
+  sharpe:  { good: 1.5, ok: 1 },
+  sortino: { good: 2,   ok: 1 },
+  calmar:  { good: 3,   ok: 1 },
+  omega:   { good: 1.5, ok: 1 },
+  sterling:{ good: 3,   ok: 1 },
+  burke:   { good: 1,   ok: 0.5 },
+}
+
+function valueClass(key) {
+  const v = props.metrics[key]
+  if (v == null) return 'text-gray-500'
+  const t = THRESHOLDS[key]
+  if (v >= t.good) return 'text-green-400'
+  if (v >= t.ok)   return 'text-accent-yellow'
+  return 'text-red-400'
+}
+
+function barColor(key) {
+  const v = props.metrics[key]
+  if (v == null) return 'bg-surface-500'
+  const t = THRESHOLDS[key]
+  if (v >= t.good) return 'bg-green-500'
+  if (v >= t.ok)   return 'bg-accent-yellow'
+  return 'bg-red-500'
+}
+
+function barWidth(key) {
+  const v = props.metrics[key]
+  if (v == null || v <= 0) return 0
+  const cap = CAPS[key] || 5
+  return Math.min(v / cap * 100, 100)
+}
 
 function normalize(val, key) {
   if (val == null || val === 0) return 0

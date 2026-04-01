@@ -211,10 +211,11 @@ function renderSharpeScatter() {
 
   const isSh  = windows.map(w => w.is_sharpe  ?? 0)
   const oosSh = windows.map(w => w.oos_sharpe ?? 0)
-  const colors = windows.map(w =>
-    (w.oos_sharpe ?? 0) >= (w.is_sharpe ?? 0)
-      ? 'rgba(74,222,128,0.85)' : 'rgba(239,83,80,0.85)'
-  )
+  const colors = windows.map(w => {
+    const oosS = w.oos_sharpe ?? 0
+    const isS  = w.is_sharpe  ?? 0
+    return oosS > 0 && oosS >= isS ? 'rgba(74,222,128,0.85)' : 'rgba(239,83,80,0.85)'
+  })
 
   const allVals = [...isSh, ...oosSh].filter(isFinite)
   const lo = Math.min(...allVals, 0) - 0.3

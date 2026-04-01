@@ -463,35 +463,50 @@ def run(df, params: dict) -> dict:
     dd = (eq - peak) / peak * 100
     max_dd = float(dd.min())
 
-    # Sortino (downside deviation only)
+    # Sortino — downside deviation: sqrt(mean(min(pnl, 0)^2)) over all trades
     pnls = [t.pnl_pct for t in trades]
-    neg = [p for p in pnls if p < 0]
-    downside_std = float(np.std(neg)) if len(neg) > 1 else 0
-    sortino = float(np.mean(pnls) / downside_std * np.sqrt(len(pnls))) if downside_std > 0 else 0
+    downside_sq = [min(p, 0) ** 2 for p in pnls]
+    downside_dev = float(np.sqrt(np.mean(downside_sq))) if downside_sq else 0
+    sortino = float(np.mean(pnls) / downside_dev * np.sqrt(len(pnls))) if downside_dev > 0 else 0
 
-    # Calmar (CAGR / |max_dd|)
-    n_days = len(bt_df)
-    cagr = ((result.equity / cfg.initial_capital) ** (252 / n_days) - 1) * 100 if n_days > 0 else 0
+    # Calmar — CAGR uses calendar days, not bar count
+    total_days = max((bt_df.index[-1] - bt_df.index[0]).days, 1) if len(bt_df) > 1 else 1
+    cagr = ((result.equity / cfg.initial_capital) ** (365.25 / total_days) - 1) * 100
     calmar = float(cagr / abs(max_dd)) if abs(max_dd) > 0 else 0
 
-    # Omega (integral gains / integral losses acima/abaixo de threshold=0)
+    # Omega (sum gains / sum |losses|)
     gains_sum = sum(p for p in pnls if p > 0)
     losses_sum = abs(sum(p for p in pnls if p < 0))
     omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0
 
-    # Sterling (CAGR / media dos N piores drawdowns)
-    dd_series = dd[dd < 0]
-    n_worst = min(5, len(dd_series))
-    if n_worst > 0:
-        worst_dds = sorted(dd_series)[:n_worst]
-        avg_worst_dd = abs(float(np.mean(worst_dds)))
+    # Extract dd episode troughs for Sterling and Burke
+    ep_troughs = []
+    _in_dd = False
+    _ep_start = None
+    for _k, _val in enumerate(dd):
+        if _val < 0 and not _in_dd:
+            _in_dd = True
+            _ep_start = _k
+        elif _val >= 0 and _in_dd:
+            _in_dd = False
+            ep_troughs.append(float(dd[_ep_start:_k].min()))
+    if _in_dd and _ep_start is not None:
+        ep_troughs.append(float(dd[_ep_start:].min()))
+
+    # Sterling (CAGR / mean of N worst episode troughs)
+    if ep_troughs:
+        n_worst = min(5, len(ep_troughs))
+        worst_troughs = sorted(ep_troughs)[:n_worst]
+        avg_worst_dd = abs(float(np.mean(worst_troughs)))
         sterling = float(cagr / avg_worst_dd) if avg_worst_dd > 0 else 0
     else:
         sterling = 0
 
-    # Burke (CAGR / sqrt(soma dos drawdowns^2))
-    if len(dd_series) > 0:
-        burke_denom = float(np.sqrt(np.sum(np.array(sorted(dd_series)[:n_worst]) ** 2)))
+    # Burke (CAGR / sqrt(sum of N worst episode trough^2))
+    if ep_troughs:
+        n_worst = min(5, len(ep_troughs))
+        worst_troughs = sorted(ep_troughs)[:n_worst]
+        burke_denom = float(np.sqrt(np.sum(np.array(worst_troughs) ** 2)))
         burke = float(cagr / burke_denom) if burke_denom > 0 else 0
     else:
         burke = 0

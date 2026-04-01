@@ -195,6 +195,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           cycleShortMonths.value,
         )
       } else {
+        const btStore = useBacktestStore()
         startResp = await startOptimizer({
           strategy_file: strategyFile.value,
           data_source: 'asset',
@@ -210,6 +211,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           end_date: endDate.value || null,
           cycle_long_months: cycleLongMonths.value,
           cycle_short_months: cycleShortMonths.value,
+          config: btStore.params,
         })
       }
 
