@@ -11,9 +11,12 @@ TOP_N = 20
 # Mapeamento de colunas: portugues -> ingles (interno)
 COLUMN_MAP = {
     "Rank": "rank",
+<<<<<<< HEAD
     "Data": "data",
     "Ativo": "ativo",
     "Timeframe": "timeframe",
+=======
+>>>>>>> b093fb05d3685ea15621ce05d0392ff27b4e24a1
     "Retorno (%)": "return_pct",
     "Max DD (%)": "max_dd_pct",
     "Trades": "trades",
@@ -22,11 +25,14 @@ COLUMN_MAP = {
     "Avg Loss (%)": "avg_loss_pct",
     "Profit Factor": "profit_factor",
     "Sharpe": "sharpe",
+<<<<<<< HEAD
     "Sortino": "sortino",
     "Calmar": "calmar",
     "Omega": "omega",
     "Sterling": "sterling",
     "Burke": "burke",
+=======
+>>>>>>> b093fb05d3685ea15621ce05d0392ff27b4e24a1
     "Score": "score",
     "MA": "ma",
     "Período": "periodo",
@@ -40,6 +46,7 @@ COLUMN_MAP = {
     "Stop Param": "stop_param",
     "Pullback": "pullback",
     "Entry Zone": "entry_zone",
+<<<<<<< HEAD
 }
 
 # Colunas de metricas conhecidas (usadas para distinguir params de metricas)
@@ -48,6 +55,9 @@ METRIC_COLUMNS = {
     "return_pct", "max_dd_pct", "trades", "win_rate_pct",
     "avg_win_pct", "avg_loss_pct", "profit_factor", "sharpe",
     "sortino", "calmar", "omega", "sterling", "burke", "score",
+=======
+    "Ativo": "ativo",
+>>>>>>> b093fb05d3685ea15621ce05d0392ff27b4e24a1
 }
 
 # Colunas que devem ser numericas
