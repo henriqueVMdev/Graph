@@ -129,6 +129,26 @@ export function getOptimizerResult() {
   return api.get('/optimizer/result')
 }
 
+// Regime Detection API
+export function detectRegimeAsset(symbol, interval, params = {}) {
+  return api.post('/regime/detect', {
+    source: 'asset',
+    symbol,
+    interval,
+    params,
+  }, { timeout: 180000 })
+}
+
+export function detectRegimeCsv(file, params = {}) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('params', JSON.stringify(params))
+  return api.post('/regime/detect', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000,
+  })
+}
+
 // Prop Challenge API
 export function runPropChallenge(payload) {
   return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })

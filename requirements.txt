@@ -8,3 +8,5 @@ matplotlib>=3.8
 flask>=3.0
 flask-cors>=4.0
 yfinance>=0.2
+statsmodels>=0.14
+scikit-learn>=1.8

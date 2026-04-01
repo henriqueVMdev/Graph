@@ -3,6 +3,7 @@ import DashboardView from '@/views/DashboardView.vue'
 import BacktestView from '@/views/BacktestView.vue'
 import OptimizerView from '@/views/OptimizerView.vue'
 import PropChallengeView from '@/views/PropChallengeView.vue'
+import RegimeView from '@/views/RegimeView.vue'
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: '/prop-challenge',
     name: 'prop-challenge',
     component: PropChallengeView,
+  },
+  {
+    path: '/regime',
+    name: 'regime',
+    component: RegimeView,
   },
 ]
 

@@ -31,15 +31,22 @@
       >
         Prop Challenge
       </RouterLink>
+      <RouterLink
+        to="/regime"
+        class="nav-link"
+        :class="{ active: route.path === '/regime' }"
+      >
+        Regimes
+      </RouterLink>
     </div>
 
     <!-- Spacer -->
     <div class="flex-1" />
 
     <!-- Status indicator -->
-    <div v-if="dashStore.loading || btStore.isRunning || optStore.isRunning || propStore.isRunning" class="flex items-center gap-2 text-xs text-accent-yellow/80">
+    <div v-if="dashStore.loading || btStore.isRunning || optStore.isRunning || propStore.isRunning || regimeStore.isRunning" class="flex items-center gap-2 text-xs text-accent-yellow/80">
       <span class="dollar-loader-sm">$</span>
-      {{ propStore.isRunning ? 'Simulando prop...' : optStore.isRunning ? 'Otimizando...' : btStore.isRunning ? 'Executando backtest...' : 'Carregando...' }}
+      {{ regimeStore.isRunning ? 'Detectando regimes...' : propStore.isRunning ? 'Simulando prop...' : optStore.isRunning ? 'Otimizando...' : btStore.isRunning ? 'Executando backtest...' : 'Carregando...' }}
     </div>
 
     <!-- Live dot -->
@@ -56,12 +63,14 @@ import { useDashboardStore } from '@/stores/dashboard.js'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { useOptimizerStore } from '@/stores/optimizer.js'
 import { usePropChallengeStore } from '@/stores/propChallenge.js'
+import { useRegimeStore } from '@/stores/regime.js'
 
 const route = useRoute()
 const dashStore = useDashboardStore()
 const btStore = useBacktestStore()
 const optStore = useOptimizerStore()
 const propStore = usePropChallengeStore()
+const regimeStore = useRegimeStore()
 </script>
 
 <style scoped>
