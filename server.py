@@ -1275,24 +1275,23 @@ def api_backtest_validate():
         if len(eq_values) < 10:
             return jsonify({"error": "Equity curve insuficiente"}), 400
 
-        ic = float(metrics_in.get("initial_capital", eq_values[0]))
+        ic           = float(metrics_in.get("initial_capital", eq_values[0]))
+        interval_mc  = body.get("interval", "1d")
+        ann_factor   = _BARS_PER_YEAR.get(interval_mc, 252)
 
         # ── Monte Carlo ──────────────────────────────────────────────────────
-        mc = MonteCarlo(initial_capital=ic, seed=seed)
+        mc = MonteCarlo(initial_capital=ic, seed=seed, ann_factor=ann_factor)
 
-        reshuffle_r        = mc.reshuffle(trades,        n_sims=n_sims)
-        resample_r         = mc.resample(trades,         n_sims=n_sims)
-        randomized_r       = mc.randomized(trades,       n_sims=n_sims)
+        reshuffle_r         = mc.reshuffle(trades,        n_sims=n_sims)
+        resample_r          = mc.resample(trades,         n_sims=n_sims)
+        randomized_r        = mc.randomized(trades,       n_sims=n_sims)
         return_alteration_r = mc.return_alteration(eq_values, eq_dates, n_sims=n_sims)
 
         # ── Permutation Test (equity-curve based) ────────────────────────────
-        pt          = PermutationTestEquity(seed=seed)
+        pt          = PermutationTestEquity(seed=seed, ann_factor=ann_factor)
         perm_result = pt.run(eq_values, trades, n_perms=n_perms)
 
         # ── Métricas originais enriquecidas ──────────────────────────────────
-        interval_val = body.get("interval", "1d")
-        ann_factor   = _BARS_PER_YEAR.get(interval_val, 252)
-
         arr_eq  = np.array(eq_values, dtype=float)
         rets_eq = np.diff(arr_eq) / np.where(arr_eq[:-1] != 0, arr_eq[:-1], 1.0)
         rets_eq = rets_eq[np.isfinite(rets_eq)]
@@ -1914,23 +1913,21 @@ def api_prop_challenge_simulate():
         def simulate_phase(pnl_pool, target, starting_balance):
             """Simula uma fase do desafio. Retorna (passed, final_balance, equity_curve)."""
             balance = starting_balance
-            peak = starting_balance
             curve = [balance]
 
-            # Sorteia trades aleatorios ate atingir target ou ser reprovado
-            max_trades = len(pnl_pool) * 3  # limite para evitar loop infinito
+            # Limite generoso para evitar loop infinito sem subestimar estrategias lentas
+            max_trades = max(1000, len(pnl_pool) * 20)
             for _ in range(max_trades):
-                trade_pnl_pct = rng.choice(pnl_pool)
+                trade_pnl_pct = float(rng.choice(pnl_pool))
                 pnl_value = balance * (trade_pnl_pct / 100.0)
                 balance += pnl_value
                 curve.append(balance)
 
-                # Verifica perda diaria (trade individual)
-                daily_change = (balance - curve[-2]) / curve[-2] if curve[-2] != 0 else 0
-                if daily_change <= daily_max_loss:
+                # Verifica perda por trade individual (equivale a perda diaria para timeframe diario)
+                if trade_pnl_pct / 100.0 <= daily_max_loss:
                     return False, balance, curve
 
-                # Verifica perda total
+                # Verifica perda total acumulada desde o inicio da fase
                 total_change = (balance - starting_balance) / starting_balance
                 if total_change <= max_loss:
                     return False, balance, curve
@@ -1979,11 +1976,11 @@ def api_prop_challenge_simulate():
                     phase2_pass += 1
                     both_pass += 1
 
-            # Salva algumas curvas de exemplo (primeiras 50)
-            if i < 50:
+            # Salva ate 50 curvas de exemplo para o grafico
+            if len(phase1_curves) < 50:
                 phase1_curves.append([round(v, 2) for v in p1_curve])
-                if p1_passed:
-                    phase2_curves.append([round(v, 2) for v in p2_curve])
+            if p1_passed and len(phase2_curves) < 50:
+                phase2_curves.append([round(v, 2) for v in p2_curve])
 
         # Estatisticas dos trades originais
         wins = [p for p in pnl_pcts if p > 0]

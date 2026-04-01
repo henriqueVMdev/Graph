@@ -45,8 +45,9 @@ class PermutationTestEquity:
     Vantagem: extremamente rápido (sem re-executar a estratégia).
     """
 
-    def __init__(self, seed: int | None = None):
-        self.rng = np.random.default_rng(seed)
+    def __init__(self, seed: int | None = None, ann_factor: float = 252.0):
+        self.rng        = np.random.default_rng(seed)
+        self.ann_factor = float(ann_factor)
 
     def run(
         self,
@@ -58,7 +59,7 @@ class PermutationTestEquity:
         log_rets = np.diff(np.log(np.where(arr > 0, arr, 1e-10)))
         log_rets = log_rets[np.isfinite(log_rets)]
 
-        original_sharpe = _sharpe_from_curve(arr)
+        original_sharpe = _sharpe_from_curve(arr, self.ann_factor)
         original_pf     = _profit_factor_from_trades(trades)
 
         sharpe_dist = []
@@ -69,7 +70,7 @@ class PermutationTestEquity:
             # Reconstrói equity: equity[t] = equity[0] * exp(sum(log_rets[:t]))
             log_cumsums = np.concatenate([[0.0], np.cumsum(shuffled)])
             perm_equity = arr[0] * np.exp(log_cumsums)
-            sharpe_dist.append(_sharpe_from_curve(perm_equity))
+            sharpe_dist.append(_sharpe_from_curve(perm_equity, self.ann_factor))
             pf_dist.append(float("nan"))  # PF não disponível sem trades sintéticos
 
         sharpe_arr = np.array(sharpe_dist)
@@ -110,8 +111,9 @@ class PermutationTest:
       4. p-value = proporção de permutações com Sharpe >= original.
     """
 
-    def __init__(self, seed: int | None = None):
-        self.rng = np.random.default_rng(seed)
+    def __init__(self, seed: int | None = None, ann_factor: float = 252.0):
+        self.rng        = np.random.default_rng(seed)
+        self.ann_factor = float(ann_factor)
 
     def run(
         self,
@@ -144,7 +146,7 @@ class PermutationTest:
         orig_sharpe = orig_metrics.get("sharpe")
         if orig_sharpe is None:
             eq_vals = orig_result.get("equity_curve", {}).get("values", [])
-            orig_sharpe = _sharpe_from_curve(np.array(eq_vals)) if eq_vals else 0.0
+            orig_sharpe = _sharpe_from_curve(np.array(eq_vals), self.ann_factor) if eq_vals else 0.0
         orig_pf = orig_metrics.get("profit_factor") or 1.0
 
         sharpe_dist = []
@@ -176,7 +178,7 @@ class PermutationTest:
                 s        = met.get("sharpe")
                 if s is None:
                     eq_v = res.get("equity_curve", {}).get("values", [])
-                    s    = _sharpe_from_curve(np.array(eq_v)) if eq_v else 0.0
+                    s    = _sharpe_from_curve(np.array(eq_v), self.ann_factor) if eq_v else 0.0
                 pf       = met.get("profit_factor") or 1.0
                 sharpe_dist.append(float(s))
                 pf_dist.append(float(pf) if np.isfinite(float(pf)) else 1.0)
