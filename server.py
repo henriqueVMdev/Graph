@@ -22,6 +22,7 @@ from charts.scatter import (
     plot_return_vs_trades,
 )
 import itertools
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as _FuturesTimeout
 
 # Diretório com os módulos de estratégia
 STRATEGIES_DIR = Path(__file__).parent / "strategies"
@@ -1598,6 +1599,7 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
     if total > 100000:
         return None, f"Grid muito grande ({total} combinacoes). Reduza os parametros."
 
+    # Limpa cancel ANTES de marcar running — evita race com thread anterior
     _optimizer_cancel.clear()
     with _optimizer_lock:
         _optimizer_progress["current"] = 0
@@ -1612,23 +1614,30 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
     t0 = time.time()
     stopped = False
 
-    for i, params in enumerate(combos):
-        if _optimizer_cancel.is_set():
-            stopped = True
-            break
-        try:
-            run_params = {**base_extra, **params, "_fast": True}
-            if prepare:
-                run_params = prepare(dict(run_params))
-            result = module.run(df_data.copy(), run_params)
-            row = _calc_optimizer_row(result, params, param_labels)
-            if row and row["Trades"] >= min_trades:
-                results.append(row)
-        except Exception:
-            pass
-        with _optimizer_lock:
-            _optimizer_progress["current"] = i + 1
-            _optimizer_progress["valid"] = len(results)
+    # Timeout por combo: evita travar em uma combinacao que causa loop infinito
+    _COMBO_TIMEOUT_S = 60
+
+    with ThreadPoolExecutor(max_workers=1) as _pool:
+        for i, params in enumerate(combos):
+            if _optimizer_cancel.is_set():
+                stopped = True
+                break
+            try:
+                run_params = {**base_extra, **params, "_fast": True}
+                if prepare:
+                    run_params = prepare(dict(run_params))
+                _future = _pool.submit(module.run, df_data.copy(), run_params)
+                result = _future.result(timeout=_COMBO_TIMEOUT_S)
+                row = _calc_optimizer_row(result, params, param_labels)
+                if row and row["Trades"] >= min_trades:
+                    results.append(row)
+            except _FuturesTimeout:
+                pass  # combo travado — ignora e continua
+            except Exception:
+                pass
+            with _optimizer_lock:
+                _optimizer_progress["current"] = i + 1
+                _optimizer_progress["valid"] = len(results)
 
     elapsed = time.time() - t0
     tested = _optimizer_progress["current"]
@@ -1881,13 +1890,15 @@ def api_prop_challenge_simulate():
         strategy_file = body.get("strategy_file", "depaula") or "depaula"
         cfg_dict = body.get("config", {})
         account_size = float(body.get("account_size", 50000))
-        num_sims = int(body.get("num_sims", 1000))
+        num_sims = max(100, min(int(body.get("num_sims", 1000)), 10000))
         symbol = body.get("symbol", "")
         symbol_label = body.get("symbol_label", symbol)
         interval_label = body.get("interval", "1d")
 
         if not symbol:
             return jsonify({"error": "symbol obrigatorio"}), 400
+        if account_size <= 0:
+            return jsonify({"error": "account_size deve ser positivo"}), 400
 
         # Forca initial_capital = account_size para o backtest
         cfg_dict["initial_capital"] = account_size
@@ -1900,9 +1911,11 @@ def api_prop_challenge_simulate():
         if len(trades) < 5:
             return jsonify({"error": "Poucos trades para simular (minimo 5)"}), 400
 
-        pnl_pcts = [t["pnl_pct"] for t in trades]
+        pnl_pcts = [float(t["pnl_pct"]) for t in trades if t.get("pnl_pct") is not None]
+        if len(pnl_pcts) < 5:
+            return jsonify({"error": "Poucos trades validos para simular (minimo 5)"}), 400
 
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng()  # semente aleatoria — cada execucao produz resultado diferente
 
         # Regras do desafio
         phase1_target = 0.10   # +10%

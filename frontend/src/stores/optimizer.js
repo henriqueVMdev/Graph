@@ -223,16 +223,41 @@ export const useOptimizerStore = defineStore('optimizer', () => {
       // Aguarda conclusao via polling de progresso
       await new Promise((resolve) => {
         _stopProgressPolling()
+        let _consecutiveErrors = 0
+        let _lastCurrent = -1
+        let _staleSince = Date.now()
+        const _MAX_STALE_MS = 90_000  // 90s sem progresso = considera travado
+
         _progressTimer = setInterval(async () => {
           try {
             const { data } = await getOptimizerProgress()
             progress.value = data
+            _consecutiveErrors = 0
+
             if (data.status === 'done' || data.status === 'error') {
               _stopProgressPolling()
               resolve()
+              return
             }
-            // 'starting' e 'running' continuam no loop
-          } catch { /* ignora erros de rede durante polling */ }
+
+            // Detecta progresso travado
+            if (data.current !== _lastCurrent) {
+              _lastCurrent = data.current
+              _staleSince = Date.now()
+            } else if (Date.now() - _staleSince > _MAX_STALE_MS) {
+              _stopProgressPolling()
+              progress.value = { ...data, status: 'error' }
+              error.value = 'Otimizacao travada (sem progresso por 90s). Reinicie o servidor.'
+              resolve()
+            }
+          } catch {
+            _consecutiveErrors++
+            if (_consecutiveErrors >= 10) {
+              _stopProgressPolling()
+              error.value = 'Servidor inacessivel. Verifique se o backend esta rodando.'
+              resolve()
+            }
+          }
         }, 500)
       })
 
@@ -260,6 +285,10 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     try {
       await stopOptimizer()
     } catch { /* ignore */ }
+    // Para o polling imediatamente — nao espera o backend confirmar
+    _stopProgressPolling()
+    progress.value = { ...progress.value, status: 'error' }
+    isRunning.value = false
   }
 
   function sendBestToBacktest() {
