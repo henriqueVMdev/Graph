@@ -22,7 +22,6 @@ from charts.scatter import (
     plot_return_vs_trades,
 )
 import itertools
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as _FuturesTimeout
 
 # Diretório com os módulos de estratégia
 STRATEGIES_DIR = Path(__file__).parent / "strategies"
@@ -918,6 +917,8 @@ def api_backtest_wfa():
                 for _ in range(optimize_is_samples):
                     trial_cfg = _random_config_from_grid(cfg_dict, param_specs, win_rng)
                     trial_m   = _compute_window_metrics(df_is, module, trial_cfg, interval)
+                    if trial_m is None:
+                        continue
                     trial_sharpe = trial_m['sharpe'] if trial_m['sharpe'] is not None else 0.0
                     if trial_sharpe > best_sharpe:
                         best_sharpe = trial_sharpe
@@ -1307,14 +1308,21 @@ def api_backtest_validate():
         avg_loss  = float(np.mean(losses)) if losses else 0.0
         expectancy = win_rate / 100 * avg_win + (1 - win_rate / 100) * avg_loss
 
-        # Sortino — downside deviation: sqrt(mean(min(pnl, 0)^2)) over all trades
+        # Sortino — annualized by trades_per_year
         _ds_sq  = [min(p, 0) ** 2 for p in pnls]
         _ds_dev = float(np.sqrt(np.mean(_ds_sq))) if _ds_sq else 0.0
-        sortino = float(np.mean(pnls) / _ds_dev * np.sqrt(len(pnls))) if _ds_dev > 0 else 0.0
+        from datetime import datetime as _dt2
+        _sort_days = 1
+        if len(eq_dates) > 1:
+            try:
+                _sort_days = max((_dt2.fromisoformat(str(eq_dates[-1])[:10]) - _dt2.fromisoformat(str(eq_dates[0])[:10])).days, 1)
+            except Exception:
+                _sort_days = max(len(arr_eq) - 1, 1)
+        _trades_per_year = len(pnls) / (_sort_days / 365.25) if _sort_days > 0 else len(pnls)
+        sortino = float(np.mean(pnls) / _ds_dev * np.sqrt(_trades_per_year)) if _ds_dev > 0 else 0.0
 
         # Calmar — CAGR uses calendar days derived from equity curve dates
         ic_val = float(metrics_in.get("initial_capital", arr_eq[0] if len(arr_eq) else 1.0))
-        from datetime import datetime as _dt2
         if len(eq_dates) > 1:
             try:
                 _t0 = _dt2.fromisoformat(str(eq_dates[0])[:10])
@@ -1482,15 +1490,8 @@ def _calc_optimizer_row(result, params, param_labels):
     avg_win = m.get("avg_win", 0) or 0
     avg_loss = m.get("avg_loss", 0) or 0
 
-    # Sharpe (trade-level, ddof=1)
-    pnls = [t["pnl_pct"] for t in trades if t.get("pnl_pct") is not None]
-    if len(pnls) > 1:
-        _std = float(np.std(pnls, ddof=1))
-        sharpe = float(np.mean(pnls) / _std * np.sqrt(len(pnls))) if _std > 0 else 0.0
-    else:
-        sharpe = 0.0
-
     # Reuse pre-computed formula-accurate values from the strategy module
+    sharpe  = m.get("sharpe")  or 0.0
     sortino = m.get("sortino") or 0.0
     calmar  = m.get("calmar")  or 0.0
     omega   = m.get("omega")   or 0.0
@@ -1607,37 +1608,52 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
         _optimizer_progress["valid"] = 0
         _optimizer_progress["status"] = "running"
 
-    base_extra = {"initial_capital": capital}
-    if fixed_params:
-        base_extra.update(fixed_params)
+    base_extra = dict(fixed_params) if fixed_params else {"initial_capital": capital}
     results = []
     t0 = time.time()
     stopped = False
 
-    # Timeout por combo: evita travar em uma combinacao que causa loop infinito
+    # Timeout por combo: evita travar em uma combinacao que causa loop infinito.
+    # Usa thread individual por combo (daemon=True) para que um combo travado
+    # nao bloqueie os seguintes (ThreadPoolExecutor max_workers=1 bloquearia).
     _COMBO_TIMEOUT_S = 60
 
-    with ThreadPoolExecutor(max_workers=1) as _pool:
-        for i, params in enumerate(combos):
-            if _optimizer_cancel.is_set():
-                stopped = True
-                break
-            try:
-                run_params = {**base_extra, **params, "_fast": True}
-                if prepare:
-                    run_params = prepare(dict(run_params))
-                _future = _pool.submit(module.run, df_data.copy(), run_params)
-                result = _future.result(timeout=_COMBO_TIMEOUT_S)
+    for i, params in enumerate(combos):
+        if _optimizer_cancel.is_set():
+            stopped = True
+            break
+        try:
+            run_params = {**base_extra, **params, "_fast": True}
+            if prepare:
+                run_params = prepare(dict(run_params))
+
+            _result_box = [None]
+            _error_box = [None]
+
+            def _run_single(_df=df_data.copy(), _rp=run_params, _rb=_result_box, _eb=_error_box):
+                try:
+                    _rb[0] = module.run(_df, _rp)
+                except Exception as _e:
+                    _eb[0] = _e
+
+            _t = threading.Thread(target=_run_single, daemon=True)
+            _t.start()
+            _t.join(timeout=_COMBO_TIMEOUT_S)
+
+            if _t.is_alive():
+                pass  # combo travado — daemon thread sera limpo no exit
+            elif _error_box[0] is not None:
+                pass  # combo falhou
+            else:
+                result = _result_box[0]
                 row = _calc_optimizer_row(result, params, param_labels)
                 if row and row["Trades"] >= min_trades:
                     results.append(row)
-            except _FuturesTimeout:
-                pass  # combo travado — ignora e continua
-            except Exception:
-                pass
-            with _optimizer_lock:
-                _optimizer_progress["current"] = i + 1
-                _optimizer_progress["valid"] = len(results)
+        except Exception:
+            pass
+        with _optimizer_lock:
+            _optimizer_progress["current"] = i + 1
+            _optimizer_progress["valid"] = len(results)
 
     elapsed = time.time() - t0
     tested = _optimizer_progress["current"]
@@ -1760,6 +1776,17 @@ def api_optimizer_run():
             fixed_params["cycle_short_months"] = body["cycle_short_months"]
 
         df_data = _download_data_safe(symbol, interval)
+
+        # Filtra por data se o usuario definiu start/end
+        sd = body.get("start_date")
+        ed = body.get("end_date")
+        if sd:
+            df_data = df_data[df_data.index >= pd.Timestamp(sd)]
+        if ed:
+            df_data = df_data[df_data.index <= pd.Timestamp(ed)]
+        if df_data.empty:
+            return jsonify({"error": "Nenhum dado no intervalo de datas selecionado"}), 400
+
         module = _load_strategy(strategy_file)
 
         _optimizer_result_store["data"] = None
@@ -1812,7 +1839,10 @@ def api_optimizer_run_csv():
         if df_data is None:
             return jsonify({"error": "Nao foi possivel ler o CSV"}), 400
 
-        fixed_params = {}
+        # Merge backtest config so non-grid params match the user's settings
+        config_raw = request.form.get("config")
+        fixed_params = json.loads(config_raw) if config_raw else {}
+        fixed_params["initial_capital"] = capital
         cycle_long = request.form.get("cycle_long_months")
         cycle_short = request.form.get("cycle_short_months")
         if cycle_long:

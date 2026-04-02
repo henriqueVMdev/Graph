@@ -156,16 +156,6 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     }
   }
 
-  function _startProgressPolling() {
-    _stopProgressPolling()
-    _progressTimer = setInterval(async () => {
-      try {
-        const { data } = await getOptimizerProgress()
-        progress.value = data
-      } catch { /* ignore */ }
-    }, 500)
-  }
-
   function _stopProgressPolling() {
     if (_progressTimer) {
       clearInterval(_progressTimer)
@@ -182,6 +172,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     try {
       // Dispara o job — retorna imediatamente com {status: "started"}
       let startResp
+      const btStore = useBacktestStore()
       if (dataSource.value === 'csv' && csvFile.value) {
         startResp = await startOptimizerCsv(
           csvFile.value,
@@ -193,9 +184,9 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           strategyFile.value,
           cycleLongMonths.value,
           cycleShortMonths.value,
+          btStore.params,
         )
       } else {
-        const btStore = useBacktestStore()
         startResp = await startOptimizer({
           strategy_file: strategyFile.value,
           data_source: 'asset',

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-11 gap-2">
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-2">
     <div class="metric-card">
       <span class="metric-label">Capital</span>
       <span class="metric-value text-gray-100">${{ fmtMoney(metrics.final_equity) }}</span>
@@ -33,6 +33,12 @@
       </span>
     </div>
     <div class="metric-card">
+      <span class="metric-label">Sharpe</span>
+      <span class="metric-value" :class="(metrics.sharpe ?? 0) >= 1.5 ? 'text-accent-green-light' : (metrics.sharpe ?? 0) >= 1 ? 'text-accent-yellow' : 'text-gray-100'">
+        {{ metrics.sharpe != null ? Number(metrics.sharpe).toFixed(2) : '-' }}
+      </span>
+    </div>
+    <div class="metric-card">
       <span class="metric-label">Sortino</span>
       <span class="metric-value" :class="(metrics.sortino ?? 0) >= 1 ? 'text-accent-green-light' : 'text-gray-100'">
         {{ metrics.sortino != null ? Number(metrics.sortino).toFixed(2) : '-' }}
@@ -46,8 +52,8 @@
     </div>
     <div class="metric-card">
       <span class="metric-label">Omega</span>
-      <span class="metric-value" :class="(metrics.omega ?? 0) >= 1.5 ? 'text-accent-green-light' : (metrics.omega ?? 0) >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
-        {{ metrics.omega != null ? Number(metrics.omega).toFixed(2) : '-' }}
+      <span class="metric-value" :class="metrics.omega == null ? 'text-gray-400' : metrics.omega >= 1.5 ? 'text-accent-green-light' : metrics.omega >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
+        {{ metrics.omega != null ? Number(metrics.omega).toFixed(2) : '∞' }}
       </span>
     </div>
     <div class="metric-card">

@@ -188,33 +188,41 @@ def calc_metrics(st: BacktestState, cfg: Config) -> Dict[str, Any]:
     dd = (eq - peak) / peak * 100
     max_dd = dd.min()
 
-    # Sharpe simplificado (retorno médio / desvio)
-    if len(pnls) > 1 and np.std(pnls) > 0:
-        sharpe = np.mean(pnls) / np.std(pnls) * np.sqrt(len(pnls))
-    else:
-        sharpe = 0
+    # Sharpe from equity curve returns (annualized, ddof=1)
+    bars_per_year = len(eq) / (total_days / 365.25) if total_days > 0 else 252
+    sharpe = 0.0
+    if len(eq) > 2:
+        eq_rets = np.diff(eq) / np.where(eq[:-1] != 0, eq[:-1], 1.0)
+        eq_rets = eq_rets[np.isfinite(eq_rets)]
+        eq_std = float(eq_rets.std(ddof=1))
+        if len(eq_rets) > 1 and eq_std > 0:
+            sharpe = float(eq_rets.mean() / eq_std * np.sqrt(bars_per_year))
 
-    # Sortino (downside deviation only)
+    # Sortino — annualized by trades_per_year
+    total_days = max((st._df.index[-1] - st._df.index[0]).days, 1) if len(st._df) > 1 else 1
     neg = [p for p in pnls if p < 0]
-    ds_std = float(np.std(neg)) if len(neg) > 1 else 0
-    sortino = float(np.mean(pnls) / ds_std * np.sqrt(len(pnls))) if ds_std > 0 else 0
+    ds_sq = [min(p, 0) ** 2 for p in pnls]
+    ds_dev = float(np.sqrt(np.mean(ds_sq))) if ds_sq else 0
+    trades_per_year = len(pnls) / (total_days / 365.25) if total_days > 0 else len(pnls)
+    sortino = float(np.mean(pnls) / ds_dev * np.sqrt(trades_per_year)) if ds_dev > 0 else 0
 
-    # Calmar (retorno / |max_dd|)
-    calmar = float(total_return / abs(max_dd)) if abs(max_dd) > 0 else 0
+    # Calmar — CAGR / |max_dd|
+    cagr = ((st.equity / cfg.initial_capital) ** (365.25 / total_days) - 1) * 100
+    calmar = float(cagr / abs(max_dd)) if abs(max_dd) > 0 else 0
 
     # Omega (soma ganhos / soma perdas)
     gains_sum = sum(p for p in pnls if p > 0)
     losses_sum = abs(sum(p for p in pnls if p < 0))
     omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0
 
-    # Sterling (retorno / media dos N piores perdas)
+    # Sterling (CAGR / media dos N piores drawdown troughs)
     neg_sorted = sorted(neg)
     n_w = min(5, len(neg_sorted))
     if n_w > 0:
         avg_worst = abs(float(np.mean(neg_sorted[:n_w])))
-        sterling = float(total_return / avg_worst) if avg_worst > 0 else 0
+        sterling = float(cagr / avg_worst) if avg_worst > 0 else 0
         burke_d = float(np.sqrt(np.sum(np.array(neg_sorted[:n_w]) ** 2)))
-        burke = float(total_return / burke_d) if burke_d > 0 else 0
+        burke = float(cagr / burke_d) if burke_d > 0 else 0
     else:
         sterling = 0
         burke = 0

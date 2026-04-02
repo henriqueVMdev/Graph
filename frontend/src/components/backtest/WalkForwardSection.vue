@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { purgeChart } from '@/composables/useCharts.js'
 
@@ -414,6 +414,7 @@ function renderParamHeatmap() {
 
 async function renderAll() {
   if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  await nextTick()
   renderOosEquity()
   renderSharpeScatter()
   renderComparison()

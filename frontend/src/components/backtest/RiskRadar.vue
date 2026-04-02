@@ -76,7 +76,12 @@ function barWidth(key) {
 }
 
 function normalize(val, key) {
-  if (val == null || val === 0) return 0
+  if (val == null) {
+    // null para omega/profit_factor = sem perdas = maximo
+    if (key === 'omega') return 100
+    return 0
+  }
+  if (val === 0) return 0
   const caps = {
     sharpe: 5, sortino: 8, calmar: 10,
     omega: 4, sterling: 10, burke: 5,
@@ -94,7 +99,8 @@ function buildChart() {
 
   const rawValues = KEYS.map(k => {
     const v = props.metrics[k]
-    return v != null ? Number(v).toFixed(2) : '0'
+    if (v == null) return (k === 'omega') ? '∞' : '0'
+    return Number(v).toFixed(2)
   })
   rawValues.push(rawValues[0])
 

@@ -463,21 +463,34 @@ def run(df, params: dict) -> dict:
     dd = (eq - peak) / peak * 100
     max_dd = float(dd.min())
 
-    # Sortino — downside deviation: sqrt(mean(min(pnl, 0)^2)) over all trades
-    pnls = [t.pnl_pct for t in trades]
-    downside_sq = [min(p, 0) ** 2 for p in pnls]
-    downside_dev = float(np.sqrt(np.mean(downside_sq))) if downside_sq else 0
-    sortino = float(np.mean(pnls) / downside_dev * np.sqrt(len(pnls))) if downside_dev > 0 else 0
-
     # Calmar — CAGR uses calendar days, not bar count
     total_days = max((bt_df.index[-1] - bt_df.index[0]).days, 1) if len(bt_df) > 1 else 1
     cagr = ((result.equity / cfg.initial_capital) ** (365.25 / total_days) - 1) * 100
     calmar = float(cagr / abs(max_dd)) if abs(max_dd) > 0 else 0
 
+    # Annualization factor inferred from bar frequency
+    bars_per_year = len(bt_df) / (total_days / 365.25) if total_days > 0 else 252
+
+    # Sharpe from equity curve returns (annualized, ddof=1)
+    sharpe = 0.0
+    pnls = [t.pnl_pct for t in trades]
+    if len(eq) > 2:
+        eq_rets = np.diff(eq) / np.where(eq[:-1] != 0, eq[:-1], 1.0)
+        eq_rets = eq_rets[np.isfinite(eq_rets)]
+        eq_std = float(eq_rets.std(ddof=1))
+        if len(eq_rets) > 1 and eq_std > 0:
+            sharpe = float(eq_rets.mean() / eq_std * np.sqrt(bars_per_year))
+
+    # Sortino — annualized by trades_per_year, not total trades
+    downside_sq = [min(p, 0) ** 2 for p in pnls]
+    downside_dev = float(np.sqrt(np.mean(downside_sq))) if downside_sq else 0
+    trades_per_year = len(pnls) / (total_days / 365.25) if total_days > 0 else len(pnls)
+    sortino = float(np.mean(pnls) / downside_dev * np.sqrt(trades_per_year)) if downside_dev > 0 else 0
+
     # Omega (sum gains / sum |losses|)
     gains_sum = sum(p for p in pnls if p > 0)
     losses_sum = abs(sum(p for p in pnls if p < 0))
-    omega = float(gains_sum / losses_sum) if losses_sum > 0 else 0
+    omega = float(gains_sum / losses_sum) if losses_sum > 0 else None
 
     # Extract dd episode troughs for Sterling and Burke
     ep_troughs = []
@@ -600,6 +613,7 @@ def run(df, params: dict) -> dict:
             "profit_factor": _safe(profit_factor),
             "avg_win": _safe(avg_win),
             "avg_loss": _safe(avg_loss),
+            "sharpe": _safe(sharpe),
             "sortino": _safe(sortino),
             "calmar": _safe(calmar),
             "omega": _safe(omega),
