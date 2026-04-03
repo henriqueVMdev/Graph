@@ -156,16 +156,6 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     }
   }
 
-  function _startProgressPolling() {
-    _stopProgressPolling()
-    _progressTimer = setInterval(async () => {
-      try {
-        const { data } = await getOptimizerProgress()
-        progress.value = data
-      } catch { /* ignore */ }
-    }, 500)
-  }
-
   function _stopProgressPolling() {
     if (_progressTimer) {
       clearInterval(_progressTimer)
@@ -182,6 +172,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     try {
       // Dispara o job — retorna imediatamente com {status: "started"}
       let startResp
+      const btStore = useBacktestStore()
       if (dataSource.value === 'csv' && csvFile.value) {
         startResp = await startOptimizerCsv(
           csvFile.value,
@@ -193,6 +184,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           strategyFile.value,
           cycleLongMonths.value,
           cycleShortMonths.value,
+          btStore.params,
         )
       } else {
         startResp = await startOptimizer({
@@ -210,6 +202,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           end_date: endDate.value || null,
           cycle_long_months: cycleLongMonths.value,
           cycle_short_months: cycleShortMonths.value,
+          config: btStore.params,
         })
       }
 
@@ -221,16 +214,41 @@ export const useOptimizerStore = defineStore('optimizer', () => {
       // Aguarda conclusao via polling de progresso
       await new Promise((resolve) => {
         _stopProgressPolling()
+        let _consecutiveErrors = 0
+        let _lastCurrent = -1
+        let _staleSince = Date.now()
+        const _MAX_STALE_MS = 90_000  // 90s sem progresso = considera travado
+
         _progressTimer = setInterval(async () => {
           try {
             const { data } = await getOptimizerProgress()
             progress.value = data
+            _consecutiveErrors = 0
+
             if (data.status === 'done' || data.status === 'error') {
               _stopProgressPolling()
               resolve()
+              return
             }
-            // 'starting' e 'running' continuam no loop
-          } catch { /* ignora erros de rede durante polling */ }
+
+            // Detecta progresso travado
+            if (data.current !== _lastCurrent) {
+              _lastCurrent = data.current
+              _staleSince = Date.now()
+            } else if (Date.now() - _staleSince > _MAX_STALE_MS) {
+              _stopProgressPolling()
+              progress.value = { ...data, status: 'error' }
+              error.value = 'Otimizacao travada (sem progresso por 90s). Reinicie o servidor.'
+              resolve()
+            }
+          } catch {
+            _consecutiveErrors++
+            if (_consecutiveErrors >= 10) {
+              _stopProgressPolling()
+              error.value = 'Servidor inacessivel. Verifique se o backend esta rodando.'
+              resolve()
+            }
+          }
         }, 500)
       })
 
@@ -258,7 +276,9 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     try {
       await stopOptimizer()
     } catch { /* ignore */ }
+    // Para o polling imediatamente — nao espera o backend confirmar
     _stopProgressPolling()
+    progress.value = { ...progress.value, status: 'error' }
     isRunning.value = false
   }
 

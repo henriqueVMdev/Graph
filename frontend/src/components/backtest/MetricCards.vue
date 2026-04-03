@@ -1,7 +1,7 @@
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-11 gap-3">
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-12 gap-2">
     <div class="metric-card">
-      <span class="metric-label">Capital Final</span>
+      <span class="metric-label">Capital</span>
       <span class="metric-value text-gray-100">${{ fmtMoney(metrics.final_equity) }}</span>
     </div>
     <div class="metric-card">
@@ -11,7 +11,7 @@
       </span>
     </div>
     <div class="metric-card">
-      <span class="metric-label">Max Drawdown</span>
+      <span class="metric-label">Max DD</span>
       <span class="metric-value text-accent-red-light">{{ fmtPct(metrics.max_dd) }}</span>
     </div>
     <div class="metric-card">
@@ -25,11 +25,17 @@
       </span>
     </div>
     <div class="metric-card">
-      <span class="metric-label">Profit Factor</span>
+      <span class="metric-label">Profit F.</span>
       <span class="metric-value"
         :class="metrics.profit_factor == null ? 'text-gray-400' : metrics.profit_factor >= 1.5 ? 'text-accent-green-light' : metrics.profit_factor >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'"
       >
         {{ metrics.profit_factor != null ? Number(metrics.profit_factor).toFixed(2) : '∞' }}
+      </span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Sharpe</span>
+      <span class="metric-value" :class="(metrics.sharpe ?? 0) >= 1.5 ? 'text-accent-green-light' : (metrics.sharpe ?? 0) >= 1 ? 'text-accent-yellow' : 'text-gray-100'">
+        {{ metrics.sharpe != null ? Number(metrics.sharpe).toFixed(2) : '-' }}
       </span>
     </div>
     <div class="metric-card">
@@ -46,8 +52,8 @@
     </div>
     <div class="metric-card">
       <span class="metric-label">Omega</span>
-      <span class="metric-value" :class="(metrics.omega ?? 0) >= 1.5 ? 'text-accent-green-light' : (metrics.omega ?? 0) >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
-        {{ metrics.omega != null ? Number(metrics.omega).toFixed(2) : '-' }}
+      <span class="metric-value" :class="metrics.omega == null ? 'text-gray-400' : metrics.omega >= 1.5 ? 'text-accent-green-light' : metrics.omega >= 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
+        {{ metrics.omega != null ? Number(metrics.omega).toFixed(2) : '∞' }}
       </span>
     </div>
     <div class="metric-card">
