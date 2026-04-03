@@ -2171,8 +2171,8 @@ def regime_detect():
 
 
 if __name__ == "__main__":
-    print("╔════════════════════════════════════════╗")
-    print("║   Backtesting API — Flask Server       ║")
-    print("║   http://localhost:5000                ║")
-    print("╚════════════════════════════════════════╝")
+    print("========================================")
+    print("   Backtesting API - Flask Server")
+    print("   http://localhost:5000")
+    print("========================================")
     app.run(debug=True, port=5000, host="0.0.0.0", threaded=True)
