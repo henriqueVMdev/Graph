@@ -2119,6 +2119,57 @@ def api_prop_challenge_simulate():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
+# ─── Regime Detection API ────────────────────────────────────────────────────
+
+@app.route("/api/regime/detect", methods=["POST"])
+def regime_detect():
+    """Detecta regimes de mercado via HMM, Markov Switching ou Change-Point."""
+    try:
+        from regime_detection import detect_regimes
+
+        content_type = request.content_type or ""
+
+        if "multipart/form-data" in content_type:
+            file = request.files.get("file")
+            if not file:
+                return jsonify({"error": "Nenhum arquivo enviado"}), 400
+            raw = file.read().decode("utf-8-sig")
+            df = pd.read_csv(io.StringIO(raw), parse_dates=True, index_col=0)
+            params = json.loads(request.form.get("params", "{}"))
+        else:
+            body = request.get_json(force=True)
+            source = body.get("source", "asset")
+            params = body.get("params", {})
+
+            if source == "asset":
+                symbol = body.get("symbol")
+                interval = body.get("interval", "1d")
+                if not symbol:
+                    return jsonify({"error": "Simbolo nao informado"}), 400
+                df = _download_data_safe(symbol, interval)
+            else:
+                return jsonify({"error": "Fonte de dados invalida"}), 400
+
+        method = params.get("method", "hmm")
+        n_states = int(params.get("n_states", 0))
+        features = params.get("features", ["log_return", "volatility"])
+        vol_window = int(params.get("vol_window", 20))
+
+        result = detect_regimes(
+            df,
+            method=method,
+            n_states=n_states,
+            features=features,
+            vol_window=vol_window,
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 if __name__ == "__main__":
     print("╔════════════════════════════════════════╗")
     print("║   Backtesting API — Flask Server       ║")
