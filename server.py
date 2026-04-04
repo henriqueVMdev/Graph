@@ -1597,7 +1597,7 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
 
     if total == 0:
         return None, "Nenhuma combinacao gerada. Verifique o grid."
-    if total > 100000:
+    if total > 2000000:
         return None, f"Grid muito grande ({total} combinacoes). Reduza os parametros."
 
     # Limpa cancel ANTES de marcar running — evita race com thread anterior
@@ -1613,11 +1613,6 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
     t0 = time.time()
     stopped = False
 
-    # Timeout por combo: evita travar em uma combinacao que causa loop infinito.
-    # Usa thread individual por combo (daemon=True) para que um combo travado
-    # nao bloqueie os seguintes (ThreadPoolExecutor max_workers=1 bloquearia).
-    _COMBO_TIMEOUT_S = 60
-
     for i, params in enumerate(combos):
         if _optimizer_cancel.is_set():
             stopped = True
@@ -1627,28 +1622,10 @@ def _run_optimizer_compute(df_data, module, grid_raw, capital, min_trades, rank_
             if prepare:
                 run_params = prepare(dict(run_params))
 
-            _result_box = [None]
-            _error_box = [None]
-
-            def _run_single(_df=df_data.copy(), _rp=run_params, _rb=_result_box, _eb=_error_box):
-                try:
-                    _rb[0] = module.run(_df, _rp)
-                except Exception as _e:
-                    _eb[0] = _e
-
-            _t = threading.Thread(target=_run_single, daemon=True)
-            _t.start()
-            _t.join(timeout=_COMBO_TIMEOUT_S)
-
-            if _t.is_alive():
-                pass  # combo travado — daemon thread sera limpo no exit
-            elif _error_box[0] is not None:
-                pass  # combo falhou
-            else:
-                result = _result_box[0]
-                row = _calc_optimizer_row(result, params, param_labels)
-                if row and row["Trades"] >= min_trades:
-                    results.append(row)
+            result = module.run(df_data, run_params)
+            row = _calc_optimizer_row(result, params, param_labels)
+            if row and row["Trades"] >= min_trades:
+                results.append(row)
         except Exception:
             pass
         with _optimizer_lock:

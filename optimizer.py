@@ -188,6 +188,9 @@ def calc_metrics(st: BacktestState, cfg: Config) -> Dict[str, Any]:
     dd = (eq - peak) / peak * 100
     max_dd = dd.min()
 
+    # Periodo total em dias (usado para anualizacao)
+    total_days = max((st._df.index[-1] - st._df.index[0]).days, 1) if len(st._df) > 1 else 1
+
     # Sharpe from equity curve returns (annualized, ddof=1)
     bars_per_year = len(eq) / (total_days / 365.25) if total_days > 0 else 252
     sharpe = 0.0
@@ -199,7 +202,6 @@ def calc_metrics(st: BacktestState, cfg: Config) -> Dict[str, Any]:
             sharpe = float(eq_rets.mean() / eq_std * np.sqrt(bars_per_year))
 
     # Sortino — annualized by trades_per_year
-    total_days = max((st._df.index[-1] - st._df.index[0]).days, 1) if len(st._df) > 1 else 1
     neg = [p for p in pnls if p < 0]
     ds_sq = [min(p, 0) ** 2 for p in pnls]
     ds_dev = float(np.sqrt(np.mean(ds_sq))) if ds_sq else 0

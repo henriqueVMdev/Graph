@@ -217,7 +217,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
         let _consecutiveErrors = 0
         let _lastCurrent = -1
         let _staleSince = Date.now()
-        const _MAX_STALE_MS = 90_000  // 90s sem progresso = considera travado
+        const _MAX_STALE_MS = 600_000  // 10min sem progresso = considera travado
 
         _progressTimer = setInterval(async () => {
           try {
@@ -238,7 +238,7 @@ export const useOptimizerStore = defineStore('optimizer', () => {
             } else if (Date.now() - _staleSince > _MAX_STALE_MS) {
               _stopProgressPolling()
               progress.value = { ...data, status: 'error' }
-              error.value = 'Otimizacao travada (sem progresso por 90s). Reinicie o servidor.'
+              error.value = 'Otimizacao travada (sem progresso por 10min). Reinicie o servidor.'
               resolve()
             }
           } catch {
@@ -278,7 +278,14 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     } catch { /* ignore */ }
     // Para o polling imediatamente — nao espera o backend confirmar
     _stopProgressPolling()
-    progress.value = { ...progress.value, status: 'error' }
+    progress.value = { ...progress.value, status: 'done' }
+    // Busca resultados parciais (o backend salva o que foi computado ate o cancel)
+    try {
+      const resultResp = await getOptimizerResult()
+      if (resultResp.data && !resultResp.data.error) {
+        results.value = resultResp.data
+      }
+    } catch { /* ignore */ }
     isRunning.value = false
   }
 
