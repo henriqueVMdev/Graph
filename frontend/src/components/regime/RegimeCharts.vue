@@ -120,16 +120,25 @@ const REGIME_COLORS = {
   bull: 'rgba(74,222,128,0.8)',
   bear: 'rgba(239,83,80,0.8)',
   sideways: 'rgba(245,197,24,0.8)',
+  low_vol: 'rgba(96,165,250,0.8)',
+  mid_vol: 'rgba(245,197,24,0.8)',
+  high_vol: 'rgba(239,83,80,0.8)',
 }
 const REGIME_BG = {
   bull: 'rgba(74,222,128,0.08)',
   bear: 'rgba(239,83,80,0.08)',
   sideways: 'rgba(245,197,24,0.06)',
+  low_vol: 'rgba(96,165,250,0.06)',
+  mid_vol: 'rgba(245,197,24,0.06)',
+  high_vol: 'rgba(239,83,80,0.08)',
 }
 const REGIME_LABELS = {
   bull: 'Bull (Alta)',
   bear: 'Bear (Baixa)',
   sideways: 'Sideways (Lateral)',
+  low_vol: 'Low Vol (Calmo)',
+  mid_vol: 'Mid Vol (Moderado)',
+  high_vol: 'High Vol (Turbulento)',
 }
 
 function regimeColor(r) { return REGIME_COLORS[r] || '#888' }
@@ -185,17 +194,16 @@ function renderPriceChart() {
 
   // Regime colored dots (sparse for legend)
   const regimeTraces = []
-  const seenRegimes = new Set()
-  for (const regime of ['bull', 'bear', 'sideways']) {
+  const uniqueRegimes = [...new Set(r.regimes)]
+  for (const regime of uniqueRegimes) {
     const indices = r.regimes.map((reg, idx) => reg === regime ? idx : -1).filter(i => i >= 0)
     if (indices.length === 0) continue
-    seenRegimes.add(regime)
     regimeTraces.push({
       type: 'scatter', mode: 'markers',
       name: REGIME_LABELS[regime] || regime,
       x: indices.filter((_, j) => j % Math.max(1, Math.floor(indices.length / 50)) === 0).map(i => r.dates[i]),
       y: indices.filter((_, j) => j % Math.max(1, Math.floor(indices.length / 50)) === 0).map(i => r.prices[i]),
-      marker: { color: REGIME_COLORS[regime], size: 4, opacity: 0.6 },
+      marker: { color: REGIME_COLORS[regime] || 'rgba(128,128,128,0.8)', size: 4, opacity: 0.6 },
       hoverinfo: 'skip',
     })
   }

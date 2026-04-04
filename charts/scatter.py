@@ -92,3 +92,4 @@ def plot_return_vs_trades(df: pd.DataFrame):
         yaxis_title="Retorno (%)",
     )
     return fig
+                                                                                                                                                                                                            
