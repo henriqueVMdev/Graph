@@ -234,6 +234,15 @@
         </div>
       </div>
 
+      <!-- Load best params -->
+      <button
+        v-if="!store.isRunning && store.results?.best"
+        @click="loadBest()"
+        class="w-full py-2 rounded-lg font-semibold text-xs bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition-all duration-200 mb-2"
+      >
+        Carregar Parametros Recomendados
+      </button>
+
       <!-- Run / Stop buttons -->
       <button
         v-if="!store.isRunning"
@@ -346,8 +355,30 @@ const schemaFields = computed(() => {
 
 // Ranges para campos numericos (min/max/step)
 const ranges = reactive({})
+let _skipRangeSync = false
 
 watch(schemaFields, (fields) => {
+  // Se grid foi carregado externamente, inicializa ranges a partir do grid
+  if (store.gridLoadedExternally) {
+    _skipRangeSync = true
+    for (const field of fields) {
+      if (field.type !== 'number') continue
+      const vals = store.customGrid[field.key]
+      if (vals && vals.length > 0) {
+        ranges[field.key] = {
+          min: Math.min(...vals),
+          max: Math.max(...vals),
+          step: field.step || 1,
+        }
+      } else {
+        const def = field.default ?? 0
+        ranges[field.key] = { min: def, max: def, step: field.step || 1 }
+      }
+    }
+    store.gridLoadedExternally = false
+    _skipRangeSync = false
+    return
+  }
   for (const field of fields) {
     if (field.type === 'number' && !ranges[field.key]) {
       const def = field.default ?? 0
@@ -362,6 +393,7 @@ watch(schemaFields, (fields) => {
 
 // Quando ranges mudam, atualiza o customGrid com os valores gerados
 watch(ranges, () => {
+  if (_skipRangeSync) return
   for (const field of schemaFields.value) {
     if (field.type !== 'number') continue
     const r = ranges[field.key]
@@ -406,6 +438,26 @@ function toggleArrayItem(key, item) {
   const idx = arr.indexOf(item)
   if (idx >= 0) arr.splice(idx, 1)
   else arr.push(item)
+}
+
+function loadBest() {
+  if (!store.loadBestToGrid()) return
+  syncRangesFromGrid()
+}
+
+function syncRangesFromGrid() {
+  for (const field of schemaFields.value) {
+    if (field.type !== 'number') continue
+    const vals = store.customGrid[field.key]
+    if (!vals || vals.length === 0) continue
+    const min = Math.min(...vals)
+    const max = Math.max(...vals)
+    ranges[field.key] = {
+      min,
+      max,
+      step: field.step || 1,
+    }
+  }
 }
 
 // Update combo count when grid changes

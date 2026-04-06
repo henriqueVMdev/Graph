@@ -49,6 +49,9 @@ export const useOptimizerStore = defineStore('optimizer', () => {
   const rankBy = ref('Score')
   const topN = ref(20)
 
+  // Flag para sinalizar que o grid foi carregado externamente
+  const gridLoadedExternally = ref(false)
+
   // Estado
   const isRunning = ref(false)
   const comboCount = ref(0)
@@ -106,7 +109,9 @@ export const useOptimizerStore = defineStore('optimizer', () => {
       const { data } = await getStrategies()
       strategies.value = data.strategies || []
       if (!selectedStrategy.value && strategies.value.length > 0) {
+        const pending = gridLoadedExternally.value
         await selectStrategy(strategies.value[0])
+        if (pending) gridLoadedExternally.value = true
       }
     } catch {
       strategies.value = []
@@ -114,10 +119,12 @@ export const useOptimizerStore = defineStore('optimizer', () => {
   }
 
   async function selectStrategy(strategy) {
+    const keepGrid = gridLoadedExternally.value
     selectedStrategy.value = strategy
+    await fetchGrids()
+    if (keepGrid) return
     useCustomGrid.value = false
     gridMode.value = 'rapido'
-    await fetchGrids()
     _initCustomGridFromSchema()
   }
 
@@ -327,6 +334,95 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     return true
   }
 
+  function loadBestToGrid() {
+    if (!results.value?.best) return false
+    const best = results.value.best
+    const schema = selectedStrategy.value?.schema || []
+
+    // Mapa reverso: label -> key
+    const reverseMap = {}
+    const typeMap = {}
+    for (const section of schema) {
+      for (const field of (section.fields || [])) {
+        const label = field.label || field.key
+        reverseMap[label] = field.key
+        typeMap[field.key] = field.type
+      }
+    }
+
+    const paramLabels = results.value.param_columns || []
+    const newGrid = { ...customGrid.value }
+    for (const label of paramLabels) {
+      const key = reverseMap[label] || label
+      const val = best[label]
+      if (val === undefined) continue
+      if (typeMap[key] === 'checkbox') {
+        newGrid[key] = [val === 'SIM' || val === true]
+      } else if (typeMap[key] === 'number') {
+        newGrid[key] = [Number(val)]
+      } else {
+        newGrid[key] = [val]
+      }
+    }
+    customGrid.value = newGrid
+    useCustomGrid.value = true
+    return true
+  }
+
+  function loadRangesFromDashboard(summaryTable) {
+    if (!summaryTable || summaryTable.length === 0) return false
+    const schema = selectedStrategy.value?.schema || []
+
+    // Mapa de tipo por key do schema
+    const typeMap = {}
+    for (const section of schema) {
+      for (const field of (section.fields || [])) {
+        typeMap[field.key] = field.type
+      }
+    }
+
+    const newGrid = { ...customGrid.value }
+    for (const row of summaryTable) {
+      const key = row.optimizer_key
+      if (!key || !(key in typeMap)) continue
+
+      if (row.type === 'categorical') {
+        // Categoricos: valores do top (strings ou booleans)
+        const schemaType = typeMap[key]
+        if (schemaType === 'checkbox') {
+          newGrid[key] = row.values.map(v =>
+            v === 'True' || v === 'true' || v === true || v === 'SIM'
+          )
+        } else {
+          newGrid[key] = [...row.values]
+        }
+      } else if (row.type === 'numeric') {
+        // Numericos: min/max com step do schema
+        const fieldStep = _getFieldStep(schema, key)
+        const arr = []
+        const step = Math.max(fieldStep, 0.001)
+        for (let v = row.min; v <= row.max + step * 0.01; v += step) {
+          arr.push(Math.round(v * 1000) / 1000)
+        }
+        if (arr.length === 0) arr.push(row.min)
+        newGrid[key] = arr
+      }
+    }
+    customGrid.value = newGrid
+    useCustomGrid.value = true
+    gridLoadedExternally.value = true
+    return true
+  }
+
+  function _getFieldStep(schema, key) {
+    for (const section of schema) {
+      for (const field of (section.fields || [])) {
+        if (field.key === key) return field.step || 1
+      }
+    }
+    return 1
+  }
+
   function downloadCsv() {
     if (!results.value?.csv_data) return
     const blob = new Blob([results.value.csv_data], { type: 'text/csv;charset=utf-8;' })
@@ -342,11 +438,12 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     assets, strategies, selectedStrategy, availableGrids,
     dataSource, selectedCategory, selectedAssetLabel, selectedSymbol,
     interval, csvFile, startDate, endDate,
-    gridMode, customGrid, useCustomGrid, activeGrid, strategyFile,
+    gridMode, customGrid, useCustomGrid, activeGrid, strategyFile, gridLoadedExternally,
     cycleLongMonths, cycleShortMonths,
     capital, minTrades, rankBy, topN,
     isRunning, comboCount, results, error, progress,
     fetchAssets, fetchStrategies, selectStrategy, fetchGrids,
-    updateComboCount, run, stop, sendBestToBacktest, downloadCsv,
+    updateComboCount, run, stop, sendBestToBacktest, loadBestToGrid,
+    loadRangesFromDashboard, downloadCsv,
   }
 })

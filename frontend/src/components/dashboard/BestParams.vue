@@ -72,7 +72,18 @@
 
       <!-- Summary table -->
       <div v-if="bestParams.summary_table?.length">
-        <p class="sidebar-section-title mb-2">Faixas Recomendadas</p>
+        <div class="flex items-center justify-between mb-2">
+          <p class="sidebar-section-title">Faixas Recomendadas</p>
+          <button
+            @click="sendToOptimizer()"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            Enviar para Otimizador
+          </button>
+        </div>
         <div class="overflow-x-auto rounded-lg border border-surface-500">
           <table class="w-full text-xs">
             <thead>
@@ -104,10 +115,20 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDashboardStore } from '@/stores/dashboard.js'
+import { useOptimizerStore } from '@/stores/optimizer.js'
 
 const store = useDashboardStore()
+const optimizerStore = useOptimizerStore()
+const router = useRouter()
 const bestParams = computed(() => store.bestParams)
+
+function sendToOptimizer() {
+  if (optimizerStore.loadRangesFromDashboard(bestParams.value.summary_table)) {
+    router.push('/optimizer')
+  }
+}
 const hasCategorical = computed(() => bestParams.value && Object.keys(bestParams.value.categorical || {}).length > 0)
 const hasNumeric = computed(() => bestParams.value && Object.keys(bestParams.value.numeric || {}).length > 0)
 

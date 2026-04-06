@@ -216,6 +216,22 @@ NUMERIC_PARAMS = {
     "stop_param": "Stop Param",
 }
 
+# Mapeamento: chave do CSV (dashboard) -> chave do CONFIG_SCHEMA (otimizador)
+DASHBOARD_TO_OPTIMIZER_KEY = {
+    "ma": "ma_type",
+    "periodo": "ma_length",
+    "lookback": "lookback",
+    "angulo": "th_up",
+    "saida": "exit_mode",
+    "banda_pct": "pct_up",
+    "alvo_fixo_pct": "alvo_fixo",
+    "flat": "exit_on_flat",
+    "stop": "stop_type",
+    "stop_param": "stop_param",
+    "pullback": "use_pullback",
+    "entry_zone": "entry_zone",
+}
+
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -336,11 +352,16 @@ def _build_best_params(df: pd.DataFrame, top_n: int = 20) -> dict:
             "top": str(counts.index[0]),
             "pct": round(float(counts.iloc[0]) / len(top) * 100, 1),
         }
+        opt_key = DASHBOARD_TO_OPTIMIZER_KEY.get(param, param)
+        top_values = [str(v) for v in counts.head(3).index]
         result["summary_table"].append({
             "Parametro": label,
             "Melhor Valor": str(counts.index[0]),
             "Frequencia no Top": f"{result['categorical'][param]['pct']:.0f}%",
-            "Faixa Sugerida": ", ".join(counts.head(3).index.astype(str)),
+            "Faixa Sugerida": ", ".join(top_values),
+            "optimizer_key": opt_key,
+            "type": "categorical",
+            "values": top_values,
         })
 
     # Numéricos
@@ -361,11 +382,16 @@ def _build_best_params(df: pd.DataFrame, top_n: int = 20) -> dict:
             "q75": _safe(q75),
             "values": [_safe(v) for v in series.tolist()],
         }
+        opt_key = DASHBOARD_TO_OPTIMIZER_KEY.get(param, param)
         result["summary_table"].append({
             "Parametro": label,
             "Melhor Valor": f"{median:.2f} (mediana)",
             "Frequencia no Top": f"{len(series)}/{len(top)}",
             "Faixa Sugerida": f"{q25:.2f} a {q75:.2f}",
+            "optimizer_key": opt_key,
+            "type": "numeric",
+            "min": q25,
+            "max": q75,
         })
 
     return result
