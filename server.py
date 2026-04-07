@@ -15,7 +15,7 @@ from flask_cors import CORS
 from scipy import stats as scipy_stats
 
 from loader import load_csv
-from config import DATA_DIR, TOP_N
+from config import DATA_DIR, TOP_N, COLUMN_DISPLAY
 from charts.scatter import (
     plot_return_vs_drawdown,
     plot_return_vs_sharpe,
@@ -536,8 +536,10 @@ def api_load():
             filter_ranges["return_min"] = _safe(float(df["return_pct"].min()))
             filter_ranges["return_max"] = _safe(float(df["return_pct"].max()))
         if "trades" in df.columns:
-            filter_ranges["trades_min"] = int(df["trades"].min())
-            filter_ranges["trades_max"] = int(df["trades"].max())
+            trades_clean = df["trades"].dropna()
+            if len(trades_clean) > 0:
+                filter_ranges["trades_min"] = int(trades_clean.min())
+                filter_ranges["trades_max"] = int(trades_clean.max())
 
         # Aplica filtros
         if not filters:
@@ -1551,11 +1553,22 @@ def _calc_optimizer_row(result, params, param_labels):
 
 
 def _build_param_labels(schema):
-    """Monta mapa key -> label a partir do CONFIG_SCHEMA."""
+    """Monta mapa key -> label para colunas do CSV do otimizador.
+
+    Usa os nomes de coluna do COLUMN_MAP (que o dashboard espera) quando
+    disponivel, senao usa o label do CONFIG_SCHEMA.
+    """
+    # Mapa inverso: optimizer_key -> csv_column_key (ex: ma_type -> ma)
+    opt_to_csv = {v: k for k, v in DASHBOARD_TO_OPTIMIZER_KEY.items()}
     labels = {}
     for section in (schema or []):
         for field in section.get("fields", []):
-            labels[field["key"]] = field.get("label", field["key"])
+            key = field["key"]
+            csv_key = opt_to_csv.get(key)
+            if csv_key and csv_key in COLUMN_DISPLAY:
+                labels[key] = COLUMN_DISPLAY[csv_key]
+            else:
+                labels[key] = field.get("label", key)
     return labels
 
 

@@ -369,9 +369,20 @@ export const useOptimizerStore = defineStore('optimizer', () => {
     return true
   }
 
-  function loadRangesFromDashboard(summaryTable) {
+  async function loadRangesFromDashboard(summaryTable) {
     if (!summaryTable || summaryTable.length === 0) return false
+
+    // Garante que estrategias estao carregadas
+    if (strategies.value.length === 0) {
+      await fetchStrategies()
+    }
+    if (!selectedStrategy.value && strategies.value.length > 0) {
+      selectedStrategy.value = strategies.value[0]
+      await fetchGrids()
+    }
+
     const schema = selectedStrategy.value?.schema || []
+    if (schema.length === 0) return false
 
     // Mapa de tipo por key do schema
     const typeMap = {}
@@ -381,13 +392,26 @@ export const useOptimizerStore = defineStore('optimizer', () => {
       }
     }
 
-    const newGrid = { ...customGrid.value }
+    const newGrid = {}
+    // Inicializa com defaults do schema
+    for (const section of schema) {
+      for (const field of (section.fields || [])) {
+        if (field.type === 'select' && field.options) {
+          newGrid[field.key] = [field.default]
+        } else if (field.type === 'checkbox') {
+          newGrid[field.key] = [field.default]
+        } else if (field.type === 'number') {
+          newGrid[field.key] = [field.default]
+        }
+      }
+    }
+
+    // Sobrescreve com as faixas recomendadas
     for (const row of summaryTable) {
       const key = row.optimizer_key
       if (!key || !(key in typeMap)) continue
 
       if (row.type === 'categorical') {
-        // Categoricos: valores do top (strings ou booleans)
         const schemaType = typeMap[key]
         if (schemaType === 'checkbox') {
           newGrid[key] = row.values.map(v =>
@@ -397,7 +421,6 @@ export const useOptimizerStore = defineStore('optimizer', () => {
           newGrid[key] = [...row.values]
         }
       } else if (row.type === 'numeric') {
-        // Numericos: min/max com step do schema
         const fieldStep = _getFieldStep(schema, key)
         const arr = []
         const step = Math.max(fieldStep, 0.001)

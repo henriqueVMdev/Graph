@@ -124,8 +124,9 @@ const optimizerStore = useOptimizerStore()
 const router = useRouter()
 const bestParams = computed(() => store.bestParams)
 
-function sendToOptimizer() {
-  if (optimizerStore.loadRangesFromDashboard(bestParams.value.summary_table)) {
+async function sendToOptimizer() {
+  const ok = await optimizerStore.loadRangesFromDashboard(bestParams.value.summary_table)
+  if (ok) {
     router.push('/optimizer')
   }
 }

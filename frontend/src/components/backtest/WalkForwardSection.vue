@@ -5,23 +5,35 @@
       <!-- WFE badge + summary cards -->
       <div class="flex flex-wrap items-center gap-3">
         <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-28 border border-surface-600">
-          <div class="text-xs text-gray-400 mb-0.5">WFE</div>
+          <div class="text-xs text-gray-400 mb-0.5">
+            WFE
+            <span class="metric-help" title="Walk-Forward Efficiency: razao entre o desempenho Out-of-Sample e In-Sample. Mede o quanto da performance otimizada se mantem em dados nao vistos. Acima de 0.5 e aceitavel, acima de 0.7 e excelente.">?</span>
+          </div>
           <div class="text-3xl font-bold" :class="wfeColor">{{ fmt2(store.wfaResults.wfe) }}</div>
           <div class="text-[10px] mt-0.5" :class="wfeColor">{{ wfeLabel }}</div>
           <div class="text-[9px] text-gray-600 mt-0.5">&gt;0.5 aceitavel</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">Retorno anual. OOS</div>
+          <div class="text-xs text-gray-500 mb-0.5">
+            Retorno anual. OOS
+            <span class="metric-help" title="Retorno anualizado medio das janelas Out-of-Sample. Representa o desempenho real da estrategia em dados que nao foram usados na otimizacao.">?</span>
+          </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_annualized ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
             {{ fmtPct(store.wfaResults.avg_oos_annualized) }}
           </div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">Retorno anual. IS</div>
+          <div class="text-xs text-gray-500 mb-0.5">
+            Retorno anual. IS
+            <span class="metric-help" title="Retorno anualizado medio das janelas In-Sample. Representa o desempenho durante a fase de otimizacao. Se for muito superior ao OOS, pode indicar overfitting.">?</span>
+          </div>
           <div class="text-sm font-semibold text-gray-200">{{ fmtPct(store.wfaResults.avg_is_annualized) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">Janelas validas</div>
+          <div class="text-xs text-gray-500 mb-0.5">
+            Janelas validas
+            <span class="metric-help" title="Numero de janelas Walk-Forward que geraram trades suficientes tanto na fase IS quanto OOS. Mais janelas validas aumentam a confiabilidade estatistica da analise.">?</span>
+          </div>
           <div class="text-sm font-semibold text-gray-200">{{ store.wfaResults.n_valid_windows }}</div>
         </div>
       </div>
@@ -32,9 +44,12 @@
           v-for="(t, i) in visibleTabs"
           :key="i"
           @click="activeTab = i"
-          class="px-3 py-1.5 text-xs font-medium rounded-t transition-colors"
+          class="px-3 py-1.5 text-xs font-medium rounded-t transition-colors inline-flex items-center gap-1"
           :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-500 hover:text-gray-300'"
-        >{{ t }}</button>
+        >
+          {{ t }}
+          <span class="metric-help" :title="tabDescriptions[i]">?</span>
+        </button>
       </div>
 
       <!-- Tab 0: Curva OOS -->
@@ -57,6 +72,7 @@
             :class="selectedMetric === m.key
               ? 'bg-accent-yellow text-black border-accent-yellow'
               : 'bg-surface-600 text-gray-400 border-surface-500 hover:border-gray-400'"
+            :title="m.description"
           >{{ m.label }}</button>
         </div>
         <div ref="comparisonChart" style="min-height:300px;" class="w-full"></div>
@@ -106,9 +122,17 @@ const activeTab      = ref(0)
 const selectedMetric = ref('return_pct')
 
 const metricOptions = [
-  { key: 'return_pct', label: 'Retorno (%)' },
-  { key: 'annualized', label: 'Retorno Anual.' },
-  { key: 'sharpe',     label: 'Sharpe' },
+  { key: 'return_pct', label: 'Retorno (%)', description: 'Retorno percentual bruto de cada janela.' },
+  { key: 'annualized', label: 'Retorno Anual.', description: 'Retorno anualizado de cada janela, permitindo comparacao entre janelas de duracao diferente.' },
+  { key: 'sharpe',     label: 'Sharpe', description: 'Sharpe Ratio de cada janela. Mede retorno ajustado ao risco.' },
+]
+
+const tabDescriptions = [
+  'Curva de equity concatenada apenas com os periodos Out-of-Sample. Simula o resultado real da estrategia aplicando os parametros otimizados em dados nao vistos.',
+  'Scatter plot comparando Sharpe In-Sample vs Out-of-Sample por janela. Pontos acima da linha 45 graus indicam boa generalizacao (OOS >= IS).',
+  'Comparacao lado a lado de metricas IS vs OOS por janela. Permite identificar janelas com degradacao de performance fora da amostra.',
+  'Timeline mostrando as curvas de equity IS e OOS por janela, com faixas coloridas delimitando cada periodo. Visualiza a continuidade temporal da estrategia.',
+  'Heatmap dos parametros otimizados por janela. Bandas horizontais com cores consistentes indicam que o parametro e estavel ao longo do tempo (menor risco de overfitting).',
 ]
 
 const BASE_TABS    = ['Curva OOS', 'Sharpe IS vs OOS', 'Barras por Janela', 'Timeline + Equity']
@@ -437,3 +461,27 @@ onBeforeUnmount(() => {
   purgeChart(paramHeatmapChart.value)
 })
 </script>
+
+<style scoped>
+.metric-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(156, 163, 175, 0.6);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  border-radius: 50%;
+  cursor: help;
+  margin-left: 3px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.metric-help:hover {
+  color: rgba(250, 204, 21, 0.9);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+</style>

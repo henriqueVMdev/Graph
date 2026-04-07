@@ -1,0 +1,1 @@
+Rank,Data,Ativo,Timeframe,Retorno (%),Max DD (%),Trades,Win Rate (%),Avg Win (%),Avg Loss (%),Profit Factor,Sharpe,Sortino,Calmar,Omega,Sterling,Burke,Score,MA,Período,Lookback,Ângulo,Saída,Banda (%),Alvo Fixo (%),Flat,Stop,Stop Param,Pullback,Entry Zone
