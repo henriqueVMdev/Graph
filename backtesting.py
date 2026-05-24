@@ -64,6 +64,13 @@ class Config:
     use_position_sizing: bool = False
     risk_per_trade: float = 1.0  # % do capital arriscado por trade
 
+    # Sizing / alavancagem (futuros)
+    # sizing_mode: "Alavancagem fixa" | "Quantidade fixa" | "Risco por trade"
+    sizing_mode: str = "Alavancagem fixa"
+    leverage: float = 1.0          # alavancagem (x). 1.0 = sem alavancagem
+    margin_pct: float = 100.0      # % do equity usado como margem por trade (modo Alavancagem fixa)
+    fixed_qty: float = 0.1         # quantidade fixa em unidades do ativo (modo Quantidade fixa)
+
     # Backtest
     initial_capital: float = 1000.0
     start_date: Optional[str] = None
@@ -243,6 +250,13 @@ class Trade:
     partial_exit_price: float = 0.0
     partial_exit_date: str = ""
     partial_pct_closed: float = 0.0
+    # Sizing / custos (futuros)
+    qty: float = 0.0            # quantidade em unidades do ativo
+    leverage: float = 1.0       # alavancagem aplicada (x)
+    notional: float = 0.0       # qty * entry_price (notional alavancado)
+    exposure: float = 1.0       # notional / equity_no_momento_da_entrada
+    entry_ts: int = 0           # epoch ms da entrada
+    exit_ts: int = 0            # epoch ms da saida
 
 
 @dataclass
@@ -257,7 +271,9 @@ class BacktestState:
     current_trade: Optional[Trade] = None
     partial_taken: bool = False
     position_size: float = 1.0  # 1.0 = full, reduz apos parcial
-    position_fraction: float = 1.0  # fracao do capital alocada (position sizing)
+    position_fraction: float = 1.0  # exposure = notional / equity (inclui alavancagem)
+    leverage: float = 1.0           # alavancagem do trade aberto (p/ limite de liquidacao)
+    qty: float = 0.0                # quantidade do trade aberto (unidades)
 
 
 def _cycle_allows(cfg: Config, month: int, direction: int) -> bool:
@@ -291,7 +307,13 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     for i in range(len(df)):
         row = df.iloc[i]
         date = str(df.index[i])
-        bar_month = df.index[i].month if hasattr(df.index[i], 'month') else 1
+        idx_i = df.index[i]
+        bar_month = idx_i.month if hasattr(idx_i, 'month') else 1
+        # epoch ms da barra (usado para custos/funding)
+        try:
+            st._ts = int(idx_i.value // 1_000_000)
+        except AttributeError:
+            st._ts = 0
         close = row["Close"]
         high = row["High"]
         low = row["Low"]
@@ -375,7 +397,30 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 elif cfg.stop_type == "Banda Stop":
                     sl_price = stop_lower if st.position == 1 else stop_upper
 
-            # Checa SL primeiro (prioridade ao stop)
+            # Preço de liquidação: perda adversa >= 1/alavancagem zera a margem.
+            # Aproximação sem margem de manutenção (conservadora p/ o lado do trader).
+            liq_price = None
+            if st.leverage and st.leverage > 1.0:
+                if st.position == 1:
+                    liq_price = st.entry_price * (1 - 1.0 / st.leverage)
+                else:
+                    liq_price = st.entry_price * (1 + 1.0 / st.leverage)
+
+            # Se o stop está mais distante que a liquidação, a liquidação ocorre antes.
+            # Trata a liquidação como um "stop" no liq_price quando for o gatilho adverso mais próximo.
+            sl_is_liq = False
+            if liq_price is not None:
+                if sl_price is None:
+                    sl_price = liq_price
+                    sl_is_liq = True
+                elif st.position == 1 and liq_price > sl_price:
+                    sl_price = liq_price
+                    sl_is_liq = True
+                elif st.position == -1 and liq_price < sl_price:
+                    sl_price = liq_price
+                    sl_is_liq = True
+
+            # Checa SL/liquidação primeiro (prioridade ao stop)
             hit_sl = False
             hit_tp = False
 
@@ -392,7 +437,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                     hit_tp = True
 
             if hit_sl:
-                _close_position(st, date, sl_price, "Stop Loss")
+                _close_position(st, date, sl_price, "Liquidação" if sl_is_liq else "Stop Loss")
                 if cfg.use_pullback:
                     if state == 1 or state == -1:
                         st.aguardando_pullback = True
@@ -482,21 +527,54 @@ def _open_position(st: BacktestState, date: str, price: float, direction: int, c
     st.partial_taken = False
     st.position_size = 1.0
 
-    # Position sizing baseado em risco
-    if cfg and cfg.use_position_sizing and cfg.use_stop:
-        stop_dist = _calc_stop_distance_pct(cfg, price, atr_val)
-        if stop_dist > 0:
-            st.position_fraction = min(cfg.risk_per_trade / stop_dist, 1.0)
-        else:
-            st.position_fraction = 1.0
-    else:
-        st.position_fraction = 1.0
+    equity = st.equity if st.equity > 0 else 1.0
+    leverage = 1.0
+    exposure = 1.0          # notional / equity
+    qty = 0.0
+
+    if cfg is not None:
+        mode = getattr(cfg, "sizing_mode", "Alavancagem fixa")
+        lev = max(float(getattr(cfg, "leverage", 1.0)), 1.0)
+
+        # Compatibilidade: flag antiga força o modo de risco
+        if cfg.use_position_sizing and cfg.use_stop:
+            mode = "Risco por trade"
+
+        if mode == "Quantidade fixa":
+            qty = max(float(getattr(cfg, "fixed_qty", 0.0)), 0.0)
+            exposure = (qty * price) / equity
+            leverage = lev
+        elif mode == "Risco por trade":
+            stop_dist = _calc_stop_distance_pct(cfg, price, atr_val)  # % do preço
+            if stop_dist > 0:
+                # notional tal que a perda no stop = risk_per_trade% do equity
+                exposure = (cfg.risk_per_trade / 100.0) / (stop_dist / 100.0)
+            else:
+                exposure = 1.0
+            leverage = lev
+            if exposure > lev:          # não excede a alavancagem máxima permitida
+                exposure = lev
+            qty = (exposure * equity) / price if price > 0 else 0.0
+        else:  # "Alavancagem fixa"
+            margin_frac = max(min(float(getattr(cfg, "margin_pct", 100.0)) / 100.0, 1.0), 0.0)
+            leverage = lev
+            exposure = margin_frac * lev
+            qty = (exposure * equity) / price if price > 0 else 0.0
+
+    st.position_fraction = exposure
+    st.leverage = leverage
+    st.qty = qty
 
     st.current_trade = Trade(
         entry_date=date,
         entry_price=price,
         direction=direction,
         comment=comment,
+        qty=qty,
+        leverage=leverage,
+        notional=qty * price,
+        exposure=exposure,
+        entry_ts=getattr(st, "_ts", 0),
     )
 
 
@@ -509,6 +587,7 @@ def _close_position(st: BacktestState, date: str, price: float, comment: str):
     trade.exit_date = date
     trade.exit_price = price
     trade.exit_comment = comment
+    trade.exit_ts = getattr(st, "_ts", 0)
 
     frac = st.position_fraction
     remaining_pnl = trade.direction * (price - trade.entry_price) / trade.entry_price * 100
@@ -531,6 +610,8 @@ def _close_position(st: BacktestState, date: str, price: float, comment: str):
     st.partial_taken = False
     st.position_size = 1.0
     st.position_fraction = 1.0
+    st.leverage = 1.0
+    st.qty = 0.0
 
 
 # ==============================

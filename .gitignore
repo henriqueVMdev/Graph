@@ -19,3 +19,6 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Spec do modulo de custos (nao versionar)
+CLAUDE-quant-costs.md

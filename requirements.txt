@@ -10,3 +10,5 @@ flask-cors>=4.0
 yfinance>=0.2
 statsmodels>=0.14
 scikit-learn>=1.8
+ccxt>=4.0
+pyarrow>=14.0

@@ -7,6 +7,7 @@ import {
   runBacktestCsv,
   getCorrelation,
   runWfa as runWfaApi,
+  runCosts as runCostsApi,
 } from '@/api/client.js'
 
 export const useBacktestStore = defineStore('backtest', () => {
@@ -45,6 +46,18 @@ export const useBacktestStore = defineStore('backtest', () => {
   const wfaLoading = ref(false)
   const wfaError   = ref(null)
   const wfaConfig  = ref({ n_windows: 10, is_pct: 0.70, optimize_is_samples: 0 })
+
+  // ─── Custos (fees + funding) ──────────────────────────────────────────────
+  const costsResult  = ref(null)
+  const costsLoading = ref(false)
+  const costsError   = ref(null)
+  const costsWarnings = ref([])
+  const costsConfig  = ref({
+    symbol: '',                                  // símbolo CCXT (swap), ex: BTC/USDT:USDT
+    exchanges: ['binance', 'bybit', 'okx'],
+    scenarios: ['realista', 'pessimista'],
+    use_funding: true,
+  })
 
   // ─── Computed ─────────────────────────────────────────────────────────────
 
@@ -194,6 +207,44 @@ export const useBacktestStore = defineStore('backtest', () => {
     }
   }
 
+  /** Deriva um símbolo CCXT (swap USDT-M) a partir do símbolo da plataforma. */
+  function inferCcxtSymbol() {
+    if (costsConfig.value.symbol) return costsConfig.value.symbol
+    const raw = (selectedSymbol.value || '').toUpperCase()
+    const base = raw.replace(/-USD.*$/, '').replace(/USDT$/, '').replace(/[^A-Z0-9]/g, '')
+    if (!base) return 'BTC/USDT:USDT'
+    return `${base}/USDT:USDT`
+  }
+
+  async function runCosts() {
+    const trades = results.value?.trades || []
+    if (!trades.length) {
+      costsError.value = 'Rode um backtest primeiro (sem trades para custear).'
+      return
+    }
+    costsLoading.value = true
+    costsError.value = null
+    costsResult.value = null
+    costsWarnings.value = []
+    try {
+      const { data } = await runCostsApi({
+        trades,
+        symbol: inferCcxtSymbol(),
+        exchanges: costsConfig.value.exchanges,
+        scenarios: costsConfig.value.scenarios,
+        use_funding: costsConfig.value.use_funding,
+        initial_capital: Number(params.value.initial_capital) || 1000,
+        strategy_name: selectedStrategy.value?.name || 'Estratégia',
+      })
+      costsResult.value = data.rows || []
+      costsWarnings.value = data.warnings || []
+    } catch (e) {
+      costsError.value = e.response?.data?.error || e.message
+    } finally {
+      costsLoading.value = false
+    }
+  }
+
   async function fetchCorrelation(tickers) {
     if (Object.keys(tickers).length < 2) return
     correlationLoading.value = true
@@ -215,7 +266,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     isRunning, results, error,
     correlationData, correlationLoading, correlationError,
     wfaResults, wfaLoading, wfaError, wfaConfig,
+    costsResult, costsLoading, costsError, costsWarnings, costsConfig,
     fetchAssets, fetchStrategies, selectStrategy,
     applyPendingParams, runBacktest, fetchCorrelation, runWfa,
+    runCosts, inferCcxtSymbol,
   }
 })

@@ -82,6 +82,12 @@
           />
         </div>
 
+        <!-- Custos: Fees + Funding (bruto vs líquido) -->
+        <div class="card p-4">
+          <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Custos Reais · Fees + Funding (bruto vs líquido)</h2>
+          <CostsSection />
+        </div>
+
         <!-- Walk-Forward Analysis -->
         <div class="card p-4">
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Walk-Forward Analysis</h2>
@@ -120,6 +126,7 @@ import MonteCarloSection from '@/components/backtest/MonteCarloSection.vue'
 import CorrelationSection from '@/components/backtest/CorrelationSection.vue'
 import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 import DrawdownSection from '@/components/backtest/DrawdownSection.vue'
+import CostsSection from '@/components/backtest/CostsSection.vue'
 
 const store = useBacktestStore()
 const paramsBanner = ref(false)

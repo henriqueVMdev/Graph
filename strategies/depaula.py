@@ -209,13 +209,40 @@ CONFIG_SCHEMA = [
         ],
     },
     {
-        "title": "Position Sizing",
+        "title": "Alavancagem / Sizing",
         "fields": [
             {
-                "key": "use_position_sizing",
-                "label": "Position Sizing por Risco",
-                "type": "checkbox",
-                "default": False,
+                "key": "sizing_mode",
+                "label": "Modo de Sizing",
+                "type": "select",
+                "default": "Alavancagem fixa",
+                "options": ["Alavancagem fixa", "Quantidade fixa", "Risco por trade"],
+            },
+            {
+                "key": "leverage",
+                "label": "Alavancagem (x)",
+                "type": "number",
+                "default": 1.0,
+                "min": 1.0,
+                "max": 125.0,
+                "step": 1.0,
+            },
+            {
+                "key": "margin_pct",
+                "label": "Margem por Trade (% do capital)",
+                "type": "number",
+                "default": 100.0,
+                "min": 1.0,
+                "max": 100.0,
+                "step": 5.0,
+            },
+            {
+                "key": "fixed_qty",
+                "label": "Quantidade Fixa (unidades)",
+                "type": "number",
+                "default": 0.1,
+                "min": 0.0,
+                "step": 0.01,
             },
             {
                 "key": "risk_per_trade",
@@ -225,7 +252,6 @@ CONFIG_SCHEMA = [
                 "min": 0.1,
                 "max": 100,
                 "step": 0.1,
-                "show_if": "use_position_sizing",
             },
         ],
     },
@@ -437,8 +463,13 @@ def run(df, params: dict) -> dict:
         parcial_alvo_fixo=float(params.get("parcial_alvo_fixo", 2.0)),
         use_norm=bool(params.get("use_norm", True)),
         atr_length=int(params.get("atr_length", 14)),
-        use_position_sizing=bool(params.get("use_position_sizing", False)),
+        use_position_sizing=bool(params.get("use_position_sizing", False))
+        or params.get("sizing_mode", "Alavancagem fixa") == "Risco por trade",
         risk_per_trade=float(params.get("risk_per_trade", 1.0)),
+        sizing_mode=params.get("sizing_mode", "Alavancagem fixa"),
+        leverage=float(params.get("leverage", 1.0)),
+        margin_pct=float(params.get("margin_pct", 100.0)),
+        fixed_qty=float(params.get("fixed_qty", 0.1)),
         initial_capital=float(params.get("initial_capital", 1000.0)),
         cycle_filter=bool(params.get("cycle_filter", False)),
         cycle_long_months=params.get("cycle_long_months", []),
@@ -541,7 +572,17 @@ def run(df, params: dict) -> dict:
         dd_dates        = []
         dd_values       = []
         equity_values   = [_safe(float(v)) for v in bt_df["Equity"].tolist()]
-        trades_list     = [{"pnl_pct": _safe(float(t.pnl_pct))} for t in trades]
+        trades_list     = [
+            {
+                "pnl_pct": _safe(float(t.pnl_pct)),
+                "qty": _safe(float(t.qty)),
+                "leverage": _safe(float(t.leverage)),
+                "notional": _safe(float(t.notional)),
+                "entry_ts": t.entry_ts,
+                "exit_ts": t.exit_ts,
+            }
+            for t in trades
+        ]
     else:
         # ── Drawdown analytics ────────────────────────────────────────────
         net_profit = result.equity - cfg.initial_capital
@@ -601,6 +642,11 @@ def run(df, params: dict) -> dict:
                 "partial_exit_price": _safe(float(t.partial_exit_price)) if t.partial_exit_price else None,
                 "partial_exit_date": t.partial_exit_date[:10] if t.partial_exit_date else None,
                 "partial_pct_closed": t.partial_pct_closed if t.partial_pct_closed else None,
+                "qty": _safe(float(t.qty)),
+                "leverage": _safe(float(t.leverage)),
+                "notional": _safe(float(t.notional)),
+                "entry_ts": t.entry_ts,
+                "exit_ts": t.exit_ts,
             }
             for t in trades
         ]

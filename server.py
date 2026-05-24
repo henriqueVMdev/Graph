@@ -807,6 +807,87 @@ def api_backtest_run():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
+@app.route("/api/backtest/costs", methods=["POST"])
+def api_backtest_costs():
+    """
+    Aplica fees + funding rate aos trades de um backtest e devolve a comparação
+    bruto vs líquido por exchange (Binance / Bybit / OKX) e por cenário.
+
+    Body: {
+      "trades": [...],                  # trades emitidos por strategies/*.run()
+      "symbol": "BTC/USDT:USDT",        # símbolo CCXT (swap)
+      "exchanges": ["binance","bybit","okx"],
+      "scenarios": ["realista","pessimista"],
+      "initial_capital": 1000.0,
+      "use_funding": true,              # se false, custeia só fees (sem rede)
+      "fees": {"binance":{"maker":..,"taker":..}, ...}   # override opcional de tier
+    }
+    """
+    try:
+        from decimal import Decimal as _Dec
+        from costs import trades_from_platform, compare_exchanges, DEFAULT_FEES
+        from costs.config import ExchangeFees as _Fees
+        from costs.funding import get_funding_events as _get_funding
+        import costs.compare as _ccompare
+    except Exception as e:
+        return jsonify({"error": f"Módulo de custos indisponível: {e}"}), 500
+
+    try:
+        body = request.get_json(force=True) or {}
+        raw_trades = body.get("trades", [])
+        symbol = body.get("symbol") or "BTC/USDT:USDT"
+        exchanges = tuple(body.get("exchanges") or ("binance", "bybit", "okx"))
+        scenarios = body.get("scenarios") or ["realista", "pessimista"]
+        initial_capital = float(body.get("initial_capital", 1000.0))
+        use_funding = bool(body.get("use_funding", True))
+        fees_override = body.get("fees") or {}
+
+        trades = trades_from_platform(raw_trades)
+        if len(trades) < 1:
+            return jsonify({"error": "Nenhum trade com qty/timestamp para custear. "
+                                     "Rode o backtest com sizing (qty/alavancagem) definido."}), 400
+
+        # Override de fees por tier (mantém o default se não informado)
+        for ex, f in fees_override.items():
+            if ex in DEFAULT_FEES and "maker" in f and "taker" in f:
+                DEFAULT_FEES[ex] = _Fees(maker=_Dec(str(f["maker"])),
+                                         taker=_Dec(str(f["taker"])))
+
+        warnings = []
+
+        def provider(exchange, sym, since_ms, until_ms):
+            if not use_funding:
+                return []
+            try:
+                return _get_funding(exchange, sym, since_ms, until_ms)
+            except Exception as ex:
+                warnings.append(f"{exchange}: funding indisponível ({ex}). Usando só fees.")
+                return []
+
+        frames = []
+        for sc in scenarios:
+            df_sc = compare_exchanges({body.get("strategy_name", "Estratégia"): trades},
+                                      symbol, exchanges=exchanges, scenario=sc,
+                                      initial_capital=initial_capital,
+                                      funding_provider=provider)
+            frames.append(df_sc)
+
+        full = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+        rows = [{k: _safe(v) if isinstance(v, (int, float)) else v for k, v in r.items()}
+                for r in full.to_dict(orient="records")]
+
+        return jsonify({
+            "symbol": symbol,
+            "rows": rows,
+            "warnings": warnings,
+            "n_trades": len(trades),
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 def _extract_param_specs(module):
     """Extrai params para otimizacao IS a partir de OPTIMIZER_GRIDS['rapido'].
     Retorna (specs_dict, numeric_keys_list).
