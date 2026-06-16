@@ -254,6 +254,58 @@
           />
         </template>
 
+        <!-- Custos reais da corretora (fees + funding) no forward test -->
+        <div class="border-t border-surface-700 pt-3 mt-1 mb-3">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-gray-400">Custos da corretora</label>
+            <button
+              @click="store.wfaConfig.apply_costs = !store.wfaConfig.apply_costs"
+              class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+              :class="store.wfaConfig.apply_costs ? 'bg-accent-yellow' : 'bg-surface-500'"
+            >
+              <span
+                class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                :class="store.wfaConfig.apply_costs ? 'translate-x-4' : 'translate-x-0.5'"
+              />
+            </button>
+          </div>
+
+          <template v-if="store.wfaConfig.apply_costs">
+            <label class="text-xs text-gray-500 block mb-1">Exchange (fees + funding)</label>
+            <select
+              v-model="store.wfaConfig.cost_exchange"
+              class="w-full bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5 mb-2"
+            >
+              <option value="binance">Binance</option>
+              <option value="bybit">Bybit</option>
+              <option value="okx">OKX</option>
+            </select>
+
+            <label class="text-xs text-gray-500 block mb-1">Cenário</label>
+            <select
+              v-model="store.wfaConfig.cost_scenario"
+              class="w-full bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5 mb-2"
+            >
+              <option value="realista">Realista</option>
+              <option value="pessimista">Pessimista (funding 1.5x + slippage)</option>
+            </select>
+
+            <div class="flex items-center justify-between">
+              <label class="text-xs text-gray-500">Incluir funding</label>
+              <button
+                @click="store.wfaConfig.use_funding = !store.wfaConfig.use_funding"
+                class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+                :class="store.wfaConfig.use_funding ? 'bg-accent-yellow' : 'bg-surface-500'"
+              >
+                <span
+                  class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                  :class="store.wfaConfig.use_funding ? 'translate-x-4' : 'translate-x-0.5'"
+                />
+              </button>
+            </div>
+          </template>
+        </div>
+
         <button
           @click="store.runWfa()"
           :disabled="store.wfaLoading || !store.results"

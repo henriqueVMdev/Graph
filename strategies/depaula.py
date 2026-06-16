@@ -578,6 +578,9 @@ def run(df, params: dict) -> dict:
                 "qty": _safe(float(t.qty)),
                 "leverage": _safe(float(t.leverage)),
                 "notional": _safe(float(t.notional)),
+                "direction": t.direction,
+                "entry_price": _safe(float(t.entry_price)),
+                "exit_price": _safe(float(t.exit_price)),
                 "entry_ts": t.entry_ts,
                 "exit_ts": t.exit_ts,
             }

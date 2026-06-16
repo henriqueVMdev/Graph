@@ -48,8 +48,25 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
 
 
-def _download_data_safe(symbol: str, interval: str) -> pd.DataFrame:
-    """Versão segura de download_data — nunca chama sys.exit."""
+def _download_data_safe(symbol: str, interval: str, exchange: str | None = None) -> pd.DataFrame:
+    """Versão segura de download_data — nunca chama sys.exit.
+
+    Se `exchange` for uma exchange cripto suportada (binance/bybit/okx/
+    hyperliquid), busca candles via CCXT (dados públicos, read-only). Caso
+    contrário, usa yfinance como antes. O DataFrame de saída tem o mesmo
+    formato nos dois caminhos: colunas Open/High/Low/Close/Volume e índice
+    DatetimeIndex (UTC, tz-naive).
+    """
+    if exchange:
+        from market_data import SUPPORTED_EXCHANGES, fetch_ohlcv
+        if exchange.lower() in SUPPORTED_EXCHANGES:
+            # total alto p/ histórico de backtest; a exchange devolve o que tiver.
+            return fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=5000)
+        raise ValueError(
+            f"exchange '{exchange}' não suportada. "
+            f"Opções: {', '.join(SUPPORTED_EXCHANGES)}"
+        )
+
     try:
         import yfinance as yf
     except ImportError:
@@ -710,6 +727,18 @@ def api_backtest_assets():
     return jsonify({"assets": ASSETS})
 
 
+@app.route("/api/backtest/exchanges", methods=["GET"])
+def api_backtest_exchanges():
+    """Exchanges cripto suportadas via CCXT (dados públicos OHLCV).
+
+    Quando o frontend manda `exchange` no /api/backtest/run (e afins), os
+    candles vêm da exchange escolhida em vez do yfinance. `symbol` pode ser só
+    a base (ex.: 'BTC') — é normalizado pro perp da exchange automaticamente.
+    """
+    from market_data import SUPPORTED_EXCHANGES
+    return jsonify({"exchanges": list(SUPPORTED_EXCHANGES)})
+
+
 @app.route("/api/backtest/strategies", methods=["GET"])
 def api_backtest_strategies():
     """Lista todos os módulos de estratégia disponíveis em strategies/."""
@@ -783,11 +812,12 @@ def api_backtest_run():
             symbol_label = body.get("symbol_label", "")
             interval_label = body.get("interval", "1d")
             symbol = body.get("symbol", "")
+            exchange = body.get("exchange")
 
             if not symbol:
                 return jsonify({"error": "symbol obrigatório"}), 400
 
-            df_data = _download_data_safe(symbol, interval_label)
+            df_data = _download_data_safe(symbol, interval_label, exchange)
             if symbol_label == "":
                 symbol_label = symbol
 
@@ -928,9 +958,161 @@ _BARS_PER_YEAR = {
 }
 
 
-def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
+def _build_wfa_cost_ctx(df, body, cfg_dict):
+    """Monta o contexto de custos (fees + funding) para a WFA, ou (None, []).
+
+    Quando `apply_costs` está ligado, instancia o CostCalculator da exchange
+    escolhida (taxas reais por tier + cenário) e baixa o funding histórico UMA
+    vez para todo o range do DataFrame (reaproveitado em todas as janelas).
+    O funding é opcional: se a exchange estiver indisponível, cai para só-fees
+    e registra um aviso. Retorna (ctx_dict | None, lista_de_avisos).
+    """
+    if not body.get("apply_costs"):
+        return None, []
+
+    from decimal import Decimal as _Dec
+    from costs.calculator import CostCalculator
+    from costs.config import DEFAULT_FEES, SCENARIOS, ExchangeFees
+    from costs.funding import get_funding_events
+    from market_data import normalize_symbol
+
+    cost_exchange = (body.get("cost_exchange") or body.get("exchange") or "binance").lower()
+    if cost_exchange not in DEFAULT_FEES:
+        cost_exchange = "binance"
+    scenario = body.get("cost_scenario") or "realista"
+    if scenario not in SCENARIOS:
+        scenario = "realista"
+    use_funding = bool(body.get("use_funding", True))
+    initial_capital = float(
+        body.get("initial_capital")
+        or cfg_dict.get("initial_capital")
+        or 1000.0
+    )
+
+    # Taxa base do tier + override opcional vindo do frontend.
+    fees = DEFAULT_FEES[cost_exchange]
+    fo = (body.get("fees") or {}).get(cost_exchange)
+    if fo and "maker" in fo and "taker" in fo:
+        fees = ExchangeFees(maker=_Dec(str(fo["maker"])), taker=_Dec(str(fo["taker"])))
+
+    sc = SCENARIOS[scenario]
+    calc = CostCalculator(
+        exchange=cost_exchange, fees=fees,
+        use_maker_entry=False, use_maker_exit=False,   # taker nas duas pontas
+        funding_multiplier=sc["funding_multiplier"],
+        slippage_pct=sc["slippage_pct"],
+    )
+
+    warnings = []
+    funding_events = []
+    if use_funding:
+        sym = normalize_symbol(body.get("cost_symbol") or body.get("symbol") or "BTC", cost_exchange)
+        since_ms = int(df.index[0].value // 1_000_000)
+        until_ms = int(df.index[-1].value // 1_000_000)
+        try:
+            funding_events = get_funding_events(cost_exchange, sym, since_ms, until_ms)
+        except Exception as ex:
+            warnings.append(f"{cost_exchange}: funding indisponível ({ex}). Aplicando só fees.")
+            funding_events = []
+
+    ctx = {
+        "calc":            calc,
+        "funding_events":  funding_events,
+        "initial_capital": initial_capital,
+        "exchange":        cost_exchange,
+        "scenario":        scenario,
+        "use_funding":     use_funding,
+    }
+    return ctx, warnings
+
+
+def _net_metrics_from_result(result, cost_ctx, base_return_pct):
+    """Aplica fees + funding aos trades de uma janela e devolve métricas líquidas.
+
+    `base_return_pct` é o retorno bruto que a própria plataforma reportou
+    (metrics.total_return); subtraímos dele o arrasto de custo (fees+funding
+    sobre o notional) para obter o retorno líquido — mantendo a base consistente
+    com o resto da WFA em vez de recomputar o retorno por outro caminho.
+    """
+    from costs import trades_from_platform
+
+    trades = trades_from_platform(result.get("trades", []))
+    if not trades:
+        return {
+            "net_return_pct": None, "net_sharpe": None,
+            "fees_total": 0.0, "funding_total": 0.0, "cost_drag_pct": 0.0,
+        }
+
+    res = cost_ctx["calc"].apply(
+        trades, cost_ctx["funding_events"],
+        initial_capital=cost_ctx["initial_capital"],
+    )
+    ic = cost_ctx["initial_capital"] or 1.0
+    cost_drag_pct = float(res.pnl_liquido_total - res.pnl_bruto_total) / ic * 100.0
+    return {
+        "net_return_pct": _safe(float(base_return_pct or 0.0) + cost_drag_pct),
+        "net_sharpe":     _safe(res.metrics_net.get("sharpe")),
+        "fees_total":     _safe(float(res.fees_total)),
+        "funding_total":  _safe(float(res.funding_total)),
+        "cost_drag_pct":  _safe(cost_drag_pct),
+    }
+
+
+def _net_pnl_pcts(raw_trades, cost_ctx):
+    """Converte o pool de pnl_pct (bruto, % do equity) em pnl_pct líquido,
+    descontando fees + funding reais da corretora trade a trade.
+
+    O `pnl_pct` da plataforma é o retorno do trade sobre o equity no momento da
+    entrada (já escalado pela exposição/alavancagem). Para descontar o custo na
+    mesma base, reconstruímos o equity de entrada compondo o pnl_pct bruto a
+    partir do capital inicial (mesma trajetória do backtest) e dividimos o custo
+    absoluto do trade por esse equity. Trades sem dados para custear passam
+    intactos. Retorna dict com o pool líquido e os totais de fees/funding.
+    """
+    from costs import trades_from_platform
+
+    calc = cost_ctx["calc"]
+    funding_events = cost_ctx["funding_events"]
+    equity = cost_ctx["initial_capital"] or 1.0
+
+    net_pcts = []
+    total_fees = 0.0
+    total_funding = 0.0
+    n_costed = 0
+
+    for t in raw_trades:
+        g = t.get("pnl_pct")
+        if g is None:
+            continue
+        g = float(g)
+        eq_entry = equity if equity else 1.0
+        one = trades_from_platform([t])
+        if one:
+            bd = calc.apply_trade(one[0], funding_events)
+            cost_abs = float(bd.pnl_liquido - bd.pnl_bruto)   # ≤ 0 (fees) ± funding
+            net_pcts.append(g + cost_abs / eq_entry * 100.0)
+            total_fees += float(bd.fee_entrada + bd.fee_saida)
+            total_funding += float(bd.funding_total)
+            n_costed += 1
+        else:
+            net_pcts.append(g)
+        equity *= (1 + g / 100.0)   # compõe com o bruto: mesma trajetória do backtest
+
+    return {
+        "net_pcts": net_pcts,
+        "total_fees": total_fees,
+        "total_funding": total_funding,
+        "n_costed": n_costed,
+    }
+
+
+def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d', cost_ctx=None):
     """Roda a estrategia em um slice do DataFrame e retorna metricas WFA.
     Retorna None se o slice for pequeno demais ou nao gerar trades suficientes.
+
+    Se `cost_ctx` for dado, anexa metricas liquidas (fees + funding reais da
+    exchange) ao dicionario retornado: net_return_pct, net_sharpe, fees_total,
+    funding_total, cost_drag_pct.
     """
     if len(df_slice) < 20:
         return None
@@ -958,7 +1140,7 @@ def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
         if len(rets) > 1 and std > 0:
             sharpe = float(rets.mean() / std * np.sqrt(ann_factor))
 
-    return {
+    out = {
         "return_pct":    _safe(float(metrics.get("total_return", 0.0))),
         "sharpe":        _safe(sharpe),
         "n_trades":      n_trades,
@@ -966,6 +1148,13 @@ def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
         "equity_values": [_safe(float(v)) for v in eq_values],
         "equity_dates":  eq_dates,
     }
+
+    if cost_ctx is not None:
+        out.update(_net_metrics_from_result(
+            result, cost_ctx, metrics.get("total_return", 0.0)
+        ))
+
+    return out
 
 
 @app.route("/api/backtest/wfa", methods=["POST"])
@@ -987,7 +1176,7 @@ def api_backtest_wfa():
         if not symbol:
             return jsonify({"error": "symbol obrigatorio para WFA"}), 400
 
-        df = _download_data_safe(symbol, interval)
+        df = _download_data_safe(symbol, interval, body.get("exchange"))
         total_bars = len(df)
 
         if total_bars < n_windows * 20:
@@ -1000,6 +1189,10 @@ def api_backtest_wfa():
         param_specs, numeric_keys = (
             _extract_param_specs(module) if optimize_is_samples > 0 else ({}, [])
         )
+
+        # Contexto de custos (fees + funding reais da exchange). Funding baixado
+        # uma vez para todo o range e reusado em cada janela.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(df, body, cfg_dict)
 
         step_size = total_bars // n_windows
         is_bars   = int(step_size * is_pct)
@@ -1035,8 +1228,8 @@ def api_backtest_wfa():
             else:
                 window_cfg = dict(cfg_dict)
 
-            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval)
-            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval)
+            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval, cost_ctx)
+            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval, cost_ctx)
 
             if is_m is None or oos_m is None:
                 continue
@@ -1066,6 +1259,12 @@ def api_backtest_wfa():
                 "is_dates":         is_m["equity_dates"],
                 "oos_dates":        oos_m["equity_dates"],
                 "optimal_params":   {k: window_cfg.get(k) for k in numeric_keys} if numeric_keys else None,
+                # Líquido (fees + funding reais da exchange); None quando custos off.
+                "is_net_return":    is_m.get("net_return_pct"),
+                "oos_net_return":   oos_m.get("net_return_pct"),
+                "oos_net_sharpe":   oos_m.get("net_sharpe"),
+                "oos_fees":         oos_m.get("fees_total"),
+                "oos_funding":      oos_m.get("funding_total"),
             })
 
         if not windows:
@@ -1113,7 +1312,7 @@ def api_backtest_wfa():
         avg_oos_return = float(np.mean([w["oos_return"] for w in windows if w["oos_return"] is not None]))
         avg_is_return  = float(np.mean([w["is_return"]  for w in windows if w["is_return"]  is not None]))
 
-        return jsonify({
+        resp = {
             "windows":              windows,
             "oos_equity_curve":     {"dates": oos_dates_all, "values": oos_values_all},
             "wfe":                  _safe(wfe),
@@ -1123,7 +1322,22 @@ def api_backtest_wfa():
             "avg_is_return":        _safe(avg_is_return),
             "n_valid_windows":      len(windows),
             "param_keys":           numeric_keys,
-        })
+            "costs_applied":        cost_ctx is not None,
+            "cost_warnings":        cost_warnings,
+        }
+
+        if cost_ctx is not None:
+            net_oos = [w["oos_net_return"] for w in windows if w["oos_net_return"] is not None]
+            resp.update({
+                "cost_exchange":       cost_ctx["exchange"],
+                "cost_scenario":       cost_ctx["scenario"],
+                "cost_use_funding":    cost_ctx["use_funding"],
+                "avg_oos_net_return":  _safe(float(np.mean(net_oos)) if net_oos else 0.0),
+                "total_oos_fees":      _safe(float(sum(w["oos_fees"]    or 0.0 for w in windows))),
+                "total_oos_funding":   _safe(float(sum(w["oos_funding"] or 0.0 for w in windows))),
+            })
+
+        return jsonify(resp)
 
     except Exception as e:
         import traceback
@@ -1872,7 +2086,7 @@ def api_optimizer_run():
         if body.get("cycle_short_months"):
             fixed_params["cycle_short_months"] = body["cycle_short_months"]
 
-        df_data = _download_data_safe(symbol, interval)
+        df_data = _download_data_safe(symbol, interval, body.get("exchange"))
 
         # Filtra por data se o usuario definiu start/end
         sd = body.get("start_date")
@@ -2030,7 +2244,7 @@ def api_prop_challenge_simulate():
         # Forca initial_capital = account_size para o backtest
         cfg_dict["initial_capital"] = account_size
 
-        df_data = _download_data_safe(symbol, interval_label)
+        df_data = _download_data_safe(symbol, interval_label, body.get("exchange"))
         module = _load_strategy(strategy_file)
         result_dict = module.run(df_data.copy(), cfg_dict)
 
@@ -2041,6 +2255,27 @@ def api_prop_challenge_simulate():
         pnl_pcts = [float(t["pnl_pct"]) for t in trades if t.get("pnl_pct") is not None]
         if len(pnl_pcts) < 5:
             return jsonify({"error": "Poucos trades validos para simular (minimo 5)"}), 400
+
+        # Custos reais da corretora (fees + funding) descontados de cada trade.
+        # Quando ligado, o Monte Carlo reamostra o pool LÍQUIDO em vez do bruto.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(df_data, body, cfg_dict)
+        cost_summary = None
+        pool = pnl_pcts
+        if cost_ctx is not None:
+            net = _net_pnl_pcts(trades, cost_ctx)
+            if net["net_pcts"]:
+                pool = net["net_pcts"]
+            cost_summary = {
+                "applied": True,
+                "exchange": cost_ctx["exchange"],
+                "scenario": cost_ctx["scenario"],
+                "use_funding": cost_ctx["use_funding"],
+                "total_fees": round(net["total_fees"], 2),
+                "total_funding": round(net["total_funding"], 2),
+                "avg_gross_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_net_pnl": round(float(np.mean(pool)), 4),
+                "warnings": cost_warnings,
+            }
 
         rng = np.random.default_rng()  # semente aleatoria — cada execucao produz resultado diferente
 
@@ -2091,7 +2326,7 @@ def api_prop_challenge_simulate():
         for i in range(num_sims):
             # Fase 1
             p1_passed, p1_balance, p1_curve = simulate_phase(
-                pnl_pcts, phase1_target, account_size
+                pool, phase1_target, account_size
             )
             phase1_results.append({
                 "passed": p1_passed,
@@ -2104,7 +2339,7 @@ def api_prop_challenge_simulate():
                 phase1_pass += 1
                 # Fase 2: comeca com o saldo da conta original (reseta)
                 p2_passed, p2_balance, p2_curve = simulate_phase(
-                    pnl_pcts, phase2_target, account_size
+                    pool, phase2_target, account_size
                 )
                 phase2_results.append({
                     "passed": p2_passed,
@@ -2122,10 +2357,10 @@ def api_prop_challenge_simulate():
             if p1_passed and len(phase2_curves) < 50:
                 phase2_curves.append([round(v, 2) for v in p2_curve])
 
-        # Estatisticas dos trades originais
-        wins = [p for p in pnl_pcts if p > 0]
-        losses = [p for p in pnl_pcts if p <= 0]
-        win_rate = len(wins) / len(pnl_pcts) * 100 if pnl_pcts else 0
+        # Estatisticas dos trades efetivamente simulados (liquido quando custos on)
+        wins = [p for p in pool if p > 0]
+        losses = [p for p in pool if p <= 0]
+        win_rate = len(wins) / len(pool) * 100 if pool else 0
         avg_win = float(np.mean(wins)) if wins else 0
         avg_loss = float(np.mean(losses)) if losses else 0
 
@@ -2173,13 +2408,14 @@ def api_prop_challenge_simulate():
             "interval": interval_label,
             "strategy": strategy_file,
             "trade_stats": {
-                "total": len(pnl_pcts),
+                "total": len(pool),
                 "win_rate": round(win_rate, 2),
                 "avg_win": round(avg_win, 2),
                 "avg_loss": round(avg_loss, 2),
-                "avg_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_pnl": round(float(np.mean(pool)), 4),
                 "avg_days_between_trades": round(avg_days_between_trades, 1) if avg_days_between_trades else None,
             },
+            "costs": cost_summary,
             "phase1": {
                 "target_pct": phase1_target * 100,
                 "max_loss_pct": abs(max_loss) * 100,
@@ -2243,7 +2479,7 @@ def regime_detect():
                 interval = body.get("interval", "1d")
                 if not symbol:
                     return jsonify({"error": "Simbolo nao informado"}), 400
-                df = _download_data_safe(symbol, interval)
+                df = _download_data_safe(symbol, interval, body.get("exchange"))
             else:
                 return jsonify({"error": "Fonte de dados invalida"}), 400
 

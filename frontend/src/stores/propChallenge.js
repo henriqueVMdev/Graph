@@ -19,6 +19,11 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
   const accountSize = ref(50000)
   const numSims = ref(1000)
 
+  // Custos reais da corretora (fees + funding) descontados de cada trade.
+  const costConfig = ref({
+    apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
+  })
+
   // Pending params (vindos do Dashboard)
   const pendingParams = ref(null)
 
@@ -116,6 +121,14 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     return { autoRun }
   }
 
+  /** Deriva um símbolo CCXT (swap USDT-M) a partir do símbolo da plataforma. */
+  function inferCcxtSymbol() {
+    const raw = (selectedSymbol.value || '').toUpperCase()
+    const base = raw.replace(/-USD.*$/, '').replace(/USDT$/, '').replace(/[^A-Z0-9]/g, '')
+    if (!base) return 'BTC/USDT:USDT'
+    return `${base}/USDT:USDT`
+  }
+
   async function runSimulation() {
     if (!selectedSymbol.value || !selectedStrategy.value) {
       error.value = 'Selecione um ativo e uma estrategia'
@@ -134,6 +147,12 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
         config: params.value,
         account_size: accountSize.value,
         num_sims: numSims.value,
+        // Custos reais da corretora (fees + funding) descontados por trade.
+        apply_costs: costConfig.value.apply_costs,
+        cost_exchange: costConfig.value.cost_exchange,
+        cost_scenario: costConfig.value.cost_scenario,
+        use_funding: costConfig.value.use_funding,
+        cost_symbol: inferCcxtSymbol(),
       })
       results.value = data
     } catch (e) {
@@ -147,9 +166,9 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     assets, strategies, selectedStrategy, params,
     pendingParams,
     dataSource, selectedAssetLabel, selectedSymbol, interval,
-    accountSize, numSims,
+    accountSize, numSims, costConfig,
     isRunning, results, error,
     fetchAssets, fetchStrategies, selectStrategy,
-    applyPendingParams, runSimulation,
+    applyPendingParams, runSimulation, inferCcxtSymbol,
   }
 })

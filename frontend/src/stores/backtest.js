@@ -45,7 +45,11 @@ export const useBacktestStore = defineStore('backtest', () => {
   const wfaResults = ref(null)
   const wfaLoading = ref(false)
   const wfaError   = ref(null)
-  const wfaConfig  = ref({ n_windows: 10, is_pct: 0.70, optimize_is_samples: 0 })
+  const wfaConfig  = ref({
+    n_windows: 10, is_pct: 0.70, optimize_is_samples: 0,
+    // Custos reais (fees + funding da corretora) aplicados ao forward test.
+    apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
+  })
 
   // ─── Custos (fees + funding) ──────────────────────────────────────────────
   const costsResult  = ref(null)
@@ -198,6 +202,13 @@ export const useBacktestStore = defineStore('backtest', () => {
         n_windows:            wfaConfig.value.n_windows,
         is_pct:               wfaConfig.value.is_pct,
         optimize_is_samples:  wfaConfig.value.optimize_is_samples,
+        // Custos reais da corretora aplicados ao OOS (fees + funding).
+        apply_costs:          wfaConfig.value.apply_costs,
+        cost_exchange:        wfaConfig.value.cost_exchange,
+        cost_scenario:        wfaConfig.value.cost_scenario,
+        use_funding:          wfaConfig.value.use_funding,
+        cost_symbol:          inferCcxtSymbol(),
+        initial_capital:      Number(params.value.initial_capital) || 1000,
       })
       wfaResults.value = data
     } catch (e) {

@@ -85,6 +85,48 @@
         </select>
       </div>
 
+      <!-- Custos da corretora (fees + funding) -->
+      <div class="sidebar-section">
+        <div class="flex items-center justify-between mb-2">
+          <p class="sidebar-section-title mb-0">Custos da Corretora</p>
+          <button
+            @click="store.costConfig.apply_costs = !store.costConfig.apply_costs"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.costConfig.apply_costs ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.costConfig.apply_costs ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.costConfig.apply_costs">
+          <label class="text-xs text-gray-400 block mb-1">Exchange (fees + funding)</label>
+          <select v-model="store.costConfig.cost_exchange" class="form-select w-full text-xs mb-2">
+            <option value="binance">Binance</option>
+            <option value="bybit">Bybit</option>
+            <option value="okx">OKX</option>
+          </select>
+
+          <label class="text-xs text-gray-400 block mb-1">Cenário</label>
+          <select v-model="store.costConfig.cost_scenario" class="form-select w-full text-xs mb-2">
+            <option value="realista">Realista</option>
+            <option value="pessimista">Pessimista (funding 1.5x + slippage)</option>
+          </select>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              :checked="store.costConfig.use_funding"
+              @change="store.costConfig.use_funding = $event.target.checked"
+              class="w-3.5 h-3.5 accent-accent-yellow"
+            />
+            <span class="text-xs text-gray-300">Incluir funding</span>
+          </label>
+        </template>
+      </div>
+
       <!-- Regras -->
       <div class="sidebar-section">
         <p class="sidebar-section-title">Regras do Desafio</p>
