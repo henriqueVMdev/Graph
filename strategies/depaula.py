@@ -654,7 +654,30 @@ def run(df, params: dict) -> dict:
             for t in trades
         ]
 
+    # ── Séries para os gráficos de análise (candles + indicadores) ──────────
+    # Só montadas sob demanda (_charts), para não inchar a resposta padrão.
+    chart = None
+    if params.get("_charts"):
+        def _col(name):
+            return [_safe(float(v)) for v in bt_df[name].tolist()] if name in bt_df.columns else None
+        chart = {
+            "dates": [str(idx) for idx in bt_df.index],   # timestamp completo (intraday)
+            "ohlc": {
+                "open":   _col("Open"),
+                "high":   _col("High"),
+                "low":    _col("Low"),
+                "close":  _col("Close"),
+                "volume": _col("Volume"),
+            },
+            "indicators": {
+                "ma":    _col("MA"),
+                "upper": _col("UpperBand"),
+                "lower": _col("LowerBand"),
+            },
+        }
+
     return {
+        "chart": chart,
         "metrics": {
             "final_equity": _safe(float(result.equity)),
             "total_return": _safe(float(total_return)),

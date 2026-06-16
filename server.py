@@ -837,6 +837,115 @@ def api_backtest_run():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
+@app.route("/api/backtest/chart-data", methods=["POST"])
+def api_backtest_chart_data():
+    """Dados para os gráficos de análise (Plotly) de um backtest.
+
+    Roda a estratégia (com `_charts`) e devolve, para o mesmo símbolo/intervalo:
+      - candles   : OHLCV (do próprio backtest)
+      - indicators: MA / banda superior / banda inferior
+      - trades    : marcadores de entrada/saída (long/short)
+      - equity    : curva bruta vs líquida (descontando fees + funding reais)
+      - funding   : histórico de funding rate da corretora escolhida
+
+    Body: igual ao /api/backtest/run + cost_exchange/cost_scenario/use_funding/
+    cost_symbol (opcionais; default = exchange dos dados ou 'binance').
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        cfg_dict = dict(body.get("config", {}))
+        strategy_file = body.get("strategy_file", "depaula") or "depaula"
+        interval_label = body.get("interval", "1d")
+        symbol = body.get("symbol", "")
+        exchange = body.get("exchange")
+
+        if not symbol:
+            return jsonify({"error": "symbol obrigatório"}), 400
+
+        df_data = _download_data_safe(symbol, interval_label, exchange)
+        module = _load_strategy(strategy_file)
+        result = module.run(df_data.copy(), {**cfg_dict, "_charts": True})
+
+        chart = result.get("chart") or {}
+        raw_trades = result.get("trades", [])
+
+        # Marcadores de trade (long/short) com data/preço de entrada e saída.
+        markers = []
+        for t in raw_trades:
+            if t.get("entry_ts") and t.get("entry_price") is not None:
+                markers.append({
+                    "entry_ts":    t.get("entry_ts"),
+                    "exit_ts":     t.get("exit_ts"),
+                    "entry_price": t.get("entry_price"),
+                    "exit_price":  t.get("exit_price"),
+                    "direction":   t.get("direction", 1),
+                    "pnl_pct":     t.get("pnl_pct"),
+                })
+
+        # Contexto de custos: força apply_costs p/ sempre montar funding + líquido.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(
+            df_data, {**body, "apply_costs": True}, cfg_dict
+        )
+
+        # Curva de equity bruta (por barra) + líquida (bruta − custo acumulado).
+        eq_dates = result.get("equity_curve", {}).get("dates", [])
+        eq_gross = result.get("equity_curve", {}).get("values", [])
+        eq_net   = None
+        funding  = {"dates": [], "rates": []}
+
+        if cost_ctx is not None:
+            from costs import trades_from_platform
+            calc = cost_ctx["calc"]
+            funding_events = cost_ctx["funding_events"]
+
+            # Custo absoluto por trade (positivo), associado ao timestamp de saída.
+            costs_by_exit = []
+            for ct in trades_from_platform(raw_trades):
+                bd = calc.apply_trade(ct, funding_events)
+                costs_by_exit.append((ct.exit_time, float(bd.pnl_bruto - bd.pnl_liquido)))
+            costs_by_exit.sort(key=lambda x: x[0])
+
+            # Alinha custo acumulado às barras pelo timestamp completo do chart.
+            bar_ts = []
+            for d in (chart.get("dates") or []):
+                try:
+                    bar_ts.append(int(pd.Timestamp(d).value // 1_000_000))
+                except Exception:
+                    bar_ts.append(None)
+
+            if bar_ts and len(bar_ts) == len(eq_gross):
+                eq_net = []
+                ci, running = 0, 0.0
+                for i, bts in enumerate(bar_ts):
+                    while ci < len(costs_by_exit) and bts is not None and costs_by_exit[ci][0] <= bts:
+                        running += costs_by_exit[ci][1]
+                        ci += 1
+                    g = eq_gross[i]
+                    eq_net.append(_safe(g - running) if g is not None else None)
+
+            funding = {
+                "dates": [pd.Timestamp(ev.timestamp, unit="ms").isoformat() for ev in funding_events],
+                "rates": [float(ev.rate) for ev in funding_events],
+            }
+
+        return jsonify({
+            "symbol":     body.get("symbol_label") or symbol,
+            "interval":   interval_label,
+            "candles":    {"dates": chart.get("dates", []), **(chart.get("ohlc") or {})},
+            "indicators": chart.get("indicators", {}),
+            "trades":     markers,
+            "equity":     {"dates": eq_dates, "gross": eq_gross, "net": eq_net},
+            "funding":    funding,
+            "cost_exchange": cost_ctx["exchange"] if cost_ctx else None,
+            "cost_scenario": cost_ctx["scenario"] if cost_ctx else None,
+            "cost_warnings": cost_warnings,
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 @app.route("/api/backtest/costs", methods=["POST"])
 def api_backtest_costs():
     """

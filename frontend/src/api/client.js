@@ -92,6 +92,10 @@ export function runCosts(payload) {
   return api.post('/backtest/costs', payload, { timeout: 180000 })
 }
 
+export function getChartData(payload) {
+  return api.post('/backtest/chart-data', payload, { timeout: 180000 })
+}
+
 // Optimizer API
 export function getOptimizerGrids(strategyFile = 'depaula') {
   return api.get('/optimizer/grids', { params: { strategy: strategyFile } })

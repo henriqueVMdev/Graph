@@ -73,6 +73,12 @@
           />
         </div>
 
+        <!-- Gráficos de análise: candles + indicadores + funding + equity líquido -->
+        <div class="card p-4">
+          <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Análise Gráfica · Candles, Indicadores, Funding e Equity Líquido</h2>
+          <AnalysisCharts />
+        </div>
+
         <!-- Drawdown -->
         <div class="card p-4">
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">◆</span> Analise de Drawdown</h2>
@@ -127,6 +133,7 @@ import CorrelationSection from '@/components/backtest/CorrelationSection.vue'
 import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 import DrawdownSection from '@/components/backtest/DrawdownSection.vue'
 import CostsSection from '@/components/backtest/CostsSection.vue'
+import AnalysisCharts from '@/components/backtest/AnalysisCharts.vue'
 
 const store = useBacktestStore()
 const paramsBanner = ref(false)

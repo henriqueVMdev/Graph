@@ -8,6 +8,7 @@ import {
   getCorrelation,
   runWfa as runWfaApi,
   runCosts as runCostsApi,
+  getChartData as getChartDataApi,
 } from '@/api/client.js'
 
 export const useBacktestStore = defineStore('backtest', () => {
@@ -50,6 +51,13 @@ export const useBacktestStore = defineStore('backtest', () => {
     // Custos reais (fees + funding da corretora) aplicados ao forward test.
     apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
   })
+
+  // ─── Gráficos de análise (candles + indicadores + funding + equity) ───────
+  const chartData    = ref(null)
+  const chartLoading = ref(false)
+  const chartError   = ref(null)
+  // exchange = fonte dos candles E do funding (bybit funciona nesta rede).
+  const chartConfig  = ref({ exchange: 'bybit', scenario: 'realista', use_funding: true })
 
   // ─── Custos (fees + funding) ──────────────────────────────────────────────
   const costsResult  = ref(null)
@@ -256,6 +264,39 @@ export const useBacktestStore = defineStore('backtest', () => {
     }
   }
 
+  async function fetchChartData() {
+    if (dataSource.value === 'csv') {
+      chartError.value = 'Gráficos de análise requerem um ativo (candles da corretora). Modo CSV não suportado.'
+      return
+    }
+    if (!selectedSymbol.value) {
+      chartError.value = 'Selecione um ativo para ver os gráficos'
+      return
+    }
+    chartLoading.value = true
+    chartError.value = null
+    chartData.value = null
+    try {
+      const { data } = await getChartDataApi({
+        symbol:        selectedSymbol.value,
+        symbol_label:  selectedAssetLabel.value,
+        interval:      interval.value,
+        strategy_file: selectedStrategy.value?.file || 'depaula',
+        config:        params.value,
+        exchange:      chartConfig.value.exchange,     // candles vêm da corretora
+        cost_exchange: chartConfig.value.exchange,     // funding/fees da mesma corretora
+        cost_scenario: chartConfig.value.scenario,
+        use_funding:   chartConfig.value.use_funding,
+        cost_symbol:   inferCcxtSymbol(),
+      })
+      chartData.value = data
+    } catch (e) {
+      chartError.value = e.response?.data?.error || e.message
+    } finally {
+      chartLoading.value = false
+    }
+  }
+
   async function fetchCorrelation(tickers) {
     if (Object.keys(tickers).length < 2) return
     correlationLoading.value = true
@@ -278,8 +319,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     correlationData, correlationLoading, correlationError,
     wfaResults, wfaLoading, wfaError, wfaConfig,
     costsResult, costsLoading, costsError, costsWarnings, costsConfig,
+    chartData, chartLoading, chartError, chartConfig,
     fetchAssets, fetchStrategies, selectStrategy,
     applyPendingParams, runBacktest, fetchCorrelation, runWfa,
-    runCosts, inferCcxtSymbol,
+    runCosts, inferCcxtSymbol, fetchChartData,
   }
 })
