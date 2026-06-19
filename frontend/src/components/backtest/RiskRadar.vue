@@ -28,7 +28,9 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import Plotly from 'plotly.js-dist-min'
+import { getPlotly } from '@/composables/plotly.js'
+
+let Plotly = null
 
 const props = defineProps({
   metrics: { type: Object, required: true },
@@ -90,8 +92,9 @@ function normalize(val, key) {
   return Math.min(Math.max(val, 0), cap) / cap * 100
 }
 
-function buildChart() {
+async function buildChart() {
   if (!chartEl.value || !props.metrics) return
+  if (!Plotly) Plotly = await getPlotly()
 
   const values = KEYS.map(k => normalize(props.metrics[k], k))
   values.push(values[0])
@@ -156,6 +159,6 @@ onMounted(buildChart)
 watch(() => props.metrics, buildChart, { deep: true })
 
 onBeforeUnmount(() => {
-  if (chartEl.value) Plotly.purge(chartEl.value)
+  if (chartEl.value && Plotly) Plotly.purge(chartEl.value)
 })
 </script>

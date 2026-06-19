@@ -2612,6 +2612,205 @@ def regime_detect():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Trade Journal — registro manual de operações por estratégia
+# ─────────────────────────────────────────────────────────────────────────────
+
+JOURNAL_FILE = Path(__file__).parent / "journal_data.json"
+_journal_lock = threading.Lock()
+
+
+def _journal_load() -> dict:
+    """Lê o journal do disco. Estrutura: {capital_inicial, trades:[...]}."""
+    if not JOURNAL_FILE.exists():
+        return {"capital_inicial": 0.0, "trades": []}
+    try:
+        with open(JOURNAL_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data.setdefault("capital_inicial", 0.0)
+        data.setdefault("trades", [])
+        return data
+    except Exception:
+        return {"capital_inicial": 0.0, "trades": []}
+
+
+def _journal_save(data: dict) -> None:
+    with open(JOURNAL_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _journal_stats(data: dict) -> dict:
+    """Calcula métricas agregadas e por estratégia a partir dos trades."""
+    trades = data.get("trades", [])
+    capital_inicial = float(data.get("capital_inicial", 0.0) or 0.0)
+
+    n = len(trades)
+    wins = [t for t in trades if t.get("result") == "gain"]
+    losses = [t for t in trades if t.get("result") == "loss"]
+    gross_gain = sum(abs(float(t.get("amount", 0))) for t in wins)
+    gross_loss = sum(abs(float(t.get("amount", 0))) for t in losses)
+    net_pnl = gross_gain - gross_loss
+    win_rate = (len(wins) / n * 100) if n else 0.0
+    avg_win = (gross_gain / len(wins)) if wins else 0.0
+    avg_loss = (gross_loss / len(losses)) if losses else 0.0
+    profit_factor = (gross_gain / gross_loss) if gross_loss > 0 else (
+        float("inf") if gross_gain > 0 else 0.0)
+    expectancy = (net_pnl / n) if n else 0.0
+    capital_atual = capital_inicial + net_pnl
+    roi = (net_pnl / capital_inicial * 100) if capital_inicial > 0 else 0.0
+
+    # Curva de capital ordenada por data (id como desempate)
+    ordered = sorted(trades, key=lambda t: (t.get("date", ""), t.get("id", 0)))
+    equity = []
+    running = capital_inicial
+    for t in ordered:
+        amt = abs(float(t.get("amount", 0)))
+        running += amt if t.get("result") == "gain" else -amt
+        equity.append({"date": t.get("date", ""), "capital": round(running, 2)})
+
+    # Agregado por estratégia
+    by_strat: dict = {}
+    for t in trades:
+        s = t.get("strategy", "—") or "—"
+        amt = abs(float(t.get("amount", 0)))
+        signed = amt if t.get("result") == "gain" else -amt
+        b = by_strat.setdefault(s, {
+            "strategy": s, "trades": 0, "wins": 0, "losses": 0,
+            "gross_gain": 0.0, "gross_loss": 0.0, "net": 0.0,
+        })
+        b["trades"] += 1
+        if t.get("result") == "gain":
+            b["wins"] += 1
+            b["gross_gain"] += amt
+        else:
+            b["losses"] += 1
+            b["gross_loss"] += amt
+        b["net"] += signed
+    for b in by_strat.values():
+        b["win_rate"] = (b["wins"] / b["trades"] * 100) if b["trades"] else 0.0
+        pf = (b["gross_gain"] / b["gross_loss"]) if b["gross_loss"] > 0 else (
+            float("inf") if b["gross_gain"] > 0 else 0.0)
+        b["profit_factor"] = None if pf == float("inf") else round(pf, 2)
+        for k in ("gross_gain", "gross_loss", "net", "win_rate"):
+            b[k] = round(b[k], 2)
+
+    def _r(x):
+        return None if x == float("inf") else round(x, 2)
+
+    return {
+        "total_trades": n,
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": round(win_rate, 2),
+        "gross_gain": round(gross_gain, 2),
+        "gross_loss": round(gross_loss, 2),
+        "net_pnl": round(net_pnl, 2),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "profit_factor": _r(profit_factor),
+        "expectancy": round(expectancy, 2),
+        "capital_inicial": round(capital_inicial, 2),
+        "capital_atual": round(capital_atual, 2),
+        "roi": round(roi, 2),
+        "equity_curve": equity,
+        "by_strategy": sorted(by_strat.values(), key=lambda b: b["net"], reverse=True),
+    }
+
+
+@app.route("/api/journal", methods=["GET"])
+def api_journal_get():
+    with _journal_lock:
+        data = _journal_load()
+    trades = sorted(data["trades"], key=lambda t: (t.get("date", ""), t.get("id", 0)),
+                    reverse=True)
+    return jsonify({
+        "capital_inicial": data.get("capital_inicial", 0.0),
+        "trades": trades,
+        "stats": _journal_stats(data),
+    })
+
+
+@app.route("/api/journal/capital", methods=["POST"])
+def api_journal_capital():
+    body = request.get_json(force=True) or {}
+    try:
+        capital = float(body.get("capital_inicial", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "capital_inicial inválido"}), 400
+    with _journal_lock:
+        data = _journal_load()
+        data["capital_inicial"] = capital
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"capital_inicial": capital, "stats": stats})
+
+
+@app.route("/api/journal/trade", methods=["POST"])
+def api_journal_add():
+    body = request.get_json(force=True) or {}
+    result = body.get("result")
+    if result not in ("gain", "loss"):
+        return jsonify({"error": "result deve ser 'gain' ou 'loss'"}), 400
+    try:
+        amount = abs(float(body.get("amount", 0)))
+    except (TypeError, ValueError):
+        return jsonify({"error": "amount inválido"}), 400
+    with _journal_lock:
+        data = _journal_load()
+        next_id = max((t.get("id", 0) for t in data["trades"]), default=0) + 1
+        trade = {
+            "id": next_id,
+            "date": body.get("date") or "",
+            "strategy": (body.get("strategy") or "").strip() or "—",
+            "asset": (body.get("asset") or "").strip(),
+            "result": result,
+            "amount": round(amount, 2),
+            "notes": (body.get("notes") or "").strip(),
+        }
+        data["trades"].append(trade)
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"trade": trade, "stats": stats})
+
+
+@app.route("/api/journal/trade/<int:trade_id>", methods=["PUT"])
+def api_journal_update(trade_id):
+    body = request.get_json(force=True) or {}
+    with _journal_lock:
+        data = _journal_load()
+        trade = next((t for t in data["trades"] if t.get("id") == trade_id), None)
+        if trade is None:
+            return jsonify({"error": "trade não encontrado"}), 404
+        if "result" in body:
+            if body["result"] not in ("gain", "loss"):
+                return jsonify({"error": "result inválido"}), 400
+            trade["result"] = body["result"]
+        if "amount" in body:
+            try:
+                trade["amount"] = round(abs(float(body["amount"])), 2)
+            except (TypeError, ValueError):
+                return jsonify({"error": "amount inválido"}), 400
+        for k in ("date", "strategy", "asset", "notes"):
+            if k in body:
+                trade[k] = body[k].strip() if isinstance(body[k], str) else body[k]
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"trade": trade, "stats": stats})
+
+
+@app.route("/api/journal/trade/<int:trade_id>", methods=["DELETE"])
+def api_journal_delete(trade_id):
+    with _journal_lock:
+        data = _journal_load()
+        before = len(data["trades"])
+        data["trades"] = [t for t in data["trades"] if t.get("id") != trade_id]
+        if len(data["trades"]) == before:
+            return jsonify({"error": "trade não encontrado"}), 404
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"deleted": trade_id, "stats": stats})
+
+
 if __name__ == "__main__":
     print("========================================")
     print("   Backtesting API - Flask Server")

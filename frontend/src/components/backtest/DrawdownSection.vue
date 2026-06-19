@@ -111,7 +111,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import Plotly from 'plotly.js-dist-min'
+import { getPlotly } from '@/composables/plotly.js'
+
+let Plotly = null
 
 const props = defineProps({
   metrics:  { type: Object, required: true },
@@ -139,8 +141,9 @@ function fmtPct(v) {
 
 // ── Chart ─────────────────────────────────────────────────────────────────
 
-function buildChart() {
+async function buildChart() {
   if (!chartEl.value || !props.drawdown?.dates?.length) return
+  if (!Plotly) Plotly = await getPlotly()
 
   const ddTrace = {
     type: 'scatter',
@@ -256,6 +259,6 @@ function buildChart() {
 onMounted(buildChart)
 watch(() => props.drawdown, buildChart, { deep: true })
 onBeforeUnmount(() => {
-  if (chartEl.value) Plotly.purge(chartEl.value)
+  if (chartEl.value && Plotly) Plotly.purge(chartEl.value)
 })
 </script>

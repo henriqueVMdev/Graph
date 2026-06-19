@@ -158,6 +158,28 @@ export function detectRegimeCsv(file, params = {}) {
   })
 }
 
+// ─── Trade Journal API ────────────────────────────────────────────────────────
+
+export function getJournal() {
+  return api.get('/journal')
+}
+
+export function setJournalCapital(capitalInicial) {
+  return api.post('/journal/capital', { capital_inicial: capitalInicial })
+}
+
+export function addTrade(trade) {
+  return api.post('/journal/trade', trade)
+}
+
+export function updateTrade(id, patch) {
+  return api.put(`/journal/trade/${id}`, patch)
+}
+
+export function deleteTrade(id) {
+  return api.delete(`/journal/trade/${id}`)
+}
+
 // Prop Challenge API
 export function runPropChallenge(payload) {
   return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })

@@ -14,6 +14,9 @@ frontend/dist/
 # Data
 data/
 
+# Trade journal (dados pessoais do usuário)
+journal_data.json
+
 # IDE
 .vscode/
 .idea/

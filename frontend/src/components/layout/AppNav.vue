@@ -38,6 +38,13 @@
       >
         Regimes
       </RouterLink>
+      <RouterLink
+        to="/journal"
+        class="nav-link"
+        :class="{ active: route.path === '/journal' }"
+      >
+        Diário
+      </RouterLink>
     </div>
 
     <!-- Spacer -->

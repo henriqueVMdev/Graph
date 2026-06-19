@@ -239,7 +239,9 @@
 
 <script setup>
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
-import Plotly from 'plotly.js-dist-min'
+import { getPlotly } from '@/composables/plotly.js'
+
+let Plotly = null
 import { usePropChallengeStore } from '@/stores/propChallenge.js'
 import PropChallengeSidebar from '@/components/propchallenge/PropChallengeSidebar.vue'
 
@@ -295,8 +297,9 @@ const plotConfig = {
   displayModeBar: false,
 }
 
-function drawChart(el, curves, accountSize, targetPct) {
+async function drawChart(el, curves, accountSize, targetPct) {
   if (!el || !curves.length) return
+  if (!Plotly) Plotly = await getPlotly()
   const traces = []
 
   // Curvas individuais
