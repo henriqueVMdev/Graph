@@ -57,6 +57,68 @@ function nearest(arr, t) {
   return (t - a) <= (b - t) ? a : b
 }
 
+// Primitive: caixa de posição (entrada -> alvo em verde, entrada -> stop em vermelho),
+// estilo "Long Position" do TradingView. Cada trade vira duas zonas preenchidas.
+function makeZonesPrimitive() {
+  let series = null
+  let chartRef = null
+  let requestUpdate = null
+  let items = []   // { x1, x2 em time(seg); entry, stop, target; dir }
+
+  const view = {
+    zOrder: () => 'bottom',
+    renderer() {
+      return {
+        draw(target) {
+          if (!series || !chartRef) return
+          const ts = chartRef.timeScale()
+          target.useBitmapCoordinateSpace((scope) => {
+            const ctx = scope.context
+            const hr = scope.horizontalPixelRatio
+            const vr = scope.verticalPixelRatio
+            for (const it of items) {
+              const x1 = ts.timeToCoordinate(it.x1)
+              const x2 = ts.timeToCoordinate(it.x2)
+              const yE = series.priceToCoordinate(it.entry)
+              const yS = series.priceToCoordinate(it.stop)
+              const yT = series.priceToCoordinate(it.target)
+              if (x1 == null || x2 == null || yE == null || yS == null || yT == null) continue
+              const X1 = Math.round(x1 * hr)
+              const X2 = Math.round(x2 * hr)
+              const w = Math.max(X2 - X1, 1)
+              const Ye = yE * vr, Ys = yS * vr, Yt = yT * vr
+              // zona de alvo (verde): entrada -> alvo
+              ctx.fillStyle = 'rgba(38,166,154,0.16)'
+              ctx.fillRect(X1, Math.min(Ye, Yt), w, Math.abs(Yt - Ye))
+              // zona de stop (vermelha): entrada -> stop
+              ctx.fillStyle = 'rgba(239,83,80,0.16)'
+              ctx.fillRect(X1, Math.min(Ye, Ys), w, Math.abs(Ys - Ye))
+              // bordas de alvo e stop + linha de entrada
+              ctx.lineWidth = Math.max(vr, 1)
+              ctx.setLineDash([])
+              ctx.strokeStyle = 'rgba(38,166,154,0.9)'
+              ctx.beginPath(); ctx.moveTo(X1, Yt); ctx.lineTo(X2, Yt); ctx.stroke()
+              ctx.strokeStyle = 'rgba(239,83,80,0.9)'
+              ctx.beginPath(); ctx.moveTo(X1, Ys); ctx.lineTo(X2, Ys); ctx.stroke()
+              ctx.strokeStyle = 'rgba(220,220,220,0.85)'
+              ctx.beginPath(); ctx.moveTo(X1, Ye); ctx.lineTo(X2, Ye); ctx.stroke()
+            }
+          })
+        },
+      }
+    },
+  }
+
+  return {
+    setItems(next) { items = next || [] },
+    attached(p) { chartRef = p.chart; series = p.series; requestUpdate = p.requestUpdate },
+    detached() { chartRef = null; series = null; requestUpdate = null },
+    updateAllViews() {},
+    paneViews() { return [view] },
+    redraw() { if (requestUpdate) requestUpdate() },
+  }
+}
+
 async function ensureChart() {
   if (!LW) LW = await import('lightweight-charts')
   if (chart || !el.value) return
@@ -82,11 +144,11 @@ async function ensureChart() {
   const lineOpts = { lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }
   maSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.ma })
   maSlowSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.maSlow })
-  const segOpts = { lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }
-  stopSeries = chart.addLineSeries({ ...segOpts, color: COLORS.stop })
-  targetSeries = chart.addLineSeries({ ...segOpts, color: COLORS.target })
   winSeries = chart.addLineSeries({ lineWidth: 1, color: 'rgba(38,166,154,0.55)', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
   lossSeries = chart.addLineSeries({ lineWidth: 1, color: 'rgba(239,83,80,0.55)', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
+
+  zones = makeZonesPrimitive()
+  candleSeries.attachPrimitive(zones)
 
   chart.subscribeCrosshairMove(onCrosshair)
 }
@@ -155,12 +217,13 @@ function renderTrades(times) {
   }
   candleSeries.setMarkers(markers)
 
-  // Stop / Alvo / conector entrada→saída (com quebras de série entre trades)
+  // Caixas de risco/retorno (entrada/stop/alvo) + conector entrada→saída
   if (!ov.stops) {
-    stopSeries.setData([]); targetSeries.setData([]); winSeries.setData([]); lossSeries.setData([])
+    winSeries.setData([]); lossSeries.setData([])
+    if (zones) { zones.setItems([]); zones.redraw() }
     return
   }
-  const stopData = [], targetData = [], winData = [], lossData = []
+  const winData = [], lossData = [], zoneItems = []
   const withLevels = trades
     .filter(t => t.entry_ts && t.exit_ts && t.stop_price != null && t.target_price != null)
     .sort((a, b) => a.entry_ts - b.entry_ts)
@@ -169,8 +232,11 @@ function renderTrades(times) {
     const tr = withLevels[k]
     const eT = snap(tr.entry_ts), xT = snap(tr.exit_ts)
     if (xT <= eT) continue
-    stopData.push({ time: eT, value: tr.stop_price }, { time: xT, value: tr.stop_price })
-    targetData.push({ time: eT, value: tr.target_price }, { time: xT, value: tr.target_price })
+    zoneItems.push({
+      x1: eT, x2: xT,
+      entry: tr.entry_price, stop: tr.stop_price, target: tr.target_price,
+      dir: tr.direction,
+    })
     const conn = (tr.pnl_pct ?? 0) >= 0 ? winData : lossData
     conn.push({ time: eT, value: tr.entry_price }, { time: xT, value: tr.exit_price })
 
@@ -179,13 +245,12 @@ function renderTrades(times) {
       const nT = snap(next.entry_ts)
       const mid = Math.floor((xT + nT) / 2)
       if (mid > xT && mid < nT) {
-        stopData.push({ time: mid }); targetData.push({ time: mid })
         winData.push({ time: mid }); lossData.push({ time: mid })
       }
     }
   }
-  stopSeries.setData(stopData); targetSeries.setData(targetData)
   winSeries.setData(winData); lossSeries.setData(lossData)
+  if (zones) { zones.setItems(zoneItems); zones.redraw() }
 }
 
 function onCrosshair(param) {
