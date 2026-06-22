@@ -516,8 +516,14 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
                 open_position(i, -1, entry_price, st["armed_stop"])
                 st["armed"] = False
             elif use_inside_bar and i >= 1 and _is_inside_bar(h[i], l[i], h[i - 1], l[i - 1]):
-                # não rompeu, mas é inside bar -> move o gatilho
-                st["armed_level"] = h[i] if d == 1 else l[i]
+                # não rompeu, mas é inside bar -> move o gatilho E o stop p/ o inside bar
+                lo = max(0, i - stop_lookback + 1)
+                if d == 1:
+                    st["armed_level"] = h[i]
+                    st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
+                else:
+                    st["armed_level"] = l[i]
+                    st["armed_stop"] = float(np.max(h[lo:i + 1])) + tick
             else:
                 st["armed"] = False  # expira
 
@@ -557,9 +563,9 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         if st["position"] == 0 and not st["armed"] and i >= 1:
             bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
             if bias == 1:
-                # pullback de compra: preço negociando ABAIXO da rápida (Close <= rápida)
-                # com a máxima tocando/rompendo a média (High >= rápida).
-                touches_ma = (h[i] >= fast[i]) and (c[i] <= fast[i])
+                # pullback de compra: a máxima alcança a rápida (toca ou fica acima).
+                # só não vale o gatilho se a máxima ficar abaixo da rápida.
+                touches_ma = h[i] >= fast[i]
                 pattern = ((use_engulfing and _is_engulfing(1, o[i], c[i], o[i - 1], c[i - 1]))
                            or (use_pfr and _is_pfr(1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
@@ -569,9 +575,9 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
                     st["armed_level"] = h[i]
                     st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
             elif bias == -1:
-                # pullback de venda: preço negociando ACIMA da rápida (Close >= rápida)
-                # com a mínima tocando/rompendo a média (Low <= rápida).
-                touches_ma = (l[i] <= fast[i]) and (c[i] >= fast[i])
+                # pullback de venda: a mínima alcança a rápida (toca ou fica abaixo).
+                # só não vale o gatilho se a mínima ficar acima da rápida.
+                touches_ma = l[i] <= fast[i]
                 pattern = ((use_engulfing and _is_engulfing(-1, o[i], c[i], o[i - 1], c[i - 1]))
                            or (use_pfr and _is_pfr(-1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
