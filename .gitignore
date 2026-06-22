@@ -12,7 +12,7 @@ frontend/node_modules/
 frontend/dist/
 
 # Data
-data/
+data/1
 
 # Trade journal (dados pessoais do usuário)
 journal_data.json

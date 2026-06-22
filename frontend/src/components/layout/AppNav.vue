@@ -18,6 +18,13 @@
         Backtesting
       </RouterLink>
       <RouterLink
+        to="/grafico"
+        class="nav-link"
+        :class="{ active: route.path === '/grafico' }"
+      >
+        Gráfico
+      </RouterLink>
+      <RouterLink
         to="/optimizer"
         class="nav-link"
         :class="{ active: route.path === '/optimizer' }"

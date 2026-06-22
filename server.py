@@ -880,11 +880,13 @@ def api_backtest_chart_data():
                     "exit_price":  t.get("exit_price"),
                     "direction":   t.get("direction", 1),
                     "pnl_pct":     t.get("pnl_pct"),
+                    "stop_price":   t.get("stop_price"),
+                    "target_price": t.get("target_price"),
                 })
 
         # Contexto de custos: força apply_costs p/ sempre montar funding + líquido.
         cost_ctx, cost_warnings = _build_wfa_cost_ctx(
-            df_data, {**body, "apply_costs": True}, cfg_dict
+            df_data, {**body, "apply_costs": body.get("apply_costs", True)}, cfg_dict
         )
 
         # Curva de equity bruta (por barra) + líquida (bruta − custo acumulado).

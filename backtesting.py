@@ -250,6 +250,9 @@ class Trade:
     partial_exit_price: float = 0.0
     partial_exit_date: str = ""
     partial_pct_closed: float = 0.0
+    # Niveis da operacao (para visualizacao no grafico). 0.0 = nao definido.
+    stop_price: float = 0.0
+    target_price: float = 0.0
     # Sizing / custos (futuros)
     qty: float = 0.0            # quantidade em unidades do ativo
     leverage: float = 1.0       # alavancagem aplicada (x)

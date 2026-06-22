@@ -119,7 +119,8 @@ function renderPrice() {
       decreasing: { line: { color: '#ef5350' } },
     },
   ]
-  if (ind.ma)    traces.push({ type: 'scatter', mode: 'lines', name: 'MA', x: c.dates, y: ind.ma, line: { color: '#f5c518', width: 1.5 } })
+  if (ind.ma)      traces.push({ type: 'scatter', mode: 'lines', name: 'MA', x: c.dates, y: ind.ma, line: { color: '#f5c518', width: 1.5 } })
+  if (ind.ma_slow) traces.push({ type: 'scatter', mode: 'lines', name: 'MM Lenta', x: c.dates, y: ind.ma_slow, line: { color: '#42a5f5', width: 1.5 } })
   if (ind.upper) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Sup.', x: c.dates, y: ind.upper, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
   if (ind.lower) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Inf.', x: c.dates, y: ind.lower, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
 
