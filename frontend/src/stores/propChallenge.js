@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getAssets, getStrategies, runPropChallenge } from '@/api/client.js'
+import { getAssets, getStrategies, runPropChallenge, runWfa as runWfaApi } from '@/api/client.js'
 
 export const usePropChallengeStore = defineStore('propChallenge', () => {
   // Assets e estrategias
@@ -21,6 +21,15 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
 
   // Custos reais da corretora (fees + funding) descontados de cada trade.
   const costConfig = ref({
+    apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
+  })
+
+  // ─── Walk-Forward Analysis (forward testing) ─────────────────────────────
+  const wfaResults = ref(null)
+  const wfaLoading = ref(false)
+  const wfaError   = ref(null)
+  const wfaConfig  = ref({
+    n_windows: 10, is_pct: 0.70, optimize_is_samples: 0,
     apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
   })
 
@@ -162,13 +171,46 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     }
   }
 
+  async function runWfa() {
+    if (!selectedSymbol.value) {
+      wfaError.value = 'Selecione um ativo para executar WFA'
+      return
+    }
+    wfaLoading.value = true
+    wfaError.value   = null
+    wfaResults.value = null
+    try {
+      const { data } = await runWfaApi({
+        symbol:        selectedSymbol.value,
+        interval:      interval.value,
+        strategy_file: selectedStrategy.value?.file || 'depaula',
+        config:        params.value,
+        n_windows:            wfaConfig.value.n_windows,
+        is_pct:               wfaConfig.value.is_pct,
+        optimize_is_samples:  wfaConfig.value.optimize_is_samples,
+        apply_costs:          wfaConfig.value.apply_costs,
+        cost_exchange:        wfaConfig.value.cost_exchange,
+        cost_scenario:        wfaConfig.value.cost_scenario,
+        use_funding:          wfaConfig.value.use_funding,
+        cost_symbol:          inferCcxtSymbol(),
+        initial_capital:      Number(params.value.initial_capital) || 1000,
+      })
+      wfaResults.value = data
+    } catch (e) {
+      wfaError.value = e.response?.data?.error || e.message
+    } finally {
+      wfaLoading.value = false
+    }
+  }
+
   return {
     assets, strategies, selectedStrategy, params,
     pendingParams,
     dataSource, selectedAssetLabel, selectedSymbol, interval,
     accountSize, numSims, costConfig,
     isRunning, results, error,
+    wfaResults, wfaLoading, wfaError, wfaConfig,
     fetchAssets, fetchStrategies, selectStrategy,
-    applyPendingParams, runSimulation, inferCcxtSymbol,
+    applyPendingParams, runSimulation, inferCcxtSymbol, runWfa,
   }
 })

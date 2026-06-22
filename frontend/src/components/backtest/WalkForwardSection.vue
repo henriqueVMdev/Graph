@@ -150,7 +150,11 @@ import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { purgeChart } from '@/composables/useCharts.js'
 
-const store = useBacktestStore()
+// Reutilizavel: por padrao usa o store de backtest, mas aceita outro store
+// (ex.: prop challenge) que exponha wfaResults/wfaLoading/wfaError.
+const props = defineProps({ store: { type: Object, default: undefined } })
+const backtestStore = useBacktestStore()
+const store = props.store ?? backtestStore
 
 const activeTab      = ref(0)
 const selectedMetric = ref('return_pct')

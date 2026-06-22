@@ -233,6 +233,14 @@
           <div ref="phase2ChartEl" class="w-full" style="height: 350px" />
         </div>
       </template>
+
+      <!-- Forward Testing (Walk-Forward Analysis) -->
+      <div v-if="store.wfaResults || store.wfaLoading || store.wfaError" class="card p-4">
+        <h2 class="text-sm font-semibold text-gray-200 mb-3">
+          <span class="text-accent-yellow">◆</span> Forward Testing (Walk-Forward Analysis)
+        </h2>
+        <WalkForwardSection :store="store" />
+      </div>
     </div>
   </div>
 </template>
@@ -244,6 +252,7 @@ import { getPlotly } from '@/composables/plotly.js'
 let Plotly = null
 import { usePropChallengeStore } from '@/stores/propChallenge.js'
 import PropChallengeSidebar from '@/components/propchallenge/PropChallengeSidebar.vue'
+import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 
 const store = usePropChallengeStore()
 const sidebarOpen = ref(true)
