@@ -6,8 +6,9 @@ Viés de tendência por duas médias (rápida x lenta):
   - Rápida ABAIXO da lenta -> só vendas (SHORT)
 
 Gatilho (caso LONG; SHORT é o espelho):
-  1. Pullback: preço negociando ABAIXO da média rápida, com a MÁXIMA do candle
-     tocando/rompendo a rápida (High >= rápida e Close <= rápida).
+  1. Pullback: preço negociando ABAIXO da média rápida (abertura <= rápida), com a
+     MÁXIMA do candle alcançando a rápida ou mais (High >= rápida). O fechamento é
+     livre — pode fechar abaixo ou já romper acima da média.
   2. Candle de reversão = engolfo clássico OU PFR de fundo (toggles independentes).
   3. Entrada por ROMPIMENTO da máxima do candle de gatilho na barra seguinte.
      Opcional: se a próxima barra não romper e for um INSIDE BAR, o nível de
@@ -563,9 +564,10 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         if st["position"] == 0 and not st["armed"] and i >= 1:
             bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
             if bias == 1:
-                # pullback de compra: a máxima alcança a rápida (toca ou fica acima).
-                # só não vale o gatilho se a máxima ficar abaixo da rápida.
-                touches_ma = h[i] >= fast[i]
+                # Long: preço negociando ABAIXO da rápida (abertura <= rápida) e a
+                # MÁXIMA alcançando a média ou mais (high >= rápida). O fechamento não
+                # importa. A entrada sai no rompimento dessa máxima (na média ou acima).
+                touches_ma = o[i] <= fast[i] and h[i] >= fast[i]
                 pattern = ((use_engulfing and _is_engulfing(1, o[i], c[i], o[i - 1], c[i - 1]))
                            or (use_pfr and _is_pfr(1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
@@ -575,9 +577,10 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
                     st["armed_level"] = h[i]
                     st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
             elif bias == -1:
-                # pullback de venda: a mínima alcança a rápida (toca ou fica abaixo).
-                # só não vale o gatilho se a mínima ficar acima da rápida.
-                touches_ma = l[i] <= fast[i]
+                # Short (espelho): preço negociando ACIMA da rápida (abertura >= rápida)
+                # e a MÍNIMA alcançando a média ou menos (low <= rápida). O fechamento
+                # não importa. A entrada sai no rompimento dessa mínima (na média ou abaixo).
+                touches_ma = o[i] >= fast[i] and l[i] <= fast[i]
                 pattern = ((use_engulfing and _is_engulfing(-1, o[i], c[i], o[i - 1], c[i - 1]))
                            or (use_pfr and _is_pfr(-1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
