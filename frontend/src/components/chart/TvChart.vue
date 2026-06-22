@@ -28,10 +28,9 @@ let candleSeries = null
 let volumeSeries = null
 let maSeries = null
 let maSlowSeries = null
-let stopSeries = null
-let targetSeries = null
 let winSeries = null
 let lossSeries = null
+let zones = null   // primitive: caixas de risco/retorno por trade
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 // Converte data (string UTC tz-naive) ou epoch ms para UTCTimestamp (segundos).
