@@ -292,11 +292,13 @@ def _is_engulfing(d, o, c, o1, c1):
     return c < o and o >= c1 and c <= o1       # candle de baixa engolfando
 
 
-def _is_pfr(d, h, l, h1, l1, c):
-    """PFR clássico: fundo (long) = mínima menor + fecha acima da máxima anterior."""
+def _is_pfr(d, h, l, h1, l1, c, c1):
+    """PFR (Ponto de Falso Rompimento): rompe a extremidade anterior e fecha de volta.
+    Fundo (long) = mínima menor que a anterior + fecha acima do fechamento anterior.
+    Topo (short) = máxima maior que a anterior + fecha abaixo do fechamento anterior."""
     if d == 1:
-        return l < l1 and c > h1
-    return h > h1 and c < l1
+        return l < l1 and c > c1
+    return h > h1 and c < c1
 
 
 def _is_inside_bar(h, l, h1, l1):
@@ -554,12 +556,12 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         # ── 3. NOVO SETUP (flat, sem armado, precisa de barra anterior) ─────
         if st["position"] == 0 and not st["armed"] and i >= 1:
             bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
-            # candle "encosta" na média rápida = a média passa dentro do range
-            # (mínima <= rápida <= máxima): pullback testando a média e máxima a tocando/rompendo.
-            touches_ma = l[i] <= fast[i] <= h[i]
             if bias == 1:
+                # pullback de compra: preço negociando ABAIXO da rápida (Close <= rápida)
+                # com a máxima tocando/rompendo a média (High >= rápida).
+                touches_ma = (h[i] >= fast[i]) and (c[i] <= fast[i])
                 pattern = ((use_engulfing and _is_engulfing(1, o[i], c[i], o[i - 1], c[i - 1]))
-                           or (use_pfr and _is_pfr(1, h[i], l[i], h[i - 1], l[i - 1], c[i])))
+                           or (use_pfr and _is_pfr(1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
                     lo = max(0, i - stop_lookback + 1)
                     st["armed"] = True
@@ -567,8 +569,11 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
                     st["armed_level"] = h[i]
                     st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
             elif bias == -1:
+                # pullback de venda: preço negociando ACIMA da rápida (Close >= rápida)
+                # com a mínima tocando/rompendo a média (Low <= rápida).
+                touches_ma = (l[i] <= fast[i]) and (c[i] >= fast[i])
                 pattern = ((use_engulfing and _is_engulfing(-1, o[i], c[i], o[i - 1], c[i - 1]))
-                           or (use_pfr and _is_pfr(-1, h[i], l[i], h[i - 1], l[i - 1], c[i])))
+                           or (use_pfr and _is_pfr(-1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches_ma and pattern:
                     lo = max(0, i - stop_lookback + 1)
                     st["armed"] = True
