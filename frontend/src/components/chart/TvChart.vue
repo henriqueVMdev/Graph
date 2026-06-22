@@ -28,8 +28,6 @@ let candleSeries = null
 let volumeSeries = null
 let maSeries = null
 let maSlowSeries = null
-let winSeries = null
-let lossSeries = null
 let zones = null   // primitive: caixas de risco/retorno por trade
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -144,8 +142,6 @@ async function ensureChart() {
   const lineOpts = { lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }
   maSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.ma })
   maSlowSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.maSlow })
-  winSeries = chart.addLineSeries({ lineWidth: 1, color: 'rgba(38,166,154,0.55)', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
-  lossSeries = chart.addLineSeries({ lineWidth: 1, color: 'rgba(239,83,80,0.55)', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
 
   zones = makeZonesPrimitive()
   candleSeries.attachPrimitive(zones)
@@ -217,19 +213,17 @@ function renderTrades(times) {
   }
   candleSeries.setMarkers(markers)
 
-  // Caixas de risco/retorno (entrada/stop/alvo) + conector entrada→saída
+  // Caixas de risco/retorno (entrada/stop/alvo) por trade
   if (!ov.stops) {
-    winSeries.setData([]); lossSeries.setData([])
     if (zones) { zones.setItems([]); zones.redraw() }
     return
   }
-  const winData = [], lossData = [], zoneItems = []
+  const zoneItems = []
   const withLevels = trades
     .filter(t => t.entry_ts && t.exit_ts && t.stop_price != null && t.target_price != null)
     .sort((a, b) => a.entry_ts - b.entry_ts)
 
-  for (let k = 0; k < withLevels.length; k++) {
-    const tr = withLevels[k]
+  for (const tr of withLevels) {
     const eT = snap(tr.entry_ts), xT = snap(tr.exit_ts)
     if (xT <= eT) continue
     zoneItems.push({
@@ -237,19 +231,7 @@ function renderTrades(times) {
       entry: tr.entry_price, stop: tr.stop_price, target: tr.target_price,
       dir: tr.direction,
     })
-    const conn = (tr.pnl_pct ?? 0) >= 0 ? winData : lossData
-    conn.push({ time: eT, value: tr.entry_price }, { time: xT, value: tr.exit_price })
-
-    const next = withLevels[k + 1]
-    if (next) {
-      const nT = snap(next.entry_ts)
-      const mid = Math.floor((xT + nT) / 2)
-      if (mid > xT && mid < nT) {
-        winData.push({ time: mid }); lossData.push({ time: mid })
-      }
-    }
   }
-  winSeries.setData(winData); lossSeries.setData(lossData)
   if (zones) { zones.setItems(zoneItems); zones.redraw() }
 }
 
