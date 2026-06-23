@@ -200,6 +200,9 @@
         </template>
       </div>
 
+      <!-- ── Horário de Operação ─────────────────────────────────────── -->
+      <HourFilter :params="store.params" />
+
       <!-- ── Walk-Forward Analysis ─────────────────────────────────── -->
       <div class="border-t border-surface-600 pt-3 mt-1">
         <p class="text-xs font-semibold text-gray-300 mb-3">Walk-Forward Analysis</p>
@@ -344,6 +347,7 @@
 import { ref } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import NumInput from '@/components/NumInput.vue'
+import HourFilter from '@/components/HourFilter.vue'
 
 const store = useBacktestStore()
 const selectedCategory = ref('')

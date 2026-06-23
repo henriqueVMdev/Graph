@@ -372,6 +372,10 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
     parcial_frac = float(params.get("parcial_pct", 50.0)) / 100.0
     initial_capital = float(params.get("initial_capital", 1000.0))
 
+    # Filtro de horário (intradiário): só entra nas horas permitidas (UTC).
+    hour_filter = bool(params.get("hour_filter", False))
+    allowed_hours = set(params.get("allowed_hours", []) or [])
+
     o = df["Open"].values
     h = df["High"].values
     l = df["Low"].values
@@ -503,7 +507,9 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
             continue
 
         # ── 1. ENTRADA a partir de setup armado (flat) ──────────────────────
-        if st["position"] == 0 and st["armed"]:
+        _hour_ok = (not hour_filter) or (
+            getattr(idx[i], "hour", 0) in allowed_hours)
+        if st["position"] == 0 and st["armed"] and _hour_ok:
             d = st["armed_dir"]
             bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
             if (d == 1 and bias < 0) or (d == -1 and bias > 0):

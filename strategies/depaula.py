@@ -474,6 +474,8 @@ def run(df, params: dict) -> dict:
         cycle_filter=bool(params.get("cycle_filter", False)),
         cycle_long_months=params.get("cycle_long_months", []),
         cycle_short_months=params.get("cycle_short_months", []),
+        hour_filter=bool(params.get("hour_filter", False)),
+        allowed_hours=params.get("allowed_hours", []),
     )
 
     result = run_backtest(df, cfg)

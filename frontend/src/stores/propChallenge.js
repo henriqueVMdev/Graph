@@ -75,6 +75,8 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     defaults.cycle_filter = false
     defaults.cycle_long_months = [1,2,3,4,5,6,7,8,9,10,11,12]
     defaults.cycle_short_months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    defaults.hour_filter = false
+    defaults.allowed_hours = Array.from({ length: 24 }, (_, i) => i)
     params.value = { ...defaults, ...params.value }
   }
 

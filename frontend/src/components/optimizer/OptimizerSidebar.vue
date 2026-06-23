@@ -208,6 +208,9 @@
       </div>
     </section>
 
+    <!-- Horário de Operação -->
+    <HourFilter :params="btStore.params" />
+
     <!-- Combo count + run -->
     <section>
       <div class="flex items-center justify-between text-gray-400 mb-2">
@@ -266,8 +269,12 @@
 <script setup>
 import { ref, computed, watch, reactive, onMounted } from 'vue'
 import { useOptimizerStore } from '@/stores/optimizer.js'
+import { useBacktestStore } from '@/stores/backtest.js'
+import HourFilter from '@/components/HourFilter.vue'
 
 const store = useOptimizerStore()
+// O otimizador reaproveita btStore.params como config fixa (ver optimizer.js).
+const btStore = useBacktestStore()
 
 // Dropdown state
 const openDropdown = ref(null)

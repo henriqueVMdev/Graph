@@ -122,6 +122,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     defaults.cycle_filter = false
     defaults.cycle_long_months = [1,2,3,4,5,6,7,8,9,10,11,12]
     defaults.cycle_short_months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    // Filtro de horário de operação (intradiário): default todas as 24h liberadas
+    defaults.hour_filter = false
+    defaults.allowed_hours = Array.from({ length: 24 }, (_, i) => i)
     // Mantém valores existentes que coincidem com o schema (evita reset total)
     params.value = { ...defaults, ...params.value }
   }

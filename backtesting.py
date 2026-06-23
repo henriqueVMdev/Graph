@@ -81,6 +81,10 @@ class Config:
     cycle_long_months: list = field(default_factory=list)   # ex: [8,9,10,11,12,1,2]
     cycle_short_months: list = field(default_factory=list)  # ex: [3,4,5,6,7]
 
+    # Filtro de horário (intradiário): só abre posição nas horas permitidas (UTC).
+    hour_filter: bool = False
+    allowed_hours: list = field(default_factory=list)       # ex: [9,10,11,14,15] (0-23)
+
 
 # ==============================
 # 2. INDICADORES (equivale às funções do Pine Script)
@@ -290,6 +294,14 @@ def _cycle_allows(cfg: Config, month: int, direction: int) -> bool:
     return True
 
 
+def _hour_allows(cfg: Config, hour: int) -> bool:
+    """Checa se o filtro de horário permite abrir posição nessa hora (0-23)."""
+    if not cfg.hour_filter:
+        return True
+    # Lista vazia = nenhuma hora liberada (não opera).
+    return hour in cfg.allowed_hours
+
+
 def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     """Executa o backtest barra a barra, replicando a lógica do Pine Script."""
 
@@ -312,6 +324,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
         date = str(df.index[i])
         idx_i = df.index[i]
         bar_month = idx_i.month if hasattr(idx_i, 'month') else 1
+        bar_hour = idx_i.hour if hasattr(idx_i, 'hour') else 0
         # epoch ms da barra (usado para custos/funding)
         try:
             st._ts = int(idx_i.value // 1_000_000)
@@ -466,7 +479,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
         # --- ENTRADAS ---
 
         # A. Entrada de Tendência
-        if not st.aguardando_pullback and (not cfg.use_entry_zone or in_entry_zone):
+        if not st.aguardando_pullback and (not cfg.use_entry_zone or in_entry_zone) and _hour_allows(cfg, bar_hour):
             if st.pending_long and state == 1 and st.position <= 0 and _cycle_allows(cfg, bar_month, 1):
                 if st.position == -1:
                     _close_position(st, date, close, "Reversão S→L")
@@ -479,7 +492,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 st.pending_short = False
 
         # B. Reentrada por Pullback
-        if cfg.use_pullback and st.aguardando_pullback and st.position == 0:
+        if cfg.use_pullback and st.aguardando_pullback and st.position == 0 and _hour_allows(cfg, bar_hour):
             if cfg.use_entry_zone:
                 pb_long = in_entry_zone
                 pb_short = in_entry_zone
