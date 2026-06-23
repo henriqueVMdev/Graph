@@ -12,7 +12,7 @@
 
     <template v-if="params.hour_filter">
       <p class="text-[10px] text-gray-500 mt-2 mb-2">
-        Só abre posição nas horas marcadas (UTC). Vale para timeframes intradiários.
+        Só abre posição nas horas marcadas (horário de Brasília). Vale para timeframes intradiários.
       </p>
 
       <div class="flex gap-2 mb-2">

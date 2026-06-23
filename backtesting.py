@@ -81,9 +81,9 @@ class Config:
     cycle_long_months: list = field(default_factory=list)   # ex: [8,9,10,11,12,1,2]
     cycle_short_months: list = field(default_factory=list)  # ex: [3,4,5,6,7]
 
-    # Filtro de horário (intradiário): só abre posição nas horas permitidas (UTC).
+    # Filtro de horário (intradiário): só abre posição nas horas permitidas (BRT).
     hour_filter: bool = False
-    allowed_hours: list = field(default_factory=list)       # ex: [9,10,11,14,15] (0-23)
+    allowed_hours: list = field(default_factory=list)       # ex: [9,10,11,14,15] (0-23 BRT)
 
 
 # ==============================
@@ -302,6 +302,21 @@ def _hour_allows(cfg: Config, hour: int) -> bool:
     return hour in cfg.allowed_hours
 
 
+def brt_hour(ts) -> int:
+    """Hora do timestamp em horário de Brasília (America/Sao_Paulo).
+
+    Barras tz-aware são convertidas; barras naive são assumidas em UTC (UTC-3).
+    """
+    if not hasattr(ts, "hour"):
+        return 0
+    try:
+        if getattr(ts, "tzinfo", None) is not None:
+            return ts.tz_convert("America/Sao_Paulo").hour
+    except Exception:
+        pass
+    return (ts.hour - 3) % 24
+
+
 def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
     """Executa o backtest barra a barra, replicando a lógica do Pine Script."""
 
@@ -324,7 +339,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
         date = str(df.index[i])
         idx_i = df.index[i]
         bar_month = idx_i.month if hasattr(idx_i, 'month') else 1
-        bar_hour = idx_i.hour if hasattr(idx_i, 'hour') else 0
+        bar_hour = brt_hour(idx_i)  # hora de Brasília (UI usa horário BRT)
         # epoch ms da barra (usado para custos/funding)
         try:
             st._ts = int(idx_i.value // 1_000_000)

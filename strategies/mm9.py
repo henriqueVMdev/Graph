@@ -43,7 +43,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from backtesting import calc_ma, Trade
+from backtesting import calc_ma, Trade, brt_hour
 
 NAME = "MM9 / TrapM — Engolfo + 2 Alvos"
 DESCRIPTION = (
@@ -232,7 +232,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
     armed_validity = int(params.get("armed_validity", 999))
     initial_capital = float(params.get("initial_capital", 1000.0))
 
-    # Filtro de horário opcional (mantido do contrato antigo)
+    # Filtro de horário (intradiário): só entra nas horas permitidas (BRT).
     hour_filter = bool(params.get("hour_filter", False))
     allowed_hours = set(params.get("allowed_hours", []) or [])
 
@@ -357,7 +357,8 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
 
         # ── 1. FILL da ordem armada (flat) — validade de `armed_validity`
         # candles após o gatilho (in_4=2 do TrapM; 93% dos fills em <=2) ────
-        _hour_ok = (not hour_filter) or (getattr(idx[i], "hour", 0) in allowed_hours)
+        # Horário em Brasília (BRT), igual ao filtro da UI.
+        _hour_ok = (not hour_filter) or (brt_hour(idx[i]) in allowed_hours)
         if st["position"] == 0 and st["armed"] \
                 and i - st["armed_bar"] > armed_validity:
             st["armed"] = False
