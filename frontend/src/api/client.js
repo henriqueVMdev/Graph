@@ -180,6 +180,10 @@ export function deleteTrade(id) {
   return api.delete(`/journal/trade/${id}`)
 }
 
+export function syncJournal(payload = {}) {
+  return api.post('/journal/sync', payload, { timeout: 120000 })
+}
+
 // Prop Challenge API
 export function runPropChallenge(payload) {
   return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })

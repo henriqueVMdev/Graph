@@ -40,6 +40,15 @@
 
       <!-- Líquido: fees + funding reais da corretora aplicados ao OOS -->
       <div v-if="store.wfaResults.costs_applied" class="flex flex-wrap items-center gap-3">
+        <!-- Custo total descontado (fees + funding) em destaque -->
+        <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-36 border border-red-500/40">
+          <div class="text-xs text-gray-400 mb-0.5">
+            Custo total descontado
+            <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
+          </div>
+          <div class="text-2xl font-bold text-red-400">-{{ fmtUsd(totalCostSpent) }}</div>
+          <div class="text-[10px] text-gray-600 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
+        </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
           <div class="text-xs text-gray-500 mb-0.5">
             Retorno OOS líquido
@@ -51,7 +60,10 @@
           <div class="text-[10px] text-gray-600 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">Fees totais (OOS)</div>
+          <div class="text-xs text-gray-500 mb-0.5">
+            Fees pagos (OOS)
+            <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
+          </div>
           <div class="text-sm font-semibold text-red-400">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
           <div class="text-[10px] text-gray-600 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
         </div>
@@ -223,6 +235,23 @@ function fmtUsd(v) {
   const n = Number(v)
   return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2)
 }
+
+// ── Custo total (fees - funding recebido) ─────────────────────────────────
+
+// Quanto a estrategia efetivamente gastou: fees pagos menos funding recebido.
+// funding > 0 = recebido (reduz o custo); funding < 0 = pago (aumenta o custo).
+const totalCostSpent = computed(() => {
+  const fees    = store.wfaResults?.total_oos_fees    ?? 0
+  const funding = store.wfaResults?.total_oos_funding ?? 0
+  return fees - funding
+})
+
+// Arrasto no retorno = bruto - liquido (em pontos percentuais).
+const costDragPct = computed(() => {
+  const gross = store.wfaResults?.avg_oos_return     ?? 0
+  const net   = store.wfaResults?.avg_oos_net_return ?? 0
+  return -(gross - net)
+})
 
 // ── WFE badge ─────────────────────────────────────────────────────────────
 

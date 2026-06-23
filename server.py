@@ -2652,6 +2652,8 @@ def _journal_stats(data: dict) -> dict:
     gross_gain = sum(abs(float(t.get("amount", 0))) for t in wins)
     gross_loss = sum(abs(float(t.get("amount", 0))) for t in losses)
     net_pnl = gross_gain - gross_loss
+    # Taxas reais pagas às corretoras (vindas do sync; manuais não têm fee).
+    total_fees = sum(abs(float(t.get("fee", 0) or 0)) for t in trades)
     win_rate = (len(wins) / n * 100) if n else 0.0
     avg_win = (gross_gain / len(wins)) if wins else 0.0
     avg_loss = (gross_loss / len(losses)) if losses else 0.0
@@ -2678,9 +2680,10 @@ def _journal_stats(data: dict) -> dict:
         signed = amt if t.get("result") == "gain" else -amt
         b = by_strat.setdefault(s, {
             "strategy": s, "trades": 0, "wins": 0, "losses": 0,
-            "gross_gain": 0.0, "gross_loss": 0.0, "net": 0.0,
+            "gross_gain": 0.0, "gross_loss": 0.0, "net": 0.0, "fees": 0.0,
         })
         b["trades"] += 1
+        b["fees"] += abs(float(t.get("fee", 0) or 0))
         if t.get("result") == "gain":
             b["wins"] += 1
             b["gross_gain"] += amt
@@ -2693,7 +2696,7 @@ def _journal_stats(data: dict) -> dict:
         pf = (b["gross_gain"] / b["gross_loss"]) if b["gross_loss"] > 0 else (
             float("inf") if b["gross_gain"] > 0 else 0.0)
         b["profit_factor"] = None if pf == float("inf") else round(pf, 2)
-        for k in ("gross_gain", "gross_loss", "net", "win_rate"):
+        for k in ("gross_gain", "gross_loss", "net", "win_rate", "fees"):
             b[k] = round(b[k], 2)
 
     def _r(x):
@@ -2707,6 +2710,8 @@ def _journal_stats(data: dict) -> dict:
         "gross_gain": round(gross_gain, 2),
         "gross_loss": round(gross_loss, 2),
         "net_pnl": round(net_pnl, 2),
+        "total_fees": round(total_fees, 2),
+        "net_after_fees": round(net_pnl - total_fees, 2),
         "avg_win": round(avg_win, 2),
         "avg_loss": round(avg_loss, 2),
         "profit_factor": _r(profit_factor),
@@ -2811,6 +2816,66 @@ def api_journal_delete(trade_id):
         _journal_save(data)
         stats = _journal_stats(data)
     return jsonify({"deleted": trade_id, "stats": stats})
+
+
+@app.route("/api/journal/sync", methods=["POST"])
+def api_journal_sync():
+    """
+    Sincroniza operações e taxas reais das corretoras (BingX, OKX, Hyperliquid)
+    para o journal. Dedup por external_id: trades já importados são atualizados,
+    novos são inseridos. Entradas manuais (sem external_id) são preservadas.
+
+    Body opcional: { "exchanges": ["bingx","okx"], "since_days": 30 }
+    """
+    body = request.get_json(force=True) or {}
+    exchanges = body.get("exchanges")
+    since_days = int(body.get("since_days", 30) or 30)
+
+    try:
+        from exchange_sync import sync_all
+    except Exception as e:
+        return jsonify({"error": f"módulo de sync indisponível: {e}"}), 500
+
+    result = sync_all(exchanges=exchanges, since_days=since_days)
+    imported = result["trades"]
+
+    with _journal_lock:
+        data = _journal_load()
+        existing = data["trades"]
+        by_ext = {t.get("external_id"): t for t in existing if t.get("external_id")}
+        next_id = max((t.get("id", 0) for t in existing), default=0) + 1
+
+        added, updated = 0, 0
+        for it in imported:
+            ext = it["external_id"]
+            if ext in by_ext:
+                # Atualiza campos vindos da corretora, preserva id e notas manuais.
+                tgt = by_ext[ext]
+                notes = tgt.get("notes", "")
+                tgt.update(it)
+                if notes:
+                    tgt["notes"] = notes
+                updated += 1
+            else:
+                it["id"] = next_id
+                next_id += 1
+                existing.append(it)
+                by_ext[ext] = it
+                added += 1
+
+        _journal_save(data)
+        stats = _journal_stats(data)
+        trades = sorted(data["trades"],
+                        key=lambda t: (t.get("date", ""), t.get("id", 0)), reverse=True)
+
+    return jsonify({
+        "added": added,
+        "updated": updated,
+        "by_exchange": result["by_exchange"],
+        "warnings": result["warnings"],
+        "trades": trades,
+        "stats": stats,
+    })
 
 
 if __name__ == "__main__":

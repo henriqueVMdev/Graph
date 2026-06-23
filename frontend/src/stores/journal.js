@@ -6,6 +6,7 @@ import {
   addTrade as apiAddTrade,
   updateTrade as apiUpdateTrade,
   deleteTrade as apiDeleteTrade,
+  syncJournal as apiSyncJournal,
 } from '@/api/client.js'
 
 export const useJournalStore = defineStore('journal', () => {
@@ -14,6 +15,8 @@ export const useJournalStore = defineStore('journal', () => {
   const stats = ref(null)
   const loading = ref(false)
   const saving = ref(false)
+  const syncing = ref(false)
+  const syncResult = ref(null)
   const error = ref(null)
 
   function _apply(data) {
@@ -96,8 +99,31 @@ export const useJournalStore = defineStore('journal', () => {
     }
   }
 
+  async function sync(payload = {}) {
+    syncing.value = true
+    error.value = null
+    syncResult.value = null
+    try {
+      const { data } = await apiSyncJournal(payload)
+      if (data.trades) trades.value = data.trades
+      if (data.stats) stats.value = data.stats
+      syncResult.value = {
+        added: data.added,
+        updated: data.updated,
+        by_exchange: data.by_exchange || {},
+        warnings: data.warnings || [],
+      }
+      return true
+    } catch (e) {
+      error.value = e?.response?.data?.error || e.message
+      return false
+    } finally {
+      syncing.value = false
+    }
+  }
+
   return {
-    trades, capitalInicial, stats, loading, saving, error,
-    load, saveCapital, addTrade, editTrade, removeTrade,
+    trades, capitalInicial, stats, loading, saving, syncing, syncResult, error,
+    load, saveCapital, addTrade, editTrade, removeTrade, sync,
   }
 })

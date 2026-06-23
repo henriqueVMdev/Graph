@@ -8,22 +8,53 @@
           <h1 class="text-xl font-bold text-gray-100 tracking-tight">Diário de Operações</h1>
           <p class="text-sm text-gray-500 mt-0.5">Registre seus trades por estratégia e acompanhe o capital</p>
         </div>
-        <!-- Capital inicial -->
-        <div class="card px-4 py-2.5 flex items-end gap-3">
-          <div>
-            <label class="metric-label block mb-1">Capital inicial</label>
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-500 text-sm">$</span>
-              <input
-                v-model.number="capitalDraft"
-                type="number"
-                step="0.01"
-                class="form-input w-32 font-mono"
-                @keyup.enter="saveCapital"
-              />
+        <div class="flex items-end gap-3">
+          <!-- Sincronizar corretoras -->
+          <button
+            class="btn-primary flex items-center gap-2 whitespace-nowrap"
+            :disabled="store.syncing"
+            @click="syncExchanges"
+            title="Puxa operações e taxas reais da BingX, OKX e Hyperliquid (chaves no .env)"
+          >
+            <svg class="w-4 h-4" :class="store.syncing ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ store.syncing ? 'Sincronizando...' : 'Sincronizar corretoras' }}
+          </button>
+
+          <!-- Capital inicial -->
+          <div class="card px-4 py-2.5 flex items-end gap-3">
+            <div>
+              <label class="metric-label block mb-1">Capital inicial</label>
+              <div class="flex items-center gap-1.5">
+                <span class="text-gray-500 text-sm">$</span>
+                <input
+                  v-model.number="capitalDraft"
+                  type="number"
+                  step="0.01"
+                  class="form-input w-32 font-mono"
+                  @keyup.enter="saveCapital"
+                />
+              </div>
             </div>
+            <button class="btn-secondary" :disabled="store.saving" @click="saveCapital">Salvar</button>
           </div>
-          <button class="btn-secondary" :disabled="store.saving" @click="saveCapital">Salvar</button>
+        </div>
+      </div>
+
+      <!-- Resultado do sync -->
+      <div v-if="store.syncResult" class="card p-3 border-accent-yellow/40 bg-accent-yellow/5 text-sm">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-300">
+          <span class="text-accent-yellow font-semibold">Sincronização concluída</span>
+          <span>{{ store.syncResult.added }} novas · {{ store.syncResult.updated }} atualizadas</span>
+          <span
+            v-for="(count, ex) in store.syncResult.by_exchange"
+            :key="ex"
+            class="text-gray-500 capitalize"
+          >{{ ex }}: <b class="text-gray-300">{{ count }}</b></span>
+        </div>
+        <div v-if="store.syncResult.warnings.length" class="mt-2 space-y-0.5 text-[11px] text-amber-300">
+          <div v-for="(w, i) in store.syncResult.warnings" :key="i">⚠ {{ w }}</div>
         </div>
       </div>
 
@@ -32,7 +63,7 @@
       </div>
 
       <!-- KPIs -->
-      <div v-if="s" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div v-if="s" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
         <div class="metric-card">
           <span class="metric-label">Capital atual</span>
           <span class="metric-value" :class="netClass(s.capital_atual - s.capital_inicial)">
@@ -42,6 +73,10 @@
         <div class="metric-card">
           <span class="metric-label">Resultado líq.</span>
           <span class="metric-value" :class="netClass(s.net_pnl)">{{ moneySigned(s.net_pnl) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Taxas pagas</span>
+          <span class="metric-value text-accent-red-light">−{{ money(s.total_fees) }}</span>
         </div>
         <div class="metric-card">
           <span class="metric-label">ROI</span>
@@ -104,6 +139,7 @@
                 <span>{{ b.trades }} trades</span>
                 <span class="text-accent-yellow/80">{{ b.win_rate.toFixed(0) }}% win</span>
                 <span>PF {{ b.profit_factor == null ? '∞' : b.profit_factor.toFixed(2) }}</span>
+                <span v-if="b.fees" class="text-accent-red-light/80">taxa {{ money(b.fees) }}</span>
               </div>
               <!-- win/loss bar -->
               <div class="mt-1.5 h-1.5 rounded-full overflow-hidden bg-surface-500 flex">
@@ -186,10 +222,11 @@
             <thead>
               <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 border-b border-surface-500">
                 <th class="px-4 py-2 font-medium">Data</th>
-                <th class="px-4 py-2 font-medium">Estratégia</th>
+                <th class="px-4 py-2 font-medium">Origem</th>
                 <th class="px-4 py-2 font-medium">Ativo</th>
                 <th class="px-4 py-2 font-medium">Resultado</th>
                 <th class="px-4 py-2 font-medium text-right">Valor</th>
+                <th class="px-4 py-2 font-medium text-right">Taxa</th>
                 <th class="px-4 py-2 font-medium">Notas</th>
                 <th class="px-4 py-2 font-medium text-right"></th>
               </tr>
@@ -197,7 +234,13 @@
             <tbody>
               <tr v-for="t in store.trades" :key="t.id" class="border-b border-surface-500/60 hover:bg-surface-600/40">
                 <td class="px-4 py-2 font-mono text-gray-400 whitespace-nowrap">{{ t.date || '—' }}</td>
-                <td class="px-4 py-2 text-gray-200">{{ t.strategy }}</td>
+                <td class="px-4 py-2">
+                  <span
+                    v-if="t.source === 'exchange'"
+                    class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-blue-500/15 text-blue-300"
+                  >{{ t.exchange }}</span>
+                  <span v-else class="text-gray-300">{{ t.strategy }}</span>
+                </td>
                 <td class="px-4 py-2 text-gray-400">{{ t.asset || '—' }}</td>
                 <td class="px-4 py-2">
                   <span
@@ -207,6 +250,9 @@
                 </td>
                 <td class="px-4 py-2 text-right font-mono" :class="t.result === 'gain' ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ t.result === 'gain' ? '+' : '−' }}{{ money(t.amount) }}
+                </td>
+                <td class="px-4 py-2 text-right font-mono text-gray-500">
+                  {{ t.fee ? '−' + money(t.fee) : '—' }}
                 </td>
                 <td class="px-4 py-2 text-gray-500 max-w-xs truncate">{{ t.notes || '—' }}</td>
                 <td class="px-4 py-2 text-right">
@@ -277,6 +323,10 @@ function winPct(b) {
 
 async function saveCapital() {
   await store.saveCapital(capitalDraft.value)
+}
+
+async function syncExchanges() {
+  await store.sync({ since_days: 30 })
 }
 
 async function submit() {
