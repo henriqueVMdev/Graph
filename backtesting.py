@@ -397,8 +397,9 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestState:
                 elif cfg.stop_type == "Banda Stop":
                     sl_price = stop_lower if st.position == 1 else stop_upper
 
-            # Preço de liquidação: perda adversa >= 1/alavancagem zera a margem.
-            # Aproximação sem margem de manutenção (conservadora p/ o lado do trader).
+            # Preço de FALÊNCIA: perda adversa >= 1/alavancagem zera a margem.
+            # Sem margem de manutenção nem fees: a liquidação real de uma exchange
+            # ocorre um pouco ANTES disso, então esta aproximação é levemente otimista.
             liq_price = None
             if st.leverage and st.leverage > 1.0:
                 if st.position == 1:

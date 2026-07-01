@@ -48,6 +48,13 @@ def compute_metrics(pnls, exit_times_ms, initial_capital, entry_times_ms=None):
         equity.append(equity[-1] + p)
     eq = np.array(equity, dtype=float)
 
+    # Insolvência: ninguém perde mais que o capital. Quando o equity zera
+    # (conta liquidada), trava em 0 — o trade que estoura rende exatamente -100%
+    # e os subsequentes não contam. Evita perdas >100% e Sharpe/DD distorcidos.
+    ruin = np.where(eq <= 0)[0]
+    if len(ruin):
+        eq[ruin[0]:] = 0.0
+
     # Span de calendário (ms) -> trades por ano e fator de anualização
     t_start = entry_times_ms[0] if entry_times_ms else exit_times_ms[0]
     t_end = exit_times_ms[-1]
