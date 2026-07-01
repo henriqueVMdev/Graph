@@ -61,6 +61,32 @@
           </div>
         </div>
 
+        <!-- Custos da corretora aplicados (fees + funding) -->
+        <div v-if="store.results.costs?.applied" class="card p-3 border-accent-yellow/30">
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span class="text-gray-300">
+              Líquido de custos ·
+              <span class="capitalize text-accent-yellow">{{ store.results.costs.exchange }}</span>
+              · {{ store.results.costs.scenario }}
+              <span class="text-gray-600">({{ store.results.costs.use_funding ? 'fees + funding' : 'só fees' }})</span>
+            </span>
+            <div class="flex flex-wrap items-center gap-4 font-mono">
+              <span class="text-gray-400">PnL/trade:
+                <span :class="store.results.costs.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_gross_pnl }}%</span>
+                <span class="text-gray-600">→</span>
+                <span :class="store.results.costs.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_net_pnl }}%</span>
+              </span>
+              <span class="text-gray-400">Fees: <span class="text-red-400">-${{ store.results.costs.total_fees.toLocaleString() }}</span></span>
+              <span class="text-gray-400">Funding:
+                <span :class="store.results.costs.total_funding >= 0 ? 'text-green-400' : 'text-red-400'">${{ store.results.costs.total_funding.toLocaleString() }}</span>
+              </span>
+            </div>
+          </div>
+          <div v-if="store.results.costs.warnings?.length" class="mt-2 text-[11px] text-amber-300">
+            <div v-for="(w, i) in store.results.costs.warnings" :key="i">⚠ {{ w }}</div>
+          </div>
+        </div>
+
         <!-- Probabilidade geral -->
         <div class="card p-6 text-center border-accent-yellow/30">
           <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">Probabilidade de Aprovacao</p>
@@ -207,15 +233,26 @@
           <div ref="phase2ChartEl" class="w-full" style="height: 350px" />
         </div>
       </template>
+
+      <!-- Forward Testing (Walk-Forward Analysis) -->
+      <div v-if="store.wfaResults || store.wfaLoading || store.wfaError" class="card p-4">
+        <h2 class="text-sm font-semibold text-gray-200 mb-3">
+          <span class="text-accent-yellow">◆</span> Forward Testing (Walk-Forward Analysis)
+        </h2>
+        <WalkForwardSection :store="store" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
-import Plotly from 'plotly.js-dist-min'
+import { getPlotly } from '@/composables/plotly.js'
+
+let Plotly = null
 import { usePropChallengeStore } from '@/stores/propChallenge.js'
 import PropChallengeSidebar from '@/components/propchallenge/PropChallengeSidebar.vue'
+import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 
 const store = usePropChallengeStore()
 const sidebarOpen = ref(true)
@@ -269,8 +306,9 @@ const plotConfig = {
   displayModeBar: false,
 }
 
-function drawChart(el, curves, accountSize, targetPct) {
+async function drawChart(el, curves, accountSize, targetPct) {
   if (!el || !curves.length) return
+  if (!Plotly) Plotly = await getPlotly()
   const traces = []
 
   // Curvas individuais

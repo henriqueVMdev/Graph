@@ -4,6 +4,8 @@ import BacktestView from '@/views/BacktestView.vue'
 import OptimizerView from '@/views/OptimizerView.vue'
 import PropChallengeView from '@/views/PropChallengeView.vue'
 import RegimeView from '@/views/RegimeView.vue'
+import JournalView from '@/views/JournalView.vue'
+import ChartView from '@/views/ChartView.vue'
 
 const routes = [
   {
@@ -21,6 +23,11 @@ const routes = [
     component: BacktestView,
   },
   {
+    path: '/grafico',
+    name: 'grafico',
+    component: ChartView,
+  },
+  {
     path: '/optimizer',
     name: 'optimizer',
     component: OptimizerView,
@@ -34,6 +41,11 @@ const routes = [
     path: '/regime',
     name: 'regime',
     component: RegimeView,
+  },
+  {
+    path: '/journal',
+    name: 'journal',
+    component: JournalView,
   },
 ]
 

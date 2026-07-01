@@ -92,6 +92,10 @@ export function runCosts(payload) {
   return api.post('/backtest/costs', payload, { timeout: 180000 })
 }
 
+export function getChartData(payload) {
+  return api.post('/backtest/chart-data', payload, { timeout: 180000 })
+}
+
 // Optimizer API
 export function getOptimizerGrids(strategyFile = 'depaula') {
   return api.get('/optimizer/grids', { params: { strategy: strategyFile } })
@@ -152,6 +156,32 @@ export function detectRegimeCsv(file, params = {}) {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 180000,
   })
+}
+
+// ─── Trade Journal API ────────────────────────────────────────────────────────
+
+export function getJournal() {
+  return api.get('/journal')
+}
+
+export function setJournalCapital(capitalInicial) {
+  return api.post('/journal/capital', { capital_inicial: capitalInicial })
+}
+
+export function addTrade(trade) {
+  return api.post('/journal/trade', trade)
+}
+
+export function updateTrade(id, patch) {
+  return api.put(`/journal/trade/${id}`, patch)
+}
+
+export function deleteTrade(id) {
+  return api.delete(`/journal/trade/${id}`)
+}
+
+export function syncJournal(payload = {}) {
+  return api.post('/journal/sync', payload, { timeout: 120000 })
 }
 
 // Prop Challenge API

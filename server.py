@@ -48,8 +48,25 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
 
 
-def _download_data_safe(symbol: str, interval: str) -> pd.DataFrame:
-    """Versão segura de download_data — nunca chama sys.exit."""
+def _download_data_safe(symbol: str, interval: str, exchange: str | None = None) -> pd.DataFrame:
+    """Versão segura de download_data — nunca chama sys.exit.
+
+    Se `exchange` for uma exchange cripto suportada (binance/bybit/okx/
+    hyperliquid), busca candles via CCXT (dados públicos, read-only). Caso
+    contrário, usa yfinance como antes. O DataFrame de saída tem o mesmo
+    formato nos dois caminhos: colunas Open/High/Low/Close/Volume e índice
+    DatetimeIndex (UTC, tz-naive).
+    """
+    if exchange:
+        from market_data import SUPPORTED_EXCHANGES, fetch_ohlcv
+        if exchange.lower() in SUPPORTED_EXCHANGES:
+            # total alto p/ histórico de backtest; a exchange devolve o que tiver.
+            return fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=5000)
+        raise ValueError(
+            f"exchange '{exchange}' não suportada. "
+            f"Opções: {', '.join(SUPPORTED_EXCHANGES)}"
+        )
+
     try:
         import yfinance as yf
     except ImportError:
@@ -710,6 +727,18 @@ def api_backtest_assets():
     return jsonify({"assets": ASSETS})
 
 
+@app.route("/api/backtest/exchanges", methods=["GET"])
+def api_backtest_exchanges():
+    """Exchanges cripto suportadas via CCXT (dados públicos OHLCV).
+
+    Quando o frontend manda `exchange` no /api/backtest/run (e afins), os
+    candles vêm da exchange escolhida em vez do yfinance. `symbol` pode ser só
+    a base (ex.: 'BTC') — é normalizado pro perp da exchange automaticamente.
+    """
+    from market_data import SUPPORTED_EXCHANGES
+    return jsonify({"exchanges": list(SUPPORTED_EXCHANGES)})
+
+
 @app.route("/api/backtest/strategies", methods=["GET"])
 def api_backtest_strategies():
     """Lista todos os módulos de estratégia disponíveis em strategies/."""
@@ -783,11 +812,12 @@ def api_backtest_run():
             symbol_label = body.get("symbol_label", "")
             interval_label = body.get("interval", "1d")
             symbol = body.get("symbol", "")
+            exchange = body.get("exchange")
 
             if not symbol:
                 return jsonify({"error": "symbol obrigatório"}), 400
 
-            df_data = _download_data_safe(symbol, interval_label)
+            df_data = _download_data_safe(symbol, interval_label, exchange)
             if symbol_label == "":
                 symbol_label = symbol
 
@@ -800,6 +830,117 @@ def api_backtest_run():
             "interval": interval_label,
             "strategy": strategy_file,
             **result_dict,
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
+@app.route("/api/backtest/chart-data", methods=["POST"])
+def api_backtest_chart_data():
+    """Dados para os gráficos de análise (Plotly) de um backtest.
+
+    Roda a estratégia (com `_charts`) e devolve, para o mesmo símbolo/intervalo:
+      - candles   : OHLCV (do próprio backtest)
+      - indicators: MA / banda superior / banda inferior
+      - trades    : marcadores de entrada/saída (long/short)
+      - equity    : curva bruta vs líquida (descontando fees + funding reais)
+      - funding   : histórico de funding rate da corretora escolhida
+
+    Body: igual ao /api/backtest/run + cost_exchange/cost_scenario/use_funding/
+    cost_symbol (opcionais; default = exchange dos dados ou 'binance').
+    """
+    try:
+        body = request.get_json(force=True) or {}
+        cfg_dict = dict(body.get("config", {}))
+        strategy_file = body.get("strategy_file", "depaula") or "depaula"
+        interval_label = body.get("interval", "1d")
+        symbol = body.get("symbol", "")
+        exchange = body.get("exchange")
+
+        if not symbol:
+            return jsonify({"error": "symbol obrigatório"}), 400
+
+        df_data = _download_data_safe(symbol, interval_label, exchange)
+        module = _load_strategy(strategy_file)
+        result = module.run(df_data.copy(), {**cfg_dict, "_charts": True})
+
+        chart = result.get("chart") or {}
+        raw_trades = result.get("trades", [])
+
+        # Marcadores de trade (long/short) com data/preço de entrada e saída.
+        markers = []
+        for t in raw_trades:
+            if t.get("entry_ts") and t.get("entry_price") is not None:
+                markers.append({
+                    "entry_ts":    t.get("entry_ts"),
+                    "exit_ts":     t.get("exit_ts"),
+                    "entry_price": t.get("entry_price"),
+                    "exit_price":  t.get("exit_price"),
+                    "direction":   t.get("direction", 1),
+                    "pnl_pct":     t.get("pnl_pct"),
+                    "stop_price":   t.get("stop_price"),
+                    "target_price": t.get("target_price"),
+                })
+
+        # Contexto de custos: força apply_costs p/ sempre montar funding + líquido.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(
+            df_data, {**body, "apply_costs": body.get("apply_costs", True)}, cfg_dict
+        )
+
+        # Curva de equity bruta (por barra) + líquida (bruta − custo acumulado).
+        eq_dates = result.get("equity_curve", {}).get("dates", [])
+        eq_gross = result.get("equity_curve", {}).get("values", [])
+        eq_net   = None
+        funding  = {"dates": [], "rates": []}
+
+        if cost_ctx is not None:
+            from costs import trades_from_platform
+            calc = cost_ctx["calc"]
+            funding_events = cost_ctx["funding_events"]
+
+            # Custo absoluto por trade (positivo), associado ao timestamp de saída.
+            costs_by_exit = []
+            for ct in trades_from_platform(raw_trades):
+                bd = calc.apply_trade(ct, funding_events)
+                costs_by_exit.append((ct.exit_time, float(bd.pnl_bruto - bd.pnl_liquido)))
+            costs_by_exit.sort(key=lambda x: x[0])
+
+            # Alinha custo acumulado às barras pelo timestamp completo do chart.
+            bar_ts = []
+            for d in (chart.get("dates") or []):
+                try:
+                    bar_ts.append(int(pd.Timestamp(d).value // 1_000_000))
+                except Exception:
+                    bar_ts.append(None)
+
+            if bar_ts and len(bar_ts) == len(eq_gross):
+                eq_net = []
+                ci, running = 0, 0.0
+                for i, bts in enumerate(bar_ts):
+                    while ci < len(costs_by_exit) and bts is not None and costs_by_exit[ci][0] <= bts:
+                        running += costs_by_exit[ci][1]
+                        ci += 1
+                    g = eq_gross[i]
+                    eq_net.append(_safe(g - running) if g is not None else None)
+
+            funding = {
+                "dates": [pd.Timestamp(ev.timestamp, unit="ms").isoformat() for ev in funding_events],
+                "rates": [float(ev.rate) for ev in funding_events],
+            }
+
+        return jsonify({
+            "symbol":     body.get("symbol_label") or symbol,
+            "interval":   interval_label,
+            "candles":    {"dates": chart.get("dates", []), **(chart.get("ohlc") or {})},
+            "indicators": chart.get("indicators", {}),
+            "trades":     markers,
+            "equity":     {"dates": eq_dates, "gross": eq_gross, "net": eq_net},
+            "funding":    funding,
+            "cost_exchange": cost_ctx["exchange"] if cost_ctx else None,
+            "cost_scenario": cost_ctx["scenario"] if cost_ctx else None,
+            "cost_warnings": cost_warnings,
         })
 
     except Exception as e:
@@ -928,9 +1069,161 @@ _BARS_PER_YEAR = {
 }
 
 
-def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
+def _build_wfa_cost_ctx(df, body, cfg_dict):
+    """Monta o contexto de custos (fees + funding) para a WFA, ou (None, []).
+
+    Quando `apply_costs` está ligado, instancia o CostCalculator da exchange
+    escolhida (taxas reais por tier + cenário) e baixa o funding histórico UMA
+    vez para todo o range do DataFrame (reaproveitado em todas as janelas).
+    O funding é opcional: se a exchange estiver indisponível, cai para só-fees
+    e registra um aviso. Retorna (ctx_dict | None, lista_de_avisos).
+    """
+    if not body.get("apply_costs"):
+        return None, []
+
+    from decimal import Decimal as _Dec
+    from costs.calculator import CostCalculator
+    from costs.config import DEFAULT_FEES, SCENARIOS, ExchangeFees
+    from costs.funding import get_funding_events
+    from market_data import normalize_symbol
+
+    cost_exchange = (body.get("cost_exchange") or body.get("exchange") or "binance").lower()
+    if cost_exchange not in DEFAULT_FEES:
+        cost_exchange = "binance"
+    scenario = body.get("cost_scenario") or "realista"
+    if scenario not in SCENARIOS:
+        scenario = "realista"
+    use_funding = bool(body.get("use_funding", True))
+    initial_capital = float(
+        body.get("initial_capital")
+        or cfg_dict.get("initial_capital")
+        or 1000.0
+    )
+
+    # Taxa base do tier + override opcional vindo do frontend.
+    fees = DEFAULT_FEES[cost_exchange]
+    fo = (body.get("fees") or {}).get(cost_exchange)
+    if fo and "maker" in fo and "taker" in fo:
+        fees = ExchangeFees(maker=_Dec(str(fo["maker"])), taker=_Dec(str(fo["taker"])))
+
+    sc = SCENARIOS[scenario]
+    calc = CostCalculator(
+        exchange=cost_exchange, fees=fees,
+        use_maker_entry=False, use_maker_exit=False,   # taker nas duas pontas
+        funding_multiplier=sc["funding_multiplier"],
+        slippage_pct=sc["slippage_pct"],
+    )
+
+    warnings = []
+    funding_events = []
+    if use_funding:
+        sym = normalize_symbol(body.get("cost_symbol") or body.get("symbol") or "BTC", cost_exchange)
+        since_ms = int(df.index[0].value // 1_000_000)
+        until_ms = int(df.index[-1].value // 1_000_000)
+        try:
+            funding_events = get_funding_events(cost_exchange, sym, since_ms, until_ms)
+        except Exception as ex:
+            warnings.append(f"{cost_exchange}: funding indisponível ({ex}). Aplicando só fees.")
+            funding_events = []
+
+    ctx = {
+        "calc":            calc,
+        "funding_events":  funding_events,
+        "initial_capital": initial_capital,
+        "exchange":        cost_exchange,
+        "scenario":        scenario,
+        "use_funding":     use_funding,
+    }
+    return ctx, warnings
+
+
+def _net_metrics_from_result(result, cost_ctx, base_return_pct):
+    """Aplica fees + funding aos trades de uma janela e devolve métricas líquidas.
+
+    `base_return_pct` é o retorno bruto que a própria plataforma reportou
+    (metrics.total_return); subtraímos dele o arrasto de custo (fees+funding
+    sobre o notional) para obter o retorno líquido — mantendo a base consistente
+    com o resto da WFA em vez de recomputar o retorno por outro caminho.
+    """
+    from costs import trades_from_platform
+
+    trades = trades_from_platform(result.get("trades", []))
+    if not trades:
+        return {
+            "net_return_pct": None, "net_sharpe": None,
+            "fees_total": 0.0, "funding_total": 0.0, "cost_drag_pct": 0.0,
+        }
+
+    res = cost_ctx["calc"].apply(
+        trades, cost_ctx["funding_events"],
+        initial_capital=cost_ctx["initial_capital"],
+    )
+    ic = cost_ctx["initial_capital"] or 1.0
+    cost_drag_pct = float(res.pnl_liquido_total - res.pnl_bruto_total) / ic * 100.0
+    return {
+        "net_return_pct": _safe(float(base_return_pct or 0.0) + cost_drag_pct),
+        "net_sharpe":     _safe(res.metrics_net.get("sharpe")),
+        "fees_total":     _safe(float(res.fees_total)),
+        "funding_total":  _safe(float(res.funding_total)),
+        "cost_drag_pct":  _safe(cost_drag_pct),
+    }
+
+
+def _net_pnl_pcts(raw_trades, cost_ctx):
+    """Converte o pool de pnl_pct (bruto, % do equity) em pnl_pct líquido,
+    descontando fees + funding reais da corretora trade a trade.
+
+    O `pnl_pct` da plataforma é o retorno do trade sobre o equity no momento da
+    entrada (já escalado pela exposição/alavancagem). Para descontar o custo na
+    mesma base, reconstruímos o equity de entrada compondo o pnl_pct bruto a
+    partir do capital inicial (mesma trajetória do backtest) e dividimos o custo
+    absoluto do trade por esse equity. Trades sem dados para custear passam
+    intactos. Retorna dict com o pool líquido e os totais de fees/funding.
+    """
+    from costs import trades_from_platform
+
+    calc = cost_ctx["calc"]
+    funding_events = cost_ctx["funding_events"]
+    equity = cost_ctx["initial_capital"] or 1.0
+
+    net_pcts = []
+    total_fees = 0.0
+    total_funding = 0.0
+    n_costed = 0
+
+    for t in raw_trades:
+        g = t.get("pnl_pct")
+        if g is None:
+            continue
+        g = float(g)
+        eq_entry = equity if equity else 1.0
+        one = trades_from_platform([t])
+        if one:
+            bd = calc.apply_trade(one[0], funding_events)
+            cost_abs = float(bd.pnl_liquido - bd.pnl_bruto)   # ≤ 0 (fees) ± funding
+            net_pcts.append(g + cost_abs / eq_entry * 100.0)
+            total_fees += float(bd.fee_entrada + bd.fee_saida)
+            total_funding += float(bd.funding_total)
+            n_costed += 1
+        else:
+            net_pcts.append(g)
+        equity *= (1 + g / 100.0)   # compõe com o bruto: mesma trajetória do backtest
+
+    return {
+        "net_pcts": net_pcts,
+        "total_fees": total_fees,
+        "total_funding": total_funding,
+        "n_costed": n_costed,
+    }
+
+
+def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d', cost_ctx=None):
     """Roda a estrategia em um slice do DataFrame e retorna metricas WFA.
     Retorna None se o slice for pequeno demais ou nao gerar trades suficientes.
+
+    Se `cost_ctx` for dado, anexa metricas liquidas (fees + funding reais da
+    exchange) ao dicionario retornado: net_return_pct, net_sharpe, fees_total,
+    funding_total, cost_drag_pct.
     """
     if len(df_slice) < 20:
         return None
@@ -958,7 +1251,7 @@ def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
         if len(rets) > 1 and std > 0:
             sharpe = float(rets.mean() / std * np.sqrt(ann_factor))
 
-    return {
+    out = {
         "return_pct":    _safe(float(metrics.get("total_return", 0.0))),
         "sharpe":        _safe(sharpe),
         "n_trades":      n_trades,
@@ -966,6 +1259,13 @@ def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d'):
         "equity_values": [_safe(float(v)) for v in eq_values],
         "equity_dates":  eq_dates,
     }
+
+    if cost_ctx is not None:
+        out.update(_net_metrics_from_result(
+            result, cost_ctx, metrics.get("total_return", 0.0)
+        ))
+
+    return out
 
 
 @app.route("/api/backtest/wfa", methods=["POST"])
@@ -987,7 +1287,7 @@ def api_backtest_wfa():
         if not symbol:
             return jsonify({"error": "symbol obrigatorio para WFA"}), 400
 
-        df = _download_data_safe(symbol, interval)
+        df = _download_data_safe(symbol, interval, body.get("exchange"))
         total_bars = len(df)
 
         if total_bars < n_windows * 20:
@@ -1000,6 +1300,10 @@ def api_backtest_wfa():
         param_specs, numeric_keys = (
             _extract_param_specs(module) if optimize_is_samples > 0 else ({}, [])
         )
+
+        # Contexto de custos (fees + funding reais da exchange). Funding baixado
+        # uma vez para todo o range e reusado em cada janela.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(df, body, cfg_dict)
 
         step_size = total_bars // n_windows
         is_bars   = int(step_size * is_pct)
@@ -1035,8 +1339,8 @@ def api_backtest_wfa():
             else:
                 window_cfg = dict(cfg_dict)
 
-            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval)
-            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval)
+            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval, cost_ctx)
+            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval, cost_ctx)
 
             if is_m is None or oos_m is None:
                 continue
@@ -1066,6 +1370,12 @@ def api_backtest_wfa():
                 "is_dates":         is_m["equity_dates"],
                 "oos_dates":        oos_m["equity_dates"],
                 "optimal_params":   {k: window_cfg.get(k) for k in numeric_keys} if numeric_keys else None,
+                # Líquido (fees + funding reais da exchange); None quando custos off.
+                "is_net_return":    is_m.get("net_return_pct"),
+                "oos_net_return":   oos_m.get("net_return_pct"),
+                "oos_net_sharpe":   oos_m.get("net_sharpe"),
+                "oos_fees":         oos_m.get("fees_total"),
+                "oos_funding":      oos_m.get("funding_total"),
             })
 
         if not windows:
@@ -1113,7 +1423,7 @@ def api_backtest_wfa():
         avg_oos_return = float(np.mean([w["oos_return"] for w in windows if w["oos_return"] is not None]))
         avg_is_return  = float(np.mean([w["is_return"]  for w in windows if w["is_return"]  is not None]))
 
-        return jsonify({
+        resp = {
             "windows":              windows,
             "oos_equity_curve":     {"dates": oos_dates_all, "values": oos_values_all},
             "wfe":                  _safe(wfe),
@@ -1123,7 +1433,22 @@ def api_backtest_wfa():
             "avg_is_return":        _safe(avg_is_return),
             "n_valid_windows":      len(windows),
             "param_keys":           numeric_keys,
-        })
+            "costs_applied":        cost_ctx is not None,
+            "cost_warnings":        cost_warnings,
+        }
+
+        if cost_ctx is not None:
+            net_oos = [w["oos_net_return"] for w in windows if w["oos_net_return"] is not None]
+            resp.update({
+                "cost_exchange":       cost_ctx["exchange"],
+                "cost_scenario":       cost_ctx["scenario"],
+                "cost_use_funding":    cost_ctx["use_funding"],
+                "avg_oos_net_return":  _safe(float(np.mean(net_oos)) if net_oos else 0.0),
+                "total_oos_fees":      _safe(float(sum(w["oos_fees"]    or 0.0 for w in windows))),
+                "total_oos_funding":   _safe(float(sum(w["oos_funding"] or 0.0 for w in windows))),
+            })
+
+        return jsonify(resp)
 
     except Exception as e:
         import traceback
@@ -1872,7 +2197,7 @@ def api_optimizer_run():
         if body.get("cycle_short_months"):
             fixed_params["cycle_short_months"] = body["cycle_short_months"]
 
-        df_data = _download_data_safe(symbol, interval)
+        df_data = _download_data_safe(symbol, interval, body.get("exchange"))
 
         # Filtra por data se o usuario definiu start/end
         sd = body.get("start_date")
@@ -2030,7 +2355,7 @@ def api_prop_challenge_simulate():
         # Forca initial_capital = account_size para o backtest
         cfg_dict["initial_capital"] = account_size
 
-        df_data = _download_data_safe(symbol, interval_label)
+        df_data = _download_data_safe(symbol, interval_label, body.get("exchange"))
         module = _load_strategy(strategy_file)
         result_dict = module.run(df_data.copy(), cfg_dict)
 
@@ -2041,6 +2366,27 @@ def api_prop_challenge_simulate():
         pnl_pcts = [float(t["pnl_pct"]) for t in trades if t.get("pnl_pct") is not None]
         if len(pnl_pcts) < 5:
             return jsonify({"error": "Poucos trades validos para simular (minimo 5)"}), 400
+
+        # Custos reais da corretora (fees + funding) descontados de cada trade.
+        # Quando ligado, o Monte Carlo reamostra o pool LÍQUIDO em vez do bruto.
+        cost_ctx, cost_warnings = _build_wfa_cost_ctx(df_data, body, cfg_dict)
+        cost_summary = None
+        pool = pnl_pcts
+        if cost_ctx is not None:
+            net = _net_pnl_pcts(trades, cost_ctx)
+            if net["net_pcts"]:
+                pool = net["net_pcts"]
+            cost_summary = {
+                "applied": True,
+                "exchange": cost_ctx["exchange"],
+                "scenario": cost_ctx["scenario"],
+                "use_funding": cost_ctx["use_funding"],
+                "total_fees": round(net["total_fees"], 2),
+                "total_funding": round(net["total_funding"], 2),
+                "avg_gross_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_net_pnl": round(float(np.mean(pool)), 4),
+                "warnings": cost_warnings,
+            }
 
         rng = np.random.default_rng()  # semente aleatoria — cada execucao produz resultado diferente
 
@@ -2091,7 +2437,7 @@ def api_prop_challenge_simulate():
         for i in range(num_sims):
             # Fase 1
             p1_passed, p1_balance, p1_curve = simulate_phase(
-                pnl_pcts, phase1_target, account_size
+                pool, phase1_target, account_size
             )
             phase1_results.append({
                 "passed": p1_passed,
@@ -2104,7 +2450,7 @@ def api_prop_challenge_simulate():
                 phase1_pass += 1
                 # Fase 2: comeca com o saldo da conta original (reseta)
                 p2_passed, p2_balance, p2_curve = simulate_phase(
-                    pnl_pcts, phase2_target, account_size
+                    pool, phase2_target, account_size
                 )
                 phase2_results.append({
                     "passed": p2_passed,
@@ -2122,10 +2468,10 @@ def api_prop_challenge_simulate():
             if p1_passed and len(phase2_curves) < 50:
                 phase2_curves.append([round(v, 2) for v in p2_curve])
 
-        # Estatisticas dos trades originais
-        wins = [p for p in pnl_pcts if p > 0]
-        losses = [p for p in pnl_pcts if p <= 0]
-        win_rate = len(wins) / len(pnl_pcts) * 100 if pnl_pcts else 0
+        # Estatisticas dos trades efetivamente simulados (liquido quando custos on)
+        wins = [p for p in pool if p > 0]
+        losses = [p for p in pool if p <= 0]
+        win_rate = len(wins) / len(pool) * 100 if pool else 0
         avg_win = float(np.mean(wins)) if wins else 0
         avg_loss = float(np.mean(losses)) if losses else 0
 
@@ -2173,13 +2519,14 @@ def api_prop_challenge_simulate():
             "interval": interval_label,
             "strategy": strategy_file,
             "trade_stats": {
-                "total": len(pnl_pcts),
+                "total": len(pool),
                 "win_rate": round(win_rate, 2),
                 "avg_win": round(avg_win, 2),
                 "avg_loss": round(avg_loss, 2),
-                "avg_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_pnl": round(float(np.mean(pool)), 4),
                 "avg_days_between_trades": round(avg_days_between_trades, 1) if avg_days_between_trades else None,
             },
+            "costs": cost_summary,
             "phase1": {
                 "target_pct": phase1_target * 100,
                 "max_loss_pct": abs(max_loss) * 100,
@@ -2243,7 +2590,7 @@ def regime_detect():
                 interval = body.get("interval", "1d")
                 if not symbol:
                     return jsonify({"error": "Simbolo nao informado"}), 400
-                df = _download_data_safe(symbol, interval)
+                df = _download_data_safe(symbol, interval, body.get("exchange"))
             else:
                 return jsonify({"error": "Fonte de dados invalida"}), 400
 
@@ -2265,6 +2612,270 @@ def regime_detect():
     except Exception as e:
         import traceback
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Trade Journal — registro manual de operações por estratégia
+# ─────────────────────────────────────────────────────────────────────────────
+
+JOURNAL_FILE = Path(__file__).parent / "journal_data.json"
+_journal_lock = threading.Lock()
+
+
+def _journal_load() -> dict:
+    """Lê o journal do disco. Estrutura: {capital_inicial, trades:[...]}."""
+    if not JOURNAL_FILE.exists():
+        return {"capital_inicial": 0.0, "trades": []}
+    try:
+        with open(JOURNAL_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data.setdefault("capital_inicial", 0.0)
+        data.setdefault("trades", [])
+        return data
+    except Exception:
+        return {"capital_inicial": 0.0, "trades": []}
+
+
+def _journal_save(data: dict) -> None:
+    with open(JOURNAL_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _journal_stats(data: dict) -> dict:
+    """Calcula métricas agregadas e por estratégia a partir dos trades."""
+    trades = data.get("trades", [])
+    capital_inicial = float(data.get("capital_inicial", 0.0) or 0.0)
+
+    n = len(trades)
+    wins = [t for t in trades if t.get("result") == "gain"]
+    losses = [t for t in trades if t.get("result") == "loss"]
+    gross_gain = sum(abs(float(t.get("amount", 0))) for t in wins)
+    gross_loss = sum(abs(float(t.get("amount", 0))) for t in losses)
+    net_pnl = gross_gain - gross_loss
+    # Taxas reais pagas às corretoras (vindas do sync; manuais não têm fee).
+    total_fees = sum(abs(float(t.get("fee", 0) or 0)) for t in trades)
+    win_rate = (len(wins) / n * 100) if n else 0.0
+    avg_win = (gross_gain / len(wins)) if wins else 0.0
+    avg_loss = (gross_loss / len(losses)) if losses else 0.0
+    profit_factor = (gross_gain / gross_loss) if gross_loss > 0 else (
+        float("inf") if gross_gain > 0 else 0.0)
+    expectancy = (net_pnl / n) if n else 0.0
+    capital_atual = capital_inicial + net_pnl
+    roi = (net_pnl / capital_inicial * 100) if capital_inicial > 0 else 0.0
+
+    # Curva de capital ordenada por data (id como desempate)
+    ordered = sorted(trades, key=lambda t: (t.get("date", ""), t.get("id", 0)))
+    equity = []
+    running = capital_inicial
+    for t in ordered:
+        amt = abs(float(t.get("amount", 0)))
+        running += amt if t.get("result") == "gain" else -amt
+        equity.append({"date": t.get("date", ""), "capital": round(running, 2)})
+
+    # Agregado por estratégia
+    by_strat: dict = {}
+    for t in trades:
+        s = t.get("strategy", "—") or "—"
+        amt = abs(float(t.get("amount", 0)))
+        signed = amt if t.get("result") == "gain" else -amt
+        b = by_strat.setdefault(s, {
+            "strategy": s, "trades": 0, "wins": 0, "losses": 0,
+            "gross_gain": 0.0, "gross_loss": 0.0, "net": 0.0, "fees": 0.0,
+        })
+        b["trades"] += 1
+        b["fees"] += abs(float(t.get("fee", 0) or 0))
+        if t.get("result") == "gain":
+            b["wins"] += 1
+            b["gross_gain"] += amt
+        else:
+            b["losses"] += 1
+            b["gross_loss"] += amt
+        b["net"] += signed
+    for b in by_strat.values():
+        b["win_rate"] = (b["wins"] / b["trades"] * 100) if b["trades"] else 0.0
+        pf = (b["gross_gain"] / b["gross_loss"]) if b["gross_loss"] > 0 else (
+            float("inf") if b["gross_gain"] > 0 else 0.0)
+        b["profit_factor"] = None if pf == float("inf") else round(pf, 2)
+        for k in ("gross_gain", "gross_loss", "net", "win_rate", "fees"):
+            b[k] = round(b[k], 2)
+
+    def _r(x):
+        return None if x == float("inf") else round(x, 2)
+
+    return {
+        "total_trades": n,
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": round(win_rate, 2),
+        "gross_gain": round(gross_gain, 2),
+        "gross_loss": round(gross_loss, 2),
+        "net_pnl": round(net_pnl, 2),
+        "total_fees": round(total_fees, 2),
+        "net_after_fees": round(net_pnl - total_fees, 2),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "profit_factor": _r(profit_factor),
+        "expectancy": round(expectancy, 2),
+        "capital_inicial": round(capital_inicial, 2),
+        "capital_atual": round(capital_atual, 2),
+        "roi": round(roi, 2),
+        "equity_curve": equity,
+        "by_strategy": sorted(by_strat.values(), key=lambda b: b["net"], reverse=True),
+    }
+
+
+@app.route("/api/journal", methods=["GET"])
+def api_journal_get():
+    with _journal_lock:
+        data = _journal_load()
+    trades = sorted(data["trades"], key=lambda t: (t.get("date", ""), t.get("id", 0)),
+                    reverse=True)
+    return jsonify({
+        "capital_inicial": data.get("capital_inicial", 0.0),
+        "trades": trades,
+        "stats": _journal_stats(data),
+    })
+
+
+@app.route("/api/journal/capital", methods=["POST"])
+def api_journal_capital():
+    body = request.get_json(force=True) or {}
+    try:
+        capital = float(body.get("capital_inicial", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "capital_inicial inválido"}), 400
+    with _journal_lock:
+        data = _journal_load()
+        data["capital_inicial"] = capital
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"capital_inicial": capital, "stats": stats})
+
+
+@app.route("/api/journal/trade", methods=["POST"])
+def api_journal_add():
+    body = request.get_json(force=True) or {}
+    result = body.get("result")
+    if result not in ("gain", "loss"):
+        return jsonify({"error": "result deve ser 'gain' ou 'loss'"}), 400
+    try:
+        amount = abs(float(body.get("amount", 0)))
+    except (TypeError, ValueError):
+        return jsonify({"error": "amount inválido"}), 400
+    with _journal_lock:
+        data = _journal_load()
+        next_id = max((t.get("id", 0) for t in data["trades"]), default=0) + 1
+        trade = {
+            "id": next_id,
+            "date": body.get("date") or "",
+            "strategy": (body.get("strategy") or "").strip() or "—",
+            "asset": (body.get("asset") or "").strip(),
+            "result": result,
+            "amount": round(amount, 2),
+            "notes": (body.get("notes") or "").strip(),
+        }
+        data["trades"].append(trade)
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"trade": trade, "stats": stats})
+
+
+@app.route("/api/journal/trade/<int:trade_id>", methods=["PUT"])
+def api_journal_update(trade_id):
+    body = request.get_json(force=True) or {}
+    with _journal_lock:
+        data = _journal_load()
+        trade = next((t for t in data["trades"] if t.get("id") == trade_id), None)
+        if trade is None:
+            return jsonify({"error": "trade não encontrado"}), 404
+        if "result" in body:
+            if body["result"] not in ("gain", "loss"):
+                return jsonify({"error": "result inválido"}), 400
+            trade["result"] = body["result"]
+        if "amount" in body:
+            try:
+                trade["amount"] = round(abs(float(body["amount"])), 2)
+            except (TypeError, ValueError):
+                return jsonify({"error": "amount inválido"}), 400
+        for k in ("date", "strategy", "asset", "notes"):
+            if k in body:
+                trade[k] = body[k].strip() if isinstance(body[k], str) else body[k]
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"trade": trade, "stats": stats})
+
+
+@app.route("/api/journal/trade/<int:trade_id>", methods=["DELETE"])
+def api_journal_delete(trade_id):
+    with _journal_lock:
+        data = _journal_load()
+        before = len(data["trades"])
+        data["trades"] = [t for t in data["trades"] if t.get("id") != trade_id]
+        if len(data["trades"]) == before:
+            return jsonify({"error": "trade não encontrado"}), 404
+        _journal_save(data)
+        stats = _journal_stats(data)
+    return jsonify({"deleted": trade_id, "stats": stats})
+
+
+@app.route("/api/journal/sync", methods=["POST"])
+def api_journal_sync():
+    """
+    Sincroniza operações e taxas reais das corretoras (BingX, OKX, Hyperliquid)
+    para o journal. Dedup por external_id: trades já importados são atualizados,
+    novos são inseridos. Entradas manuais (sem external_id) são preservadas.
+
+    Body opcional: { "exchanges": ["bingx","okx"], "since_days": 30 }
+    """
+    body = request.get_json(force=True) or {}
+    exchanges = body.get("exchanges")
+    since_days = int(body.get("since_days", 30) or 30)
+
+    try:
+        from exchange_sync import sync_all
+    except Exception as e:
+        return jsonify({"error": f"módulo de sync indisponível: {e}"}), 500
+
+    result = sync_all(exchanges=exchanges, since_days=since_days)
+    imported = result["trades"]
+
+    with _journal_lock:
+        data = _journal_load()
+        existing = data["trades"]
+        by_ext = {t.get("external_id"): t for t in existing if t.get("external_id")}
+        next_id = max((t.get("id", 0) for t in existing), default=0) + 1
+
+        added, updated = 0, 0
+        for it in imported:
+            ext = it["external_id"]
+            if ext in by_ext:
+                # Atualiza campos vindos da corretora, preserva id e notas manuais.
+                tgt = by_ext[ext]
+                notes = tgt.get("notes", "")
+                tgt.update(it)
+                if notes:
+                    tgt["notes"] = notes
+                updated += 1
+            else:
+                it["id"] = next_id
+                next_id += 1
+                existing.append(it)
+                by_ext[ext] = it
+                added += 1
+
+        _journal_save(data)
+        stats = _journal_stats(data)
+        trades = sorted(data["trades"],
+                        key=lambda t: (t.get("date", ""), t.get("id", 0)), reverse=True)
+
+    return jsonify({
+        "added": added,
+        "updated": updated,
+        "by_exchange": result["by_exchange"],
+        "warnings": result["warnings"],
+        "trades": trades,
+        "stats": stats,
+    })
 
 
 if __name__ == "__main__":

@@ -85,6 +85,48 @@
         </select>
       </div>
 
+      <!-- Custos da corretora (fees + funding) -->
+      <div class="sidebar-section">
+        <div class="flex items-center justify-between mb-2">
+          <p class="sidebar-section-title mb-0">Custos da Corretora</p>
+          <button
+            @click="store.costConfig.apply_costs = !store.costConfig.apply_costs"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.costConfig.apply_costs ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.costConfig.apply_costs ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.costConfig.apply_costs">
+          <label class="text-xs text-gray-400 block mb-1">Exchange (fees + funding)</label>
+          <select v-model="store.costConfig.cost_exchange" class="form-select w-full text-xs mb-2">
+            <option value="binance">Binance</option>
+            <option value="bybit">Bybit</option>
+            <option value="okx">OKX</option>
+          </select>
+
+          <label class="text-xs text-gray-400 block mb-1">Cenário</label>
+          <select v-model="store.costConfig.cost_scenario" class="form-select w-full text-xs mb-2">
+            <option value="realista">Realista</option>
+            <option value="pessimista">Pessimista (funding 1.5x + slippage)</option>
+          </select>
+
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              :checked="store.costConfig.use_funding"
+              @change="store.costConfig.use_funding = $event.target.checked"
+              class="w-3.5 h-3.5 accent-accent-yellow"
+            />
+            <span class="text-xs text-gray-300">Incluir funding</span>
+          </label>
+        </template>
+      </div>
+
       <!-- Regras -->
       <div class="sidebar-section">
         <p class="sidebar-section-title">Regras do Desafio</p>
@@ -165,6 +207,113 @@
       >
         {{ store.isRunning ? 'Simulando...' : 'Simular Desafio' }}
       </button>
+
+      <!-- ── Forward Testing (Walk-Forward Analysis) ──────────────── -->
+      <div class="sidebar-section border-t border-surface-600 pt-4">
+        <p class="sidebar-section-title">Forward Testing (WFA)</p>
+        <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
+          Valida a estrategia em dados nao vistos: otimiza in-sample e mede o desempenho out-of-sample.
+        </p>
+
+        <label class="text-xs text-gray-400 block mb-1">
+          Janelas WFA
+          <span class="text-accent-yellow font-semibold ml-1">{{ store.wfaConfig.n_windows }}</span>
+        </label>
+        <input
+          type="range"
+          v-model.number="store.wfaConfig.n_windows"
+          min="5" max="20" step="1"
+          class="w-full h-1.5 accent-yellow-400 mb-3"
+        />
+
+        <label class="text-xs text-gray-400 block mb-1">
+          % In-Sample
+          <span class="text-accent-yellow font-semibold ml-1">{{ Math.round(store.wfaConfig.is_pct * 100) }}%</span>
+        </label>
+        <input
+          type="range"
+          v-model.number="store.wfaConfig.is_pct"
+          min="0.50" max="0.80" step="0.05"
+          class="w-full h-1.5 accent-yellow-400 mb-3"
+        />
+
+        <!-- Otimizar IS toggle -->
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-xs text-gray-400">Otimizar IS</label>
+          <button
+            @click="store.wfaConfig.optimize_is_samples = store.wfaConfig.optimize_is_samples > 0 ? 0 : 40"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.wfaConfig.optimize_is_samples > 0 ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.wfaConfig.optimize_is_samples > 0 ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.wfaConfig.optimize_is_samples > 0">
+          <label class="text-xs text-gray-400 block mb-1">
+            Amostras IS
+            <span class="text-accent-yellow font-semibold ml-1">{{ store.wfaConfig.optimize_is_samples }}</span>
+          </label>
+          <input
+            type="range"
+            v-model.number="store.wfaConfig.optimize_is_samples"
+            min="20" max="100" step="10"
+            class="w-full h-1.5 accent-yellow-400 mb-3"
+          />
+        </template>
+
+        <!-- Custos reais da corretora no forward test -->
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-xs text-gray-400">Custos da corretora</label>
+          <button
+            @click="store.wfaConfig.apply_costs = !store.wfaConfig.apply_costs"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.wfaConfig.apply_costs ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.wfaConfig.apply_costs ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.wfaConfig.apply_costs">
+          <label class="text-xs text-gray-500 block mb-1">Exchange (fees + funding)</label>
+          <select v-model="store.wfaConfig.cost_exchange" class="form-select w-full text-xs mb-2">
+            <option value="binance">Binance</option>
+            <option value="bybit">Bybit</option>
+            <option value="okx">OKX</option>
+          </select>
+
+          <label class="text-xs text-gray-500 block mb-1">Cenário</label>
+          <select v-model="store.wfaConfig.cost_scenario" class="form-select w-full text-xs mb-2">
+            <option value="realista">Realista</option>
+            <option value="pessimista">Pessimista (funding 1.5x + slippage)</option>
+          </select>
+
+          <label class="flex items-center gap-2 cursor-pointer mb-3">
+            <input
+              type="checkbox"
+              :checked="store.wfaConfig.use_funding"
+              @change="store.wfaConfig.use_funding = $event.target.checked"
+              class="w-3.5 h-3.5 accent-accent-yellow"
+            />
+            <span class="text-xs text-gray-300">Incluir funding</span>
+          </label>
+        </template>
+
+        <button
+          @click="store.runWfa()"
+          :disabled="store.wfaLoading || !store.selectedSymbol"
+          class="btn-secondary w-full py-2 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <span v-if="store.wfaLoading" class="dollar-loader-sm">$</span>
+          {{ store.wfaLoading ? 'Calculando...' : 'Executar Forward Test' }}
+        </button>
+      </div>
 
     </div>
   </aside>

@@ -8,6 +8,7 @@ import {
   getCorrelation,
   runWfa as runWfaApi,
   runCosts as runCostsApi,
+  getChartData as getChartDataApi,
 } from '@/api/client.js'
 
 export const useBacktestStore = defineStore('backtest', () => {
@@ -45,7 +46,18 @@ export const useBacktestStore = defineStore('backtest', () => {
   const wfaResults = ref(null)
   const wfaLoading = ref(false)
   const wfaError   = ref(null)
-  const wfaConfig  = ref({ n_windows: 10, is_pct: 0.70, optimize_is_samples: 0 })
+  const wfaConfig  = ref({
+    n_windows: 10, is_pct: 0.70, optimize_is_samples: 0,
+    // Custos reais (fees + funding da corretora) aplicados ao forward test.
+    apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
+  })
+
+  // ─── Gráficos de análise (candles + indicadores + funding + equity) ───────
+  const chartData    = ref(null)
+  const chartLoading = ref(false)
+  const chartError   = ref(null)
+  // exchange = fonte dos candles E do funding (bybit funciona nesta rede).
+  const chartConfig  = ref({ exchange: 'bybit', scenario: 'realista', use_funding: true })
 
   // ─── Custos (fees + funding) ──────────────────────────────────────────────
   const costsResult  = ref(null)
@@ -110,6 +122,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     defaults.cycle_filter = false
     defaults.cycle_long_months = [1,2,3,4,5,6,7,8,9,10,11,12]
     defaults.cycle_short_months = [1,2,3,4,5,6,7,8,9,10,11,12]
+    // Filtro de horário de operação (intradiário): default todas as 24h liberadas
+    defaults.hour_filter = false
+    defaults.allowed_hours = Array.from({ length: 24 }, (_, i) => i)
     // Mantém valores existentes que coincidem com o schema (evita reset total)
     params.value = { ...defaults, ...params.value }
   }
@@ -198,6 +213,13 @@ export const useBacktestStore = defineStore('backtest', () => {
         n_windows:            wfaConfig.value.n_windows,
         is_pct:               wfaConfig.value.is_pct,
         optimize_is_samples:  wfaConfig.value.optimize_is_samples,
+        // Custos reais da corretora aplicados ao OOS (fees + funding).
+        apply_costs:          wfaConfig.value.apply_costs,
+        cost_exchange:        wfaConfig.value.cost_exchange,
+        cost_scenario:        wfaConfig.value.cost_scenario,
+        use_funding:          wfaConfig.value.use_funding,
+        cost_symbol:          inferCcxtSymbol(),
+        initial_capital:      Number(params.value.initial_capital) || 1000,
       })
       wfaResults.value = data
     } catch (e) {
@@ -245,6 +267,39 @@ export const useBacktestStore = defineStore('backtest', () => {
     }
   }
 
+  async function fetchChartData() {
+    if (dataSource.value === 'csv') {
+      chartError.value = 'Gráficos de análise requerem um ativo (candles da corretora). Modo CSV não suportado.'
+      return
+    }
+    if (!selectedSymbol.value) {
+      chartError.value = 'Selecione um ativo para ver os gráficos'
+      return
+    }
+    chartLoading.value = true
+    chartError.value = null
+    chartData.value = null
+    try {
+      const { data } = await getChartDataApi({
+        symbol:        selectedSymbol.value,
+        symbol_label:  selectedAssetLabel.value,
+        interval:      interval.value,
+        strategy_file: selectedStrategy.value?.file || 'depaula',
+        config:        params.value,
+        exchange:      chartConfig.value.exchange,     // candles vêm da corretora
+        cost_exchange: chartConfig.value.exchange,     // funding/fees da mesma corretora
+        cost_scenario: chartConfig.value.scenario,
+        use_funding:   chartConfig.value.use_funding,
+        cost_symbol:   inferCcxtSymbol(),
+      })
+      chartData.value = data
+    } catch (e) {
+      chartError.value = e.response?.data?.error || e.message
+    } finally {
+      chartLoading.value = false
+    }
+  }
+
   async function fetchCorrelation(tickers) {
     if (Object.keys(tickers).length < 2) return
     correlationLoading.value = true
@@ -267,8 +322,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     correlationData, correlationLoading, correlationError,
     wfaResults, wfaLoading, wfaError, wfaConfig,
     costsResult, costsLoading, costsError, costsWarnings, costsConfig,
+    chartData, chartLoading, chartError, chartConfig,
     fetchAssets, fetchStrategies, selectStrategy,
     applyPendingParams, runBacktest, fetchCorrelation, runWfa,
-    runCosts, inferCcxtSymbol,
+    runCosts, inferCcxtSymbol, fetchChartData,
   }
 })

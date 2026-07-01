@@ -18,6 +18,13 @@
         Backtesting
       </RouterLink>
       <RouterLink
+        to="/grafico"
+        class="nav-link"
+        :class="{ active: route.path === '/grafico' }"
+      >
+        Gráfico
+      </RouterLink>
+      <RouterLink
         to="/optimizer"
         class="nav-link"
         :class="{ active: route.path === '/optimizer' }"
@@ -37,6 +44,13 @@
         :class="{ active: route.path === '/regime' }"
       >
         Regimes
+      </RouterLink>
+      <RouterLink
+        to="/journal"
+        class="nav-link"
+        :class="{ active: route.path === '/journal' }"
+      >
+        Diário
       </RouterLink>
     </div>
 

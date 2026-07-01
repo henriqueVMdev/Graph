@@ -38,6 +38,52 @@
         </div>
       </div>
 
+      <!-- Líquido: fees + funding reais da corretora aplicados ao OOS -->
+      <div v-if="store.wfaResults.costs_applied" class="flex flex-wrap items-center gap-3">
+        <!-- Custo total descontado (fees + funding) em destaque -->
+        <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-36 border border-red-500/40">
+          <div class="text-xs text-gray-400 mb-0.5">
+            Custo total descontado
+            <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
+          </div>
+          <div class="text-2xl font-bold text-red-400">-{{ fmtUsd(totalCostSpent) }}</div>
+          <div class="text-[10px] text-gray-600 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
+        </div>
+        <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
+          <div class="text-xs text-gray-500 mb-0.5">
+            Retorno OOS líquido
+            <span class="metric-help" title="Retorno medio das janelas Out-of-Sample apos descontar fees (maker/taker) e funding reais da corretora. Este e o resultado liquido esperado do forward test.">?</span>
+          </div>
+          <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
+            {{ fmtPct(store.wfaResults.avg_oos_net_return) }}
+          </div>
+          <div class="text-[10px] text-gray-600 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
+        </div>
+        <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
+          <div class="text-xs text-gray-500 mb-0.5">
+            Fees pagos (OOS)
+            <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
+          </div>
+          <div class="text-sm font-semibold text-red-400">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
+          <div class="text-[10px] text-gray-600 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
+        </div>
+        <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
+          <div class="text-xs text-gray-500 mb-0.5">
+            Funding total (OOS)
+            <span class="metric-help" title="Soma do funding pago/recebido nas janelas OOS. Positivo = a estrategia recebeu funding; negativo = pagou.">?</span>
+          </div>
+          <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
+            {{ fmtUsd(store.wfaResults.total_oos_funding) }}
+          </div>
+          <div class="text-[10px] text-gray-600 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
+        </div>
+      </div>
+
+      <!-- Avisos de custo (ex.: funding indisponivel na rede) -->
+      <div v-if="store.wfaResults.cost_warnings?.length" class="text-xs text-amber-300 bg-amber-900/20 rounded-lg p-2 border border-amber-800/50">
+        <div v-for="(w, i) in store.wfaResults.cost_warnings" :key="i">⚠ {{ w }}</div>
+      </div>
+
       <!-- Tab bar -->
       <div class="flex flex-wrap gap-1 border-b border-surface-600 pb-1">
         <button
@@ -116,16 +162,26 @@ import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { purgeChart } from '@/composables/useCharts.js'
 
-const store = useBacktestStore()
+// Reutilizavel: por padrao usa o store de backtest, mas aceita outro store
+// (ex.: prop challenge) que exponha wfaResults/wfaLoading/wfaError.
+const props = defineProps({ store: { type: Object, default: undefined } })
+const backtestStore = useBacktestStore()
+const store = props.store ?? backtestStore
 
 const activeTab      = ref(0)
 const selectedMetric = ref('return_pct')
 
-const metricOptions = [
-  { key: 'return_pct', label: 'Retorno (%)', description: 'Retorno percentual bruto de cada janela.' },
-  { key: 'annualized', label: 'Retorno Anual.', description: 'Retorno anualizado de cada janela, permitindo comparacao entre janelas de duracao diferente.' },
-  { key: 'sharpe',     label: 'Sharpe', description: 'Sharpe Ratio de cada janela. Mede retorno ajustado ao risco.' },
-]
+const metricOptions = computed(() => {
+  const base = [
+    { key: 'return_pct', label: 'Retorno (%)', description: 'Retorno percentual bruto de cada janela.' },
+    { key: 'annualized', label: 'Retorno Anual.', description: 'Retorno anualizado de cada janela, permitindo comparacao entre janelas de duracao diferente.' },
+    { key: 'sharpe',     label: 'Sharpe', description: 'Sharpe Ratio de cada janela. Mede retorno ajustado ao risco.' },
+  ]
+  if (store.wfaResults?.costs_applied) {
+    base.push({ key: 'net', label: 'OOS Bruto vs Líquido', description: 'Retorno OOS bruto vs liquido (apos fees + funding reais da corretora) por janela.' })
+  }
+  return base
+})
 
 const tabDescriptions = [
   'Curva de equity concatenada apenas com os periodos Out-of-Sample. Simula o resultado real da estrategia aplicando os parametros otimizados em dados nao vistos.',
@@ -173,6 +229,29 @@ function fmtPct(v) {
   const n = Number(v)
   return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
 }
+
+function fmtUsd(v) {
+  if (v == null) return '—'
+  const n = Number(v)
+  return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2)
+}
+
+// ── Custo total (fees - funding recebido) ─────────────────────────────────
+
+// Quanto a estrategia efetivamente gastou: fees pagos menos funding recebido.
+// funding > 0 = recebido (reduz o custo); funding < 0 = pago (aumenta o custo).
+const totalCostSpent = computed(() => {
+  const fees    = store.wfaResults?.total_oos_fees    ?? 0
+  const funding = store.wfaResults?.total_oos_funding ?? 0
+  return fees - funding
+})
+
+// Arrasto no retorno = bruto - liquido (em pontos percentuais).
+const costDragPct = computed(() => {
+  const gross = store.wfaResults?.avg_oos_return     ?? 0
+  const net   = store.wfaResults?.avg_oos_net_return ?? 0
+  return -(gross - net)
+})
 
 // ── WFE badge ─────────────────────────────────────────────────────────────
 
@@ -285,6 +364,29 @@ function renderComparison() {
   if (!comparisonChart.value || !store.wfaResults) return
   const windows = store.wfaResults.windows
   const xLabels = windows.map(w => `J${w.window_idx + 1}`)
+
+  // Caso especial: OOS bruto vs liquido (custos reais da corretora)
+  if (selectedMetric.value === 'net') {
+    Plotly.react(comparisonChart.value, [
+      {
+        type: 'bar', name: 'OOS Bruto',
+        x: xLabels, y: windows.map(w => w.oos_return),
+        marker: { color: 'rgba(120,120,120,0.7)' },
+        hovertemplate: '<b>Bruto %{x}</b><br>%{y:.2f}%<extra></extra>',
+      },
+      {
+        type: 'bar', name: 'OOS Líquido (fees+funding)',
+        x: xLabels, y: windows.map(w => w.oos_net_return),
+        marker: { color: windows.map(w => (w.oos_net_return ?? 0) >= 0 ? 'rgba(245,197,24,0.85)' : 'rgba(239,83,80,0.85)') },
+        hovertemplate: '<b>Líquido %{x}</b><br>%{y:.2f}%<extra></extra>',
+      },
+    ], {
+      ...BASE_LAYOUT, height: 300, barmode: 'group',
+      yaxis: { ...BASE_LAYOUT.yaxis, title: 'Retorno OOS (%)', zeroline: true, zerolinecolor: '#333' },
+      xaxis: { ...BASE_LAYOUT.xaxis, title: 'Janela' },
+    }, PLOT_CFG)
+    return
+  }
 
   let isKey, oosKey, yTitle
   if (selectedMetric.value === 'sharpe') {
