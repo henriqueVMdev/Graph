@@ -153,13 +153,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRegimeStore } from '@/stores/regime.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 const store = useRegimeStore()
 const selectedCategory = ref('')
 const selectedKey = ref('')
 const csvFile = ref(null)
+
+// Pré-seleciona os dropdowns com o ativo escolhido em outra página
+const ws = useWorkspaceStore()
+watch(() => store.assets, (a) => {
+  if (selectedKey.value || !store.symbol) return
+  const hit = ws.findAsset(a, store.symbol)
+  if (hit) {
+    selectedCategory.value = hit.category
+    selectedKey.value = `${hit.label}|||${hit.ticker}`
+  }
+}, { immediate: true })
 
 const timeframes = [
   { value: '15m', label: '15 min' },

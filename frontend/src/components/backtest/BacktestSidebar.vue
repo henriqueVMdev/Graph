@@ -352,14 +352,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 import NumInput from '@/components/NumInput.vue'
 import HourFilter from '@/components/HourFilter.vue'
 
 const store = useBacktestStore()
 const selectedCategory = ref('')
 const selectedKey = ref('')
+
+// Pré-seleciona os dropdowns com o ativo escolhido em outra página
+const ws = useWorkspaceStore()
+watch(() => store.assets, (a) => {
+  if (selectedKey.value || !store.selectedSymbol) return
+  const hit = ws.findAsset(a, store.selectedSymbol)
+  if (hit) {
+    selectedCategory.value = hit.category
+    selectedKey.value = `${hit.label}|||${hit.ticker}`
+  }
+}, { immediate: true })
 const timeframes = ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']
 
 const months = [

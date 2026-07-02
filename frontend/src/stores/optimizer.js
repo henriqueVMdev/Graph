@@ -12,8 +12,13 @@ import {
   getOptimizerResult,
 } from '@/api/client.js'
 import { useBacktestStore } from '@/stores/backtest.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 export const useOptimizerStore = defineStore('optimizer', () => {
+  // Seleção compartilhada entre páginas (ativo/timeframe)
+  const ws = useWorkspaceStore()
+  const _shared = (key) => computed({ get: () => ws[key], set: (v) => { ws[key] = v } })
+
   // Assets
   const assets = ref({})
 
@@ -27,9 +32,9 @@ export const useOptimizerStore = defineStore('optimizer', () => {
   // Configuracao
   const dataSource = ref('asset')
   const selectedCategory = ref('')
-  const selectedAssetLabel = ref('')
-  const selectedSymbol = ref('')
-  const interval = ref('1d')
+  const selectedAssetLabel = _shared('symbolLabel')
+  const selectedSymbol = _shared('symbol')
+  const interval = _shared('interval')
   const csvFile = ref(null)
   const startDate = ref('')
   const endDate = ref('')

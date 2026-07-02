@@ -1,8 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getAssets, detectRegimeAsset, detectRegimeCsv } from '@/api/client.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 export const useRegimeStore = defineStore('regime', () => {
+  // Seleção compartilhada entre páginas (ativo/timeframe/fonte)
+  const ws = useWorkspaceStore()
+  const _shared = (key) => computed({ get: () => ws[key], set: (v) => { ws[key] = v } })
+
   const assets = ref({})
   const isRunning = ref(false)
   const error = ref(null)
@@ -10,11 +15,11 @@ export const useRegimeStore = defineStore('regime', () => {
 
   // Config
   const dataSource = ref('asset')  // 'asset' | 'csv'
-  const symbol = ref('')
-  const symbolLabel = ref('')
-  const interval = ref('1d')
+  const symbol = _shared('symbol')
+  const symbolLabel = _shared('symbolLabel')
+  const interval = _shared('interval')
   // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
-  const exchange = ref('')
+  const exchange = _shared('exchange')
   const method = ref('hmm')        // 'hmm' | 'markov_switching' | 'changepoint'
   const nStates = ref(0)           // 0 = auto
   const features = ref(['log_return', 'volatility'])

@@ -10,29 +10,34 @@ import {
   runCosts as runCostsApi,
   getChartData as getChartDataApi,
 } from '@/api/client.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 export const useBacktestStore = defineStore('backtest', () => {
+  // Seleção compartilhada entre páginas (ativo/timeframe/fonte/estratégia)
+  const ws = useWorkspaceStore()
+  const _shared = (key) => computed({ get: () => ws[key], set: (v) => { ws[key] = v } })
+
   // ─── Assets ──────────────────────────────────────────────────────────────
   const assets = ref({})
 
   // ─── Strategies ──────────────────────────────────────────────────────────
   const strategies = ref([])                 // lista de estratégias disponíveis
-  const selectedStrategy = ref(null)         // { file, name, description, schema }
+  const selectedStrategy = _shared('selectedStrategy')
 
   // params dinâmicos: populados a partir do schema da estratégia selecionada
-  const params = ref({})
+  const params = _shared('params')
 
   // ─── Pending params (vindos do Dashboard) ────────────────────────────────
   const pendingParams = ref(null)
 
   // ─── Fonte de dados ───────────────────────────────────────────────────────
   const dataSource = ref('asset')            // 'asset' | 'csv'
-  const selectedAssetLabel = ref('')
-  const selectedSymbol = ref('')
-  const interval = ref('1d')
+  const selectedAssetLabel = _shared('symbolLabel')
+  const selectedSymbol = _shared('symbol')
+  const interval = _shared('interval')
   const csvFile = ref(null)
   // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
-  const exchange = ref('')
+  const exchange = _shared('exchange')
 
   // ─── Resultados ───────────────────────────────────────────────────────────
   const isRunning = ref(false)

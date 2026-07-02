@@ -1,21 +1,26 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { getAssets, getStrategies, runPropChallenge, runWfa as runWfaApi } from '@/api/client.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 export const usePropChallengeStore = defineStore('propChallenge', () => {
+  // Seleção compartilhada entre páginas (ativo/timeframe/fonte/estratégia)
+  const ws = useWorkspaceStore()
+  const _shared = (key) => computed({ get: () => ws[key], set: (v) => { ws[key] = v } })
+
   // Assets e estrategias
   const assets = ref({})
   const strategies = ref([])
-  const selectedStrategy = ref(null)
-  const params = ref({})
+  const selectedStrategy = _shared('selectedStrategy')
+  const params = _shared('params')
 
   // Dados
   const dataSource = ref('asset')
-  const selectedAssetLabel = ref('')
-  const selectedSymbol = ref('')
-  const interval = ref('1d')
+  const selectedAssetLabel = _shared('symbolLabel')
+  const selectedSymbol = _shared('symbol')
+  const interval = _shared('interval')
   // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
-  const exchange = ref('')
+  const exchange = _shared('exchange')
 
   // Prop challenge config
   const accountSize = ref(50000)

@@ -433,6 +433,18 @@ watch(selectedAssetKey, (name) => {
   }
 })
 
+// Pré-seleciona os dropdowns com o ativo escolhido em outra página
+import { useWorkspaceStore } from '@/stores/workspace.js'
+const ws = useWorkspaceStore()
+watch(() => store.assets, (a) => {
+  if (selectedAssetKey.value || !store.selectedSymbol) return
+  const hit = ws.findAsset(a, store.selectedSymbol)
+  if (hit) {
+    store.selectedCategory = hit.category
+    selectedAssetKey.value = hit.label
+  }
+}, { immediate: true })
+
 // File change
 function onFileChange(e) {
   store.csvFile = e.target.files[0] || null

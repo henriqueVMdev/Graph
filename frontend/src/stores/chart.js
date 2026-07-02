@@ -1,23 +1,28 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { getAssets, getStrategies, getChartData } from '@/api/client.js'
+import { useWorkspaceStore } from '@/stores/workspace.js'
 
 /**
  * Store da página de Análise Gráfica (estilo TradingView).
- * Independente do store de Backtest: seleções e gráfico próprios.
- * Reaproveita o endpoint /api/backtest/chart-data (com apply_costs:false p/
- * carregar rápido — candles + indicadores + marcadores, sem funding).
+ * Ativo/timeframe/estratégia compartilhados com as demais páginas via
+ * workspace; a exchange é própria (aqui os candles+funding sempre vêm de
+ * corretora). Reaproveita o endpoint /api/backtest/chart-data.
  */
 export const useChartStore = defineStore('chart', () => {
+  // Seleção compartilhada entre páginas
+  const ws = useWorkspaceStore()
+  const _shared = (key) => computed({ get: () => ws[key], set: (v) => { ws[key] = v } })
+
   // ── Dados de seleção ───────────────────────────────────────────────────
   const assets = ref({})
   const strategies = ref([])
-  const selectedStrategy = ref(null)        // { file, name, description, schema }
-  const params = ref({})                    // params dinâmicos (do schema)
+  const selectedStrategy = _shared('selectedStrategy')
+  const params = _shared('params')
 
-  const selectedAssetLabel = ref('')
-  const selectedSymbol = ref('')
-  const interval = ref('1d')
+  const selectedAssetLabel = _shared('symbolLabel')
+  const selectedSymbol = _shared('symbol')
+  const interval = _shared('interval')
   const exchange = ref('bybit')             // corretora dos candles
 
   // ── Opções de visualização ─────────────────────────────────────────────
