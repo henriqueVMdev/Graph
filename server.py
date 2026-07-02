@@ -1106,10 +1106,15 @@ def _build_wfa_cost_ctx(df, body, cfg_dict):
     if fo and "maker" in fo and "taker" in fo:
         fees = ExchangeFees(maker=_Dec(str(fo["maker"])), taker=_Dec(str(fo["taker"])))
 
+    # Regra crítica #2: default = TAKER nas duas pontas. Maker só quando o
+    # usuário declara explicitamente que a estratégia usa ordens limit no book.
+    use_maker_entry = bool(body.get("use_maker_entry", False))
+    use_maker_exit = bool(body.get("use_maker_exit", False))
+
     sc = SCENARIOS[scenario]
     calc = CostCalculator(
         exchange=cost_exchange, fees=fees,
-        use_maker_entry=False, use_maker_exit=False,   # taker nas duas pontas
+        use_maker_entry=use_maker_entry, use_maker_exit=use_maker_exit,
         funding_multiplier=sc["funding_multiplier"],
         slippage_pct=sc["slippage_pct"],
     )
@@ -1133,6 +1138,8 @@ def _build_wfa_cost_ctx(df, body, cfg_dict):
         "exchange":        cost_exchange,
         "scenario":        scenario,
         "use_funding":     use_funding,
+        "use_maker_entry": use_maker_entry,
+        "use_maker_exit":  use_maker_exit,
     }
     return ctx, warnings
 
@@ -2381,6 +2388,8 @@ def api_prop_challenge_simulate():
                 "exchange": cost_ctx["exchange"],
                 "scenario": cost_ctx["scenario"],
                 "use_funding": cost_ctx["use_funding"],
+                "use_maker_entry": cost_ctx["use_maker_entry"],
+                "use_maker_exit": cost_ctx["use_maker_exit"],
                 "total_fees": round(net["total_fees"], 2),
                 "total_funding": round(net["total_funding"], 2),
                 "avg_gross_pnl": round(float(np.mean(pnl_pcts)), 4),
@@ -2394,36 +2403,55 @@ def api_prop_challenge_simulate():
         phase1_target = 0.10   # +10%
         phase2_target = 0.05   # +5%
         max_loss = -0.10       # -10% total
-        daily_max_loss = -0.05 # -5% em um dia
+        daily_max_loss = -0.05 # -5% acumulado em um dia
 
-        def simulate_phase(pnl_pool, target, starting_balance):
-            """Simula uma fase do desafio. Retorna (passed, final_balance, equity_curve)."""
+        # Pool de DIAS: agrupa os trades (na ordem de execucao) pelo dia de
+        # entrada e reamostra dias inteiros. Preserva a correlacao intradiaria
+        # (perdas agrupadas em dias ruins) que a reamostragem iid de trades
+        # destruia, e permite acumular a perda diaria de verdade — antes um
+        # unico trade <= -5% reprovava, mas varios trades pequenos somando -5%
+        # no mesmo dia passavam despercebidos (irreal p/ estrategia intradiaria).
+        valid_trades = [t for t in trades if t.get("pnl_pct") is not None]
+        day_groups = {}
+        for pos, (t, p) in enumerate(zip(valid_trades, pool)):
+            try:
+                key = str(pd.Timestamp(t.get("entry_date", "")).date())
+            except Exception:
+                key = f"_seq_{pos}"          # sem data parseavel: vira um "dia" proprio
+            day_groups.setdefault(key, []).append(float(p))
+        day_pool = [day_groups[k] for k in sorted(day_groups)]
+
+        def simulate_phase(days_pool, target, starting_balance):
+            """Simula uma fase reamostrando dias inteiros de trading.
+            Violacao da perda diaria acumulada (<= -5% no dia) reprova, como
+            nas regras reais. Retorna (passed, final_balance, curve, days_used).
+            Limitacao conhecida: drawdown intra-trade nao e observado."""
             balance = starting_balance
             curve = [balance]
 
-            # Limite generoso para evitar loop infinito sem subestimar estrategias lentas
-            max_trades = max(1000, len(pnl_pool) * 20)
-            for _ in range(max_trades):
-                trade_pnl_pct = float(rng.choice(pnl_pool))
-                pnl_value = balance * (trade_pnl_pct / 100.0)
-                balance += pnl_value
-                curve.append(balance)
+            max_days = 730  # limite generoso p/ estrategias lentas
+            for d in range(1, max_days + 1):
+                day = days_pool[int(rng.integers(len(days_pool)))]
+                day_start = balance
+                for trade_pnl_pct in day:
+                    balance += balance * (trade_pnl_pct / 100.0)
+                    curve.append(balance)
 
-                # Verifica perda por trade individual (equivale a perda diaria para timeframe diario)
-                if trade_pnl_pct / 100.0 <= daily_max_loss:
-                    return False, balance, curve
+                    # Perda total acumulada desde o inicio da fase
+                    total_change = (balance - starting_balance) / starting_balance
+                    if total_change <= max_loss:
+                        return False, balance, curve, d
 
-                # Verifica perda total acumulada desde o inicio da fase
-                total_change = (balance - starting_balance) / starting_balance
-                if total_change <= max_loss:
-                    return False, balance, curve
+                    # Perda diaria ACUMULADA (soma dos trades do dia)
+                    if (balance - day_start) / day_start <= daily_max_loss:
+                        return False, balance, curve, d
 
-                # Verifica se atingiu o alvo
-                if total_change >= target:
-                    return True, balance, curve
+                    # Alvo da fase
+                    if total_change >= target:
+                        return True, balance, curve, d
 
-            # Nao atingiu em max_trades
-            return False, balance, curve
+            # Nao atingiu o alvo em max_days
+            return False, balance, curve, max_days
 
         # Monte Carlo
         phase1_pass = 0
@@ -2436,27 +2464,29 @@ def api_prop_challenge_simulate():
 
         for i in range(num_sims):
             # Fase 1
-            p1_passed, p1_balance, p1_curve = simulate_phase(
-                pool, phase1_target, account_size
+            p1_passed, p1_balance, p1_curve, p1_days = simulate_phase(
+                day_pool, phase1_target, account_size
             )
             phase1_results.append({
                 "passed": p1_passed,
                 "final_balance": round(p1_balance, 2),
                 "pnl_pct": round((p1_balance - account_size) / account_size * 100, 2),
                 "num_trades": len(p1_curve) - 1,
+                "days": p1_days,
             })
 
             if p1_passed:
                 phase1_pass += 1
                 # Fase 2: comeca com o saldo da conta original (reseta)
-                p2_passed, p2_balance, p2_curve = simulate_phase(
-                    pool, phase2_target, account_size
+                p2_passed, p2_balance, p2_curve, p2_days = simulate_phase(
+                    day_pool, phase2_target, account_size
                 )
                 phase2_results.append({
                     "passed": p2_passed,
                     "final_balance": round(p2_balance, 2),
                     "pnl_pct": round((p2_balance - account_size) / account_size * 100, 2),
                     "num_trades": len(p2_curve) - 1,
+                    "days": p2_days,
                 })
                 if p2_passed:
                     phase2_pass += 1
@@ -2490,23 +2520,31 @@ def api_prop_challenge_simulate():
             total_span = (trade_dates[-1] - trade_dates[0]).days
             avg_days_between_trades = total_span / (len(trade_dates) - 1) if len(trade_dates) > 1 else None
 
-        # Tempo estimado de aprovacao por fase (em dias)
-        # Baseado na media de trades dos que passaram * frequencia de trades
+        # Tempo estimado de aprovacao por fase (em dias de calendario).
+        # A simulacao conta dias COM trade; converte para calendario pela
+        # razao span_total / dias_com_trade do historico.
         p1_passed_trades = [r["num_trades"] for r in phase1_results if r["passed"]]
         p2_passed_trades = [r["num_trades"] for r in phase2_results if r["passed"]]
+        p1_passed_days = [r["days"] for r in phase1_results if r["passed"]]
+        p2_passed_days = [r["days"] for r in phase2_results if r["passed"]]
 
         p1_avg_trades = float(np.mean(p1_passed_trades)) if p1_passed_trades else None
         p2_avg_trades = float(np.mean(p2_passed_trades)) if p2_passed_trades else None
         p1_median_trades = float(np.median(p1_passed_trades)) if p1_passed_trades else None
         p2_median_trades = float(np.median(p2_passed_trades)) if p2_passed_trades else None
 
-        def _estimate_days(num_trades, avg_interval):
-            if num_trades is None or avg_interval is None:
-                return None
-            return round(num_trades * avg_interval, 1)
+        cal_factor = 1.0
+        if len(trade_dates) >= 2 and len(day_pool) > 0:
+            span_days = max((trade_dates[-1] - trade_dates[0]).days, 1) + 1
+            cal_factor = max(span_days / len(day_pool), 1.0)
 
-        p1_est_days = _estimate_days(p1_median_trades, avg_days_between_trades)
-        p2_est_days = _estimate_days(p2_median_trades, avg_days_between_trades)
+        def _estimate_days(days_used):
+            if not days_used:
+                return None
+            return round(float(np.median(days_used)) * cal_factor, 1)
+
+        p1_est_days = _estimate_days(p1_passed_days)
+        p2_est_days = _estimate_days(p2_passed_days)
         total_est_days = None
         if p1_est_days is not None and p2_est_days is not None:
             total_est_days = round(p1_est_days + p2_est_days, 1)
