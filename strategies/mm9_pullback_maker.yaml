@@ -1,0 +1,62 @@
+# ══════════════════════════════════════════════════════════════════
+# ESTRATÉGIA: MM9 Pullback Maker — BTC/USDT Perp (Bybit) 15m
+# Validada em 1 ano de dados reais (jul/2025→jul/2026, 35.000 candles)
+# Split 70/30 treino/forward + stress test — 2026-07-01
+# ══════════════════════════════════════════════════════════════════
+
+ativo:            BTC/USDT:USDT (perpétuo, Bybit)
+timeframe:        15m
+direcao:          long e short
+
+# ── ENTRADA (maker — é o que viabiliza a estratégia) ─────────────
+entrada:
+  tipo:           ordem LIMITE no valor da EMA9 do candle ANTERIOR (fechado)
+  gatilho:        preço recua e toca a limite (pullback à média)
+  # NUNCA entrar a mercado: com taker nas duas pontas (0.11% ida-volta)
+  # a estratégia MORRE (PF cai para ~1.0). Maker entry = fee 0.02%.
+
+# ── FILTROS (todos avaliados no candle anterior, sem lookahead) ──
+filtros_long:                      # short = espelho exato
+  tendencia_15m:  EMA50 > EMA200  E  Close > EMA200
+  tendencia_1h:   EMA9 do 1h com inclinação POSITIVA (subindo)
+  posicao:        Close > EMA9    # pullback ainda não aconteceu
+  volatilidade:   rank do ATR14% >= 0.5 na janela de 4 dias (384 barras)
+                  # só opera em vol ACIMA da mediana — em vol baixa o edge some
+
+# ── SAÍDAS ───────────────────────────────────────────────────────
+take_profit:      +0.5%  do preço de entrada (ordem limite -> maker 0.02%)
+stop_loss:        -1.5%  do preço de entrada (a mercado -> taker 0.055%)
+time_stop:        48 barras (12h) -> fecha a mercado no close
+regra_conflito:   TP e SL tocados no MESMO candle = conta como LOSS
+
+# ── SIZING (prop challenge: alvo +5%, perda máx -10%, diária -5%) ─
+risco_por_trade:  1.0% da conta   # SL cheio = -1% da conta
+notional:         conta x (1% / 1.5%) ~ 0.67x a conta -> alavancagem < 1x
+                  # zero risco de liquidação; nunca aumentar risco após perda
+
+# ── RESULTADOS VALIDADOS (líquidos de fees + funding real Bybit) ─
+forward_test:     # 3,5 meses out-of-sample, 312 trades, ~3.5 trades/dia
+  win_rate:       77.6%
+  profit_factor:  1.32
+  expectancia:    +0.085% por trade
+  max_drawdown:   -5.4%
+  pior_dia:       -2.1%
+cenario_stress:   # funding 1.5x + slippage 0.05% nos stops + fill atravessando
+  win_rate:       77.2%
+  profit_factor:  1.26
+  expectancia:    +0.074% por trade
+
+prop_challenge:   # Monte Carlo 5.000 sims, bootstrap de dias, pool stress OOS
+  aprovacao:      ~95%  (risco 1%/trade)
+  reprovacao:     <1%
+  mediana:        ~20 dias de trading para passar
+
+# ── CONDIÇÕES DE INVALIDAÇÃO (pare se acontecer) ─────────────────
+invalida_se:
+  - WR real em demo < 72% após 2-4 semanas   # edge não sobreviveu à fila maker
+  - fills maker sistematicamente piores que o backtest (seleção adversa)
+  - 3 dias seguidos no limite diário
+antes_de_pagar:   2-4 semanas em demo/testnet Bybit comparando fills com backtest
+
+# Ressalvas: hipótese mais frágil é o fill maker (fila real pode excluir os
+# melhores trades); validação em 1 ano / 1 ativo / 1 regime de mercado.
