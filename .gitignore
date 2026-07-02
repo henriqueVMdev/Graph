@@ -30,3 +30,4 @@ CLAUDE-quant-costs.md
 
 # Automação (estado local: deployments, ordens, fills)
 automation/state.db*
+alerts_data.json

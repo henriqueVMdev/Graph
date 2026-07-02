@@ -225,4 +225,38 @@ export function getAutomationAccounts() {
   return api.get('/automation/accounts')
 }
 
+// ─── Terminal (Bloomberg-like) ───────────────────────────────────────────────
+
+export function getWatch(symbols, exchange = 'bybit') {
+  return api.get('/terminal/watch', { params: { symbols: symbols.join(','), exchange } })
+}
+
+export function getSpark(symbol, exchange = 'bybit', tf = '15m', bars = 96) {
+  return api.get('/terminal/spark', { params: { symbol, exchange, tf, bars } })
+}
+
+export function getScreener(top = 50, exchange = 'bybit') {
+  return api.get('/terminal/screener', { params: { top, exchange }, timeout: 180000 })
+}
+
+export function getDes(symbol, exchange = 'bybit') {
+  return api.get('/terminal/des', { params: { symbol, exchange }, timeout: 60000 })
+}
+
+export function getAlerts() {
+  return api.get('/terminal/alerts')
+}
+
+export function createAlert(payload) {
+  return api.post('/terminal/alerts', payload)
+}
+
+export function deleteAlert(id) {
+  return api.delete(`/terminal/alerts/${id}`)
+}
+
+export function getNews() {
+  return api.get('/terminal/news', { timeout: 60000 })
+}
+
 export default api

@@ -38,6 +38,29 @@
       <span class="hidden md:inline">{{ busyLabel }}</span>
     </div>
 
+    <!-- Command line hint -->
+    <button @click="$emit('open-cmd')" title="Command line (Ctrl+K)"
+            class="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-gray-600
+                   border border-surface-500 rounded-md px-2 py-1 hover:text-accent-yellow
+                   hover:border-accent-yellow/40 transition-colors shrink-0">
+      <span class="text-accent-yellow">&gt;_</span> Ctrl+K
+    </button>
+
+    <!-- Sino de alertas -->
+    <RouterLink to="/alerts" class="relative shrink-0 text-gray-500 hover:text-accent-yellow transition-colors"
+                title="Alertas">
+      <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span v-if="terminal.unseenTriggered.length"
+            class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full
+                   bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+        {{ terminal.unseenTriggered.length }}
+      </span>
+    </RouterLink>
+
     <!-- Relógio de sessão (UTC + Brasília) -->
     <div class="hidden md:flex items-center gap-3 font-mono text-[11px] leading-none shrink-0">
       <div class="text-right">
@@ -66,8 +89,12 @@ import { useBacktestStore } from '@/stores/backtest.js'
 import { useOptimizerStore } from '@/stores/optimizer.js'
 import { usePropChallengeStore } from '@/stores/propChallenge.js'
 import { useRegimeStore } from '@/stores/regime.js'
+import { useTerminalStore } from '@/stores/terminal.js'
+
+defineEmits(['open-cmd'])
 
 const route = useRoute()
+const terminal = useTerminalStore()
 const dashStore = useDashboardStore()
 const btStore = useBacktestStore()
 const optStore = useOptimizerStore()
@@ -92,6 +119,12 @@ const NAV = [
     icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
   { to: '/automation', label: 'Automação',
     icon: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>' },
+  { to: '/monitor', label: 'Monitor',
+    icon: '<circle cx="12" cy="12" r="3"/><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' },
+  { to: '/screener', label: 'Screener',
+    icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
+  { to: '/news', label: 'Notícias',
+    icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="18" y1="14" x2="10" y2="14"/><line x1="18" y1="18" x2="10" y2="18"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/>' },
 ]
 
 const busyLabel = computed(() => {
@@ -120,7 +153,11 @@ function tick() {
   inWindow.value = h >= 22 || h < 3
 }
 
-onMounted(() => { tick(); clockTimer = setInterval(tick, 1000) })
+onMounted(() => {
+  tick()
+  clockTimer = setInterval(tick, 1000)
+  terminal.startAlertsPolling()      // badge do sino em qualquer página
+})
 onBeforeUnmount(() => clearInterval(clockTimer))
 </script>
 

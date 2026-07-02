@@ -3017,6 +3017,10 @@ def api_journal_sync():
 from automation.api import automation_bp  # noqa: E402
 app.register_blueprint(automation_bp)
 
+# ─── Terminal (monitor / screener / DES / alertas / notícias) ─────────────
+from terminal_api import terminal_bp  # noqa: E402
+app.register_blueprint(terminal_bp)
+
 
 def _start_automation_runner():
     """Religa o runner se havia deployments rodando quando o server caiu.

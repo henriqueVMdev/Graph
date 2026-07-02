@@ -1,0 +1,435 @@
+"""
+Blueprint /api/terminal — funções estilo Bloomberg Terminal.
+
+Tudo aditivo: dados públicos via ccxt (market_data.get_exchange, instância
+cacheada e rate-limited), caches próprios com TTL, alertas em JSON com lock
+(padrão do journal) checados por uma thread daemon iniciada sob demanda.
+"""
+
+from __future__ import annotations
+
+import json
+import threading
+import time
+import uuid
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+from urllib.request import Request, urlopen
+
+from flask import Blueprint, jsonify, request
+
+from market_data import get_exchange, normalize_symbol
+
+terminal_bp = Blueprint("terminal", __name__, url_prefix="/api/terminal")
+
+# ── cache TTL genérico ───────────────────────────────────────────────────
+_CACHE: dict = {}
+
+
+def _cached(key, ttl_s, fn):
+    hit = _CACHE.get(key)
+    if hit and time.time() - hit[0] < ttl_s:
+        return hit[1]
+    data = fn()
+    _CACHE[key] = (time.time(), data)
+    return data
+
+
+def _safe_float(v):
+    try:
+        return float(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+# ── /watch — tickers ao vivo da watchlist ────────────────────────────────
+
+@terminal_bp.get("/watch")
+def watch():
+    try:
+        exchange = (request.args.get("exchange") or "bybit").lower()
+        bases = [s.strip() for s in (request.args.get("symbols") or "").split(",")
+                 if s.strip()]
+        if not bases:
+            return jsonify({"rows": []})
+        ex = get_exchange(exchange)
+        syms = [normalize_symbol(b, exchange) for b in bases]
+        tickers = ex.fetch_tickers(syms)
+        try:
+            frs = ex.fetch_funding_rates(syms)
+        except Exception:
+            frs = {}
+        rows = []
+        for base, sym in zip(bases, syms):
+            t = tickers.get(sym) or {}
+            fr = frs.get(sym) or {}
+            rows.append({
+                "base": base.upper(),
+                "symbol": sym,
+                "last": _safe_float(t.get("last")),
+                "pct24h": _safe_float(t.get("percentage")),
+                "high24": _safe_float(t.get("high")),
+                "low24": _safe_float(t.get("low")),
+                "vol_usd": _safe_float(t.get("quoteVolume")),
+                "funding": _safe_float(fr.get("fundingRate")),
+                "next_funding_ts": fr.get("fundingTimestamp") or fr.get("nextFundingTimestamp"),
+            })
+        return jsonify({"rows": rows, "ts": int(time.time() * 1000)})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── /spark — closes p/ sparkline ─────────────────────────────────────────
+
+@terminal_bp.get("/spark")
+def spark():
+    try:
+        exchange = (request.args.get("exchange") or "bybit").lower()
+        base = (request.args.get("symbol") or "").strip()
+        tf = request.args.get("tf", "15m")
+        bars = min(int(request.args.get("bars", 96)), 500)
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        sym = normalize_symbol(base, exchange)
+
+        def fetch():
+            ex = get_exchange(exchange)
+            raw = ex.fetch_ohlcv(sym, timeframe=tf, limit=bars)
+            return [_safe_float(c[4]) for c in raw]
+
+        closes = _cached(("spark", exchange, sym, tf, bars), 600, fetch)
+        return jsonify({"closes": closes})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── /screener — ranking de perps ─────────────────────────────────────────
+
+def _kline_stats(ex, sym):
+    """Retornos 1d/7d/30d e ATR14% do símbolo, de klines diárias (cache 30min)."""
+    def fetch():
+        raw = ex.fetch_ohlcv(sym, timeframe="1d", limit=31)
+        if len(raw) < 2:
+            return {}
+        closes = [c[4] for c in raw]
+        highs = [c[2] for c in raw]
+        lows = [c[3] for c in raw]
+        last = closes[-1]
+        def ret(n):
+            return (last / closes[-n - 1] - 1) * 100 if len(closes) > n else None
+        trs = [max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]),
+                   abs(lows[i] - closes[i - 1])) for i in range(1, len(raw))]
+        atr = sum(trs[-14:]) / min(14, len(trs))
+        return {"ret1d": ret(1), "ret7d": ret(7), "ret30d": ret(30),
+                "atr_pct": atr / last * 100 if last else None}
+    return _cached(("kstats", sym), 1800, fetch)
+
+
+@terminal_bp.get("/screener")
+def screener():
+    try:
+        exchange = (request.args.get("exchange") or "bybit").lower()
+        top = min(int(request.args.get("top", 50)), 100)
+        ex = get_exchange(exchange)
+
+        tickers = _cached(("alltickers", exchange), 55, ex.fetch_tickers)
+        perps = [(s, t) for s, t in tickers.items()
+                 if s.endswith("/USDT:USDT") and t.get("quoteVolume")]
+        perps.sort(key=lambda x: x[1]["quoteVolume"], reverse=True)
+        perps = perps[:top]
+
+        def fetch_frs():
+            try:
+                return ex.fetch_funding_rates([s for s, _ in perps])
+            except Exception:
+                return {}
+        frs = _cached(("frs", exchange, top), 300, fetch_frs)
+
+        rows = []
+        for sym, t in perps:
+            stats = _kline_stats(ex, sym)
+            fr = frs.get(sym) or {}
+            rows.append({
+                "base": sym.split("/")[0],
+                "symbol": sym,
+                "last": _safe_float(t.get("last")),
+                "pct24h": _safe_float(t.get("percentage")),
+                "vol_usd": _safe_float(t.get("quoteVolume")),
+                "funding": _safe_float(fr.get("fundingRate")),
+                **{k: _safe_float(v) for k, v in stats.items()},
+            })
+        return jsonify({"rows": rows, "ts": int(time.time() * 1000)})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── /des — visão geral do instrumento ────────────────────────────────────
+
+@terminal_bp.get("/des")
+def des():
+    try:
+        exchange = (request.args.get("exchange") or "bybit").lower()
+        base = (request.args.get("symbol") or "").strip()
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        ex = get_exchange(exchange)
+        sym = normalize_symbol(base, exchange)
+        mkt = ex.market(sym)
+        ticker = ex.fetch_ticker(sym)
+
+        try:
+            oi = ex.fetch_open_interest(sym)
+        except Exception:
+            oi = {}
+        try:
+            fr = ex.fetch_funding_rate(sym)
+        except Exception:
+            fr = {}
+
+        stats = _kline_stats(ex, sym)
+
+        # histórico de funding 30d (cache parquet do módulo de custos)
+        funding_hist = {"dates": [], "rates": []}
+        try:
+            from costs.funding import get_funding_events
+            now = int(time.time() * 1000)
+            evs = get_funding_events(exchange, sym, now - 30 * 86_400_000, now)
+            funding_hist = {
+                "dates": [int(e.timestamp) for e in evs],
+                "rates": [float(e.rate) for e in evs],
+            }
+        except Exception:
+            pass
+
+        fees = {}
+        try:
+            from costs.config import DEFAULT_FEES
+            f = DEFAULT_FEES.get(exchange)
+            if f:
+                fees = {"maker": float(f.maker), "taker": float(f.taker)}
+        except Exception:
+            pass
+
+        limits = mkt.get("limits") or {}
+        return jsonify({
+            "base": base.upper(),
+            "symbol": sym,
+            "exchange": exchange,
+            "last": _safe_float(ticker.get("last")),
+            "pct24h": _safe_float(ticker.get("percentage")),
+            "high24": _safe_float(ticker.get("high")),
+            "low24": _safe_float(ticker.get("low")),
+            "vol_usd": _safe_float(ticker.get("quoteVolume")),
+            "open_interest": _safe_float(oi.get("openInterestAmount")),
+            "open_interest_usd": _safe_float(oi.get("openInterestValue")),
+            "funding": _safe_float(fr.get("fundingRate")),
+            "next_funding_ts": fr.get("fundingTimestamp") or fr.get("nextFundingTimestamp"),
+            "funding_hist": funding_hist,
+            "fees": fees,
+            "min_qty": _safe_float(((limits.get("amount") or {}).get("min"))),
+            "min_notional": _safe_float(((limits.get("cost") or {}).get("min"))),
+            "contract_size": _safe_float(mkt.get("contractSize")),
+            **{k: _safe_float(v) for k, v in stats.items()},
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── Alertas (preço/funding) ──────────────────────────────────────────────
+
+_ALERTS_FILE = Path(__file__).parent / "alerts_data.json"
+_alerts_lock = threading.Lock()
+_ALERT_KINDS = ("price_above", "price_below", "funding_above", "funding_below")
+
+
+def _alerts_load() -> list:
+    if not _ALERTS_FILE.exists():
+        return []
+    try:
+        return json.loads(_ALERTS_FILE.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return []
+
+
+def _alerts_save(alerts: list) -> None:
+    _ALERTS_FILE.write_text(json.dumps(alerts, ensure_ascii=False, indent=1),
+                            encoding="utf-8")
+
+
+@terminal_bp.get("/alerts")
+def alerts_list():
+    _ensure_watcher()
+    with _alerts_lock:
+        return jsonify({"alerts": _alerts_load()})
+
+
+@terminal_bp.post("/alerts")
+def alerts_create():
+    body = request.get_json(force=True) or {}
+    kind = body.get("kind")
+    symbol = (body.get("symbol") or "").strip().upper()
+    level = _safe_float(body.get("level"))
+    if kind not in _ALERT_KINDS:
+        return jsonify({"error": f"kind deve ser um de {_ALERT_KINDS}"}), 400
+    if not symbol or level is None:
+        return jsonify({"error": "symbol e level obrigatórios"}), 400
+    alert = {
+        "id": uuid.uuid4().hex[:10],
+        "symbol": symbol,
+        "exchange": (body.get("exchange") or "bybit").lower(),
+        "kind": kind,
+        "level": level,
+        "note": (body.get("note") or "")[:200],
+        "active": True,
+        "created_at": int(time.time() * 1000),
+        "triggered_at": None,
+        "trigger_value": None,
+    }
+    with _alerts_lock:
+        alerts = _alerts_load()
+        alerts.append(alert)
+        _alerts_save(alerts)
+    _ensure_watcher()
+    return jsonify({"alert": alert})
+
+
+@terminal_bp.delete("/alerts/<alert_id>")
+def alerts_delete(alert_id):
+    with _alerts_lock:
+        alerts = _alerts_load()
+        alerts = [a for a in alerts if a["id"] != alert_id]
+        _alerts_save(alerts)
+    return jsonify({"ok": True})
+
+
+_watcher_started = False
+_watcher_lock = threading.Lock()
+
+
+def _ensure_watcher():
+    """Inicia a thread de checagem sob demanda (evita duplicar no reloader:
+    só requests reais chegam aqui)."""
+    global _watcher_started
+    with _watcher_lock:
+        if _watcher_started:
+            return
+        threading.Thread(target=_alert_watcher, daemon=True,
+                         name="terminal-alert-watcher").start()
+        _watcher_started = True
+
+
+def _alert_watcher():
+    while True:
+        time.sleep(30)
+        try:
+            with _alerts_lock:
+                alerts = _alerts_load()
+            active = [a for a in alerts if a.get("active")]
+            if not active:
+                continue
+            # agrupa por exchange; 1 fetch de tickers+funding por exchange
+            by_ex: dict = {}
+            for a in active:
+                by_ex.setdefault(a["exchange"], set()).add(a["symbol"])
+            quotes: dict = {}
+            for exch, bases in by_ex.items():
+                ex = get_exchange(exch)
+                syms = {b: normalize_symbol(b, exch) for b in bases}
+                tickers = ex.fetch_tickers(list(syms.values()))
+                try:
+                    frs = ex.fetch_funding_rates(list(syms.values()))
+                except Exception:
+                    frs = {}
+                for b, s in syms.items():
+                    quotes[(exch, b)] = {
+                        "price": _safe_float((tickers.get(s) or {}).get("last")),
+                        "funding": _safe_float((frs.get(s) or {}).get("fundingRate")),
+                    }
+            changed = False
+            for a in active:
+                q = quotes.get((a["exchange"], a["symbol"])) or {}
+                v = q.get("funding") if a["kind"].startswith("funding") else q.get("price")
+                if v is None:
+                    continue
+                hit = (v >= a["level"] if a["kind"].endswith("above") else v <= a["level"])
+                if hit:
+                    a["active"] = False
+                    a["triggered_at"] = int(time.time() * 1000)
+                    a["trigger_value"] = v
+                    changed = True
+            if changed:
+                with _alerts_lock:
+                    # regrava preservando alertas criados durante o ciclo
+                    cur = _alerts_load()
+                    by_id = {a["id"]: a for a in alerts}
+                    out = [by_id.get(c["id"], c) for c in cur]
+                    _alerts_save(out)
+        except Exception:
+            pass  # ciclo seguinte tenta de novo
+
+
+# ── /news — RSS agregado ─────────────────────────────────────────────────
+
+_NEWS_SOURCES = [
+    ("CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+    ("Cointelegraph", "https://cointelegraph.com/rss"),
+    ("Decrypt", "https://decrypt.co/feed"),
+    ("Livecoins", "https://livecoins.com.br/feed/"),
+]
+
+
+def _parse_feed(name, url):
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (terminal-graph)"})
+    with urlopen(req, timeout=8) as resp:
+        root = ET.fromstring(resp.read())
+    items = []
+    # RSS 2.0
+    for item in root.iter("item"):
+        title = (item.findtext("title") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        pub = item.findtext("pubDate")
+        ts = None
+        if pub:
+            try:
+                ts = int(parsedate_to_datetime(pub).timestamp() * 1000)
+            except (TypeError, ValueError):
+                pass
+        if title and link:
+            items.append({"title": title, "link": link, "source": name, "ts": ts})
+    # Atom fallback
+    if not items:
+        ns = {"a": "http://www.w3.org/2005/Atom"}
+        for entry in root.findall("a:entry", ns):
+            title = (entry.findtext("a:title", namespaces=ns) or "").strip()
+            link_el = entry.find("a:link", ns)
+            link = link_el.get("href") if link_el is not None else ""
+            when = entry.findtext("a:updated", namespaces=ns)
+            ts = None
+            if when:
+                try:
+                    from datetime import datetime
+                    ts = int(datetime.fromisoformat(when.replace("Z", "+00:00"))
+                             .timestamp() * 1000)
+                except ValueError:
+                    pass
+            if title and link:
+                items.append({"title": title, "link": link, "source": name, "ts": ts})
+    return items
+
+
+@terminal_bp.get("/news")
+def news():
+    def fetch():
+        items, failed = [], []
+        for name, url in _NEWS_SOURCES:
+            try:
+                items.extend(_parse_feed(name, url)[:25])
+            except Exception:
+                failed.append(name)
+        items.sort(key=lambda x: x["ts"] or 0, reverse=True)
+        return {"items": items[:80], "failed_sources": failed}
+    try:
+        return jsonify(_cached(("news",), 600, fetch))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
