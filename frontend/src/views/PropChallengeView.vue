@@ -56,8 +56,21 @@
             <span v-if="store.results.interval !== '-'"> · {{ store.results.interval }}</span>
             <span> · {{ store.results.total_trades }} trades</span>
           </div>
-          <div class="text-sm font-mono text-accent-yellow">
-            ${{ store.results.account_size.toLocaleString() }}
+          <div class="flex items-center gap-3">
+            <button
+              @click="sendToAutomation"
+              :disabled="!store.selectedStrategy?.automatable"
+              :title="store.selectedStrategy?.automatable
+                ? 'Cria um deployment paper/demo com esta config'
+                : 'Estratégia sem signal() — não automatizável'"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-yellow/15 text-accent-yellow
+                     hover:bg-accent-yellow/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ⚡ Enviar para Automação
+            </button>
+            <div class="text-sm font-mono text-accent-yellow">
+              ${{ store.results.account_size.toLocaleString() }}
+            </div>
           </div>
         </div>
 
@@ -255,6 +268,32 @@ import PropChallengeSidebar from '@/components/propchallenge/PropChallengeSideba
 import WalkForwardSection from '@/components/backtest/WalkForwardSection.vue'
 
 const store = usePropChallengeStore()
+
+// ── Enviar para Automação ──────────────────────────────────────────────
+import { useRouter } from 'vue-router'
+import { useAutomationStore } from '@/stores/automation.js'
+const router = useRouter()
+const autoStore = useAutomationStore()
+
+function sendToAutomation() {
+  const ts = store.results?.trade_stats || {}
+  autoStore.pendingDeployment = {
+    strategy_file: store.selectedStrategy?.file,
+    params: { ...store.params },
+    symbol: store.selectedSymbol || store.results?.symbol,
+    interval: store.interval,
+    exchange: 'bybit',
+    backtest_ref: {
+      win_rate: ts.win_rate,
+      avg_win: ts.avg_win,
+      avg_loss: ts.avg_loss,
+      total_trades: ts.total,
+      pass_rate: store.results?.overall?.pass_rate,
+      source: 'prop-challenge',
+    },
+  }
+  router.push('/automation')
+}
 const sidebarOpen = ref(true)
 const phase1ChartEl = ref(null)
 const phase2ChartEl = ref(null)

@@ -27,3 +27,6 @@ Thumbs.db
 
 # Spec do modulo de custos (nao versionar)
 CLAUDE-quant-costs.md
+
+# Automação (estado local: deployments, ordens, fills)
+automation/state.db*

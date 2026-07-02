@@ -1,0 +1,103 @@
+"""
+Engine de paper trading dirigido por CANDLE FECHADO — nunca por relógio.
+
+Semântica idêntica ao backtest (strategies/mm9_pullback.run):
+- Ordem limite vale por 1 candle; fill só se o preço ATRAVESSAR
+  (Low < limite p/ long, High > limite p/ short — estrito).
+- No candle da posição: SL primeiro (Low<=sl / High>=sl), depois TP
+  (High>tp / Low<tp — estrito, limite maker), depois time-stop no Close.
+  TP e SL no mesmo candle = LOSS (SL testado antes).
+- pnl_pct escalado pela exposição (mesma fórmula do backtest).
+
+Fees (opcional, default ligado): maker na entrada e no TP, taker no SL e
+no time-stop — tabela da Bybit em costs/config.py. Funding NÃO é simulado
+no paper (registrado como premissa; o modo demo tem funding real).
+
+Como o processamento é por candle fechado em ordem, desligar o PC e
+religar produz replay determinístico: mesmo resultado de ter ficado ligado.
+"""
+
+from __future__ import annotations
+
+from decimal import Decimal
+
+try:
+    from costs.config import DEFAULT_FEES
+    _F = DEFAULT_FEES["bybit"]
+    MAKER, TAKER = float(_F.maker), float(_F.taker)
+except Exception:                      # fallback: tabela 2026 da Bybit
+    MAKER, TAKER = 0.0002, 0.00055
+
+
+def check_entry_fill(order: dict, candle: dict) -> bool:
+    """Ordem limite 'cross': o candle atravessou o preço da limite?"""
+    if candle["ts"] != order["valid_candle_ts"]:
+        return False
+    if order["side"] == 1:
+        return candle["low"] < order["price"]
+    return candle["high"] > order["price"]
+
+
+def open_position_from_order(order: dict, equity: float, candle_ts: int) -> dict:
+    """Monta a posição a partir da ordem preenchida (sizing do backtest)."""
+    entry = float(order["price"])
+    side = int(order["side"])
+    exposure = float(order["exposure"])
+    qty = exposure * equity / entry if entry > 0 else 0.0
+    return {
+        "side": side,
+        "qty": qty,
+        "exposure": exposure,
+        "entry_price": entry,
+        "entry_candle_ts": candle_ts,
+        "tp_price": entry * (1 + float(order["tp_pct"]) / 100 * side),
+        "sl_price": entry * (1 - float(order["sl_pct"]) / 100 * side),
+        "max_bars": int(order["max_bars"]),
+        "bars_held": 0,
+    }
+
+
+def check_exit(pos: dict, candle: dict) -> dict | None:
+    """Avalia saída da posição neste candle (ordem: SL, TP, time-stop).
+
+    bars_held do candle de entrada = 1 (mesmo candle pode estopar, igual
+    ao backtest onde j começa em i). Retorna None ou
+    {exit_price, reason, exit_fee_rate}.
+    """
+    side = pos["side"]
+    sl, tp = pos["sl_price"], pos["tp_price"]
+    hit_sl = (candle["low"] <= sl) if side == 1 else (candle["high"] >= sl)
+    hit_tp = (candle["high"] > tp) if side == 1 else (candle["low"] < tp)
+    if hit_sl:
+        return {"exit_price": sl, "reason": "Stop Loss", "exit_fee_rate": TAKER}
+    if hit_tp:
+        return {"exit_price": tp, "reason": "Alvo (maker)", "exit_fee_rate": MAKER}
+    if pos["bars_held"] + 1 >= pos["max_bars"]:
+        return {"exit_price": candle["close"], "reason": "Time Stop",
+                "exit_fee_rate": TAKER}
+    return None
+
+
+def close_pnl(pos: dict, exit_price: float, exit_fee_rate: float,
+              equity: float, with_fees: bool = True) -> dict:
+    """PnL do fechamento, na mesma base do backtest (% do equity de entrada).
+
+    Fees sobre o notional (entrada maker + saída conforme o gatilho),
+    convertidas para % do equity via exposição.
+    """
+    side, exposure = pos["side"], pos["exposure"]
+    gross_pct = side * (exit_price / pos["entry_price"] - 1) * 100 * exposure
+    fees_pct = ((MAKER + exit_fee_rate) * 100 * exposure) if with_fees else 0.0
+    pnl_pct = gross_pct - fees_pct
+    pnl_quote = equity * pnl_pct / 100
+    fees_quote = equity * fees_pct / 100
+    return {"pnl_pct": pnl_pct, "gross_pct": gross_pct,
+            "pnl_quote": pnl_quote, "fees_quote": fees_quote,
+            "new_equity": equity * (1 + pnl_pct / 100)}
+
+
+def mark_to_market(pos: dict | None, equity: float, close: float) -> float:
+    """Equity do snapshot deste candle (mesma conta da eq_curve do backtest)."""
+    if pos is None:
+        return equity
+    return equity * (1 + pos["side"] * (close / pos["entry_price"] - 1) * pos["exposure"])

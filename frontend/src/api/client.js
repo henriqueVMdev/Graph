@@ -189,4 +189,34 @@ export function runPropChallenge(payload) {
   return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })
 }
 
+// ─── Automation API ──────────────────────────────────────────────────────────
+
+export function getDeployments() {
+  return api.get('/automation/deployments')
+}
+
+export function createDeployment(payload) {
+  return api.post('/automation/deployments', payload)
+}
+
+export function startDeployment(id) {
+  return api.post(`/automation/deployments/${id}/start`)
+}
+
+export function stopDeployment(id, closePosition = false) {
+  return api.post(`/automation/deployments/${id}/stop`, { close_position: closePosition })
+}
+
+export function deleteDeployment(id) {
+  return api.delete(`/automation/deployments/${id}`)
+}
+
+export function getDeploymentStatus(id) {
+  return api.get(`/automation/deployments/${id}/status`)
+}
+
+export function getRunnerStatus() {
+  return api.get('/automation/runner/status')
+}
+
 export default api

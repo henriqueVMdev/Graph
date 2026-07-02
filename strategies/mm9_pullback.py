@@ -122,45 +122,46 @@ def _allowed_utc_hours(start: int, end: int, utc_offset: int) -> set:
     return hours
 
 
-def run(df: pd.DataFrame, params: dict) -> dict:
-    """Executa o backtest. df: OHLCV com DatetimeIndex UTC tz-naive.
+def _cfg(params: dict) -> dict:
+    """Normaliza os parâmetros com os mesmos defaults do CONFIG_SCHEMA."""
+    return {
+        "tp_pct":       float(params.get("tp_pct", 0.5)),
+        "sl_pct":       float(params.get("sl_pct", 1.5)),
+        "max_bars":     int(params.get("max_bars", 48)),
+        "ma_fast":      int(params.get("ma_fast", 9)),
+        "trend_fast":   int(params.get("trend_fast", 50)),
+        "trend_slow":   int(params.get("trend_slow", 200)),
+        "use_trend_1h": bool(params.get("use_trend_1h", True)),
+        "vol_rank_min": float(params.get("vol_rank_min", 0.5)),
+        "allow_shorts": bool(params.get("allow_shorts", True)),
+        "use_hours":    bool(params.get("use_hour_filter", True)),
+        "hour_start":   int(params.get("hour_start", 19)),
+        "hour_end":     int(params.get("hour_end", 0)),
+        "utc_offset":   int(params.get("utc_offset", -3)),
+        "risk_pct":     float(params.get("risk_per_trade", 1.0)),
+        "lev_cap":      max(float(params.get("leverage", 2.0)), 1.0),
+        "initial_capital": float(params.get("initial_capital", 1000.0)),
+    }
 
-    Retorna dict com keys: chart, metrics, drawdown, equity_curve, trades
-    (mesmo contrato das demais estratégias da plataforma).
+
+def _compute_features(df: pd.DataFrame, params: dict) -> dict:
+    """Indicadores e condições avaliados NO PRÓPRIO candle t (sem shift).
+
+    O backtest (`run`) desloca tudo com prev() — condição do candle t vale
+    para o fill no candle t+1. O sinal ao vivo (`signal`) usa a última linha
+    diretamente: o candle recém-fechado É o "anterior" do próximo candle.
+    Todos os anti-lookaheads moram aqui (slope 1h só com horas fechadas).
     """
-    tp_pct       = float(params.get("tp_pct", 0.5))
-    sl_pct       = float(params.get("sl_pct", 1.5))
-    max_bars     = int(params.get("max_bars", 48))
-    ma_fast      = int(params.get("ma_fast", 9))
-    trend_fast   = int(params.get("trend_fast", 50))
-    trend_slow   = int(params.get("trend_slow", 200))
-    use_trend_1h = bool(params.get("use_trend_1h", True))
-    vol_rank_min = float(params.get("vol_rank_min", 0.5))
-    allow_shorts = bool(params.get("allow_shorts", True))
-    use_hours    = bool(params.get("use_hour_filter", True))
-    hour_start   = int(params.get("hour_start", 19))
-    hour_end     = int(params.get("hour_end", 0))
-    utc_offset   = int(params.get("utc_offset", -3))
-    risk_pct     = float(params.get("risk_per_trade", 1.0))
-    lev_cap      = max(float(params.get("leverage", 2.0)), 1.0)
-    initial_capital = float(params.get("initial_capital", 1000.0))
-    _fast        = bool(params.get("_fast", False))
-
-    O = df["Open"].values
-    H = df["High"].values
-    L = df["Low"].values
+    cfg = _cfg(params)
     C = df["Close"].values
     N = len(df)
-    # epoch ms independente da resolução interna do índice (ns ou us)
-    TS = ((df.index - pd.Timestamp(0)).total_seconds().values * 1000).astype(np.int64)
-    HOUR = df.index.hour.values
-
     close_s = pd.Series(C, index=df.index)
-    e9   = _ema(close_s, ma_fast)
-    e50  = _ema(close_s, trend_fast)
-    e200 = _ema(close_s, trend_slow)
+    e9   = _ema(close_s, cfg["ma_fast"])
+    e50  = _ema(close_s, cfg["trend_fast"])
+    e200 = _ema(close_s, cfg["trend_slow"])
 
-    h_s, l_s = pd.Series(H, index=df.index), pd.Series(L, index=df.index)
+    h_s = pd.Series(df["High"].values, index=df.index)
+    l_s = pd.Series(df["Low"].values, index=df.index)
     tr = pd.concat([h_s - l_s,
                     (h_s - close_s.shift()).abs(),
                     (l_s - close_s.shift()).abs()], axis=1).max(axis=1)
@@ -169,7 +170,7 @@ def run(df: pd.DataFrame, params: dict) -> dict:
 
     # Slope da EMA9 do 1h SEM lookahead: o bucket 1h só é conhecido depois
     # de fechar, então seu valor fica disponível em bucket_start + 1h.
-    if use_trend_1h:
+    if cfg["use_trend_1h"]:
         c1h = close_s.resample("1h").last()
         e1h = c1h.ewm(span=9, adjust=False).mean()
         slope_raw = e1h.diff() > 0
@@ -177,25 +178,118 @@ def run(df: pd.DataFrame, params: dict) -> dict:
         slope_up = slope_raw.reindex(df.index, method="ffill").fillna(False).values
     else:
         slope_up = np.ones(N, dtype=bool)
+    slope_up = np.asarray(slope_up, dtype=bool)
 
-    # Condições avaliadas no candle ANTERIOR ao candle de fill
+    long_ok = ((e50.values > e200.values) & (C > e200.values)
+               & slope_up & (C > e9.values))
+    short_ok = ((e50.values < e200.values) & (C < e200.values)
+                & np.logical_not(slope_up) & (C < e9.values))
+    vol_ok = (vol_rank.values >= cfg["vol_rank_min"]
+              if cfg["vol_rank_min"] > 0 else np.ones(N, bool))
+
+    hours_utc = (_allowed_utc_hours(cfg["hour_start"], cfg["hour_end"], cfg["utc_offset"])
+                 if cfg["use_hours"] else None)
+    exposure = min(cfg["risk_pct"] / cfg["sl_pct"], cfg["lev_cap"])  # notional/equity
+
+    return {
+        "e9": e9.values, "e50": e50.values, "e200": e200.values,
+        "long_ok": long_ok, "short_ok": short_ok, "vol_ok": vol_ok,
+        "hours_utc": hours_utc, "exposure": exposure, "cfg": cfg,
+    }
+
+
+def signal(df: pd.DataFrame, params: dict):
+    """Sinal ao vivo para o módulo de automação.
+
+    df: OHLCV APENAS com candles FECHADOS (o chamador descarta o em formação).
+    Decide, com base no último candle fechado, a ordem de ENTRADA desejada
+    para o próximo candle. A política de saída (TP/SL/time-stop) é devolvida
+    de forma declarativa e executada pelo runner — mesma semântica do run():
+    limite na EMA9 do candle fechado, válida por 1 candle, fill só se o
+    preço ATRAVESSAR ('cross').
+
+    Retorna None (sem entrada) ou:
+      {side, type:'limit', price, valid_bars, tp_pct, sl_pct, max_bars,
+       fill_rule:'cross', exposure}
+    """
+    # Warm-up: vol_rank precisa de 384 barras fechadas
+    if len(df) < 400:
+        return None
+
+    feat = _compute_features(df, params)
+    cfg = feat["cfg"]
+
+    # Filtro de horário vale para o candle do FILL = o PRÓXIMO candle
+    if feat["hours_utc"] is not None:
+        tf = df.index[-1] - df.index[-2]
+        next_open_hour = (df.index[-1] + tf).hour
+        if next_open_hour not in feat["hours_utc"]:
+            return None
+
+    if not bool(feat["vol_ok"][-1]):
+        return None
+
+    if bool(feat["long_ok"][-1]):
+        side = 1
+    elif cfg["allow_shorts"] and bool(feat["short_ok"][-1]):
+        side = -1
+    else:
+        return None
+
+    return {
+        "side": side,
+        "type": "limit",
+        "price": float(feat["e9"][-1]),
+        "valid_bars": 1,
+        "tp_pct": cfg["tp_pct"],
+        "sl_pct": cfg["sl_pct"],
+        "max_bars": cfg["max_bars"],
+        "fill_rule": "cross",
+        "exposure": feat["exposure"],
+    }
+
+
+def run(df: pd.DataFrame, params: dict) -> dict:
+    """Executa o backtest. df: OHLCV com DatetimeIndex UTC tz-naive.
+
+    Retorna dict com keys: chart, metrics, drawdown, equity_curve, trades
+    (mesmo contrato das demais estratégias da plataforma).
+    """
+    feat = _compute_features(df, params)
+    cfg = feat["cfg"]
+    tp_pct, sl_pct, max_bars = cfg["tp_pct"], cfg["sl_pct"], cfg["max_bars"]
+    allow_shorts = cfg["allow_shorts"]
+    initial_capital = cfg["initial_capital"]
+    _fast = bool(params.get("_fast", False))
+
+    O = df["Open"].values
+    H = df["High"].values
+    L = df["Low"].values
+    C = df["Close"].values
+    N = len(df)
+    # epoch ms independente da resolução interna do índice (ns ou us)
+    TS = ((df.index - pd.Timestamp(0)).total_seconds().values * 1000).astype(np.int64)
+
+    e9 = pd.Series(feat["e9"], index=df.index)
+    e50 = pd.Series(feat["e50"], index=df.index)
+    e200 = pd.Series(feat["e200"], index=df.index)
+    HOUR = df.index.hour.values
+
+    # Condições do candle ANTERIOR valem no candle do fill
     def prev(a):
         out = np.roll(np.asarray(a, dtype=bool), 1)
         out[0] = False
         return out
 
-    up_ok = (prev((e50.values > e200.values) & (C > e200.values))
-             & prev(slope_up) & prev(C > e9.values))
-    dn_ok = (prev((e50.values < e200.values) & (C < e200.values))
-             & prev(~np.asarray(slope_up, dtype=bool)) & prev(C < e9.values))
-    vol_ok = prev(vol_rank.values >= vol_rank_min) if vol_rank_min > 0 else np.ones(N, bool)
+    up_ok = prev(feat["long_ok"])
+    dn_ok = prev(feat["short_ok"])
+    vol_ok = prev(feat["vol_ok"]) if cfg["vol_rank_min"] > 0 else np.ones(N, bool)
 
     setup = (up_ok | (dn_ok if allow_shorts else False)) & vol_ok
     sides = np.where(up_ok, 1, -1)
 
-    hours_utc = _allowed_utc_hours(hour_start, hour_end, utc_offset) if use_hours else None
-
-    exposure = min(risk_pct / sl_pct, lev_cap)   # notional / equity
+    hours_utc = feat["hours_utc"]
+    exposure = feat["exposure"]
 
     # ── Loop do backtest ──────────────────────────────────────────────────
     equity = initial_capital

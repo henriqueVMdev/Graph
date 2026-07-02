@@ -52,6 +52,13 @@
       >
         Diário
       </RouterLink>
+      <RouterLink
+        to="/automation"
+        class="nav-link"
+        :class="{ active: route.path === '/automation' }"
+      >
+        Automação
+      </RouterLink>
     </div>
 
     <!-- Spacer -->

@@ -49,9 +49,22 @@
 
       <!-- Results -->
       <template v-if="store.results && !store.isRunning">
-        <div class="text-sm text-gray-400">
-          <span class="font-semibold text-gray-200">{{ store.results.symbol }}</span>
-          <span v-if="store.results.interval !== '-'"> · {{ store.results.interval }}</span>
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-400">
+            <span class="font-semibold text-gray-200">{{ store.results.symbol }}</span>
+            <span v-if="store.results.interval !== '-'"> · {{ store.results.interval }}</span>
+          </div>
+          <button
+            @click="sendToAutomation"
+            :disabled="!store.selectedStrategy?.automatable"
+            :title="store.selectedStrategy?.automatable
+              ? 'Cria um deployment paper/demo com esta config'
+              : 'Estratégia sem signal() — não automatizável'"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-yellow/15 text-accent-yellow
+                   hover:bg-accent-yellow/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ⚡ Enviar para Automação
+          </button>
         </div>
 
         <!-- Metric cards -->
@@ -137,6 +150,33 @@ import AnalysisCharts from '@/components/backtest/AnalysisCharts.vue'
 
 const store = useBacktestStore()
 const paramsBanner = ref(false)
+
+// ── Enviar para Automação ──────────────────────────────────────────────
+import { useRouter } from 'vue-router'
+import { useAutomationStore } from '@/stores/automation.js'
+const router = useRouter()
+const autoStore = useAutomationStore()
+
+function sendToAutomation() {
+  const m = store.results?.metrics || {}
+  autoStore.pendingDeployment = {
+    strategy_file: store.selectedStrategy?.file,
+    params: { ...store.params },
+    symbol: store.selectedSymbol || store.results?.symbol,
+    interval: store.interval,
+    exchange: 'bybit',
+    backtest_ref: {
+      win_rate: m.win_rate,
+      profit_factor: m.profit_factor,
+      avg_win: m.avg_win,
+      avg_loss: m.avg_loss,
+      total_trades: m.total_trades,
+      total_return: m.total_return,
+      source: 'backtest',
+    },
+  }
+  router.push('/automation')
+}
 
 onMounted(async () => {
   await Promise.all([store.fetchAssets(), store.fetchStrategies()])

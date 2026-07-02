@@ -6,6 +6,7 @@ import PropChallengeView from '@/views/PropChallengeView.vue'
 import RegimeView from '@/views/RegimeView.vue'
 import JournalView from '@/views/JournalView.vue'
 import ChartView from '@/views/ChartView.vue'
+import AutomationView from '@/views/AutomationView.vue'
 
 const routes = [
   {
@@ -46,6 +47,11 @@ const routes = [
     path: '/journal',
     name: 'journal',
     component: JournalView,
+  },
+  {
+    path: '/automation',
+    name: 'automation',
+    component: AutomationView,
   },
 ]
 

@@ -754,6 +754,8 @@ def api_backtest_strategies():
                     "name": getattr(module, "NAME", path.stem),
                     "description": getattr(module, "DESCRIPTION", ""),
                     "schema": getattr(module, "CONFIG_SCHEMA", []),
+                    # automatizável = expõe signal() (contrato do módulo automation)
+                    "automatable": callable(getattr(module, "signal", None)),
                 })
             except Exception as e:
                 import traceback
@@ -2980,9 +2982,29 @@ def api_journal_sync():
     })
 
 
+# ─── Automação (paper / Bybit demo) ──────────────────────────────────────
+from automation.api import automation_bp  # noqa: E402
+app.register_blueprint(automation_bp)
+
+
+def _start_automation_runner():
+    """Religa o runner se havia deployments rodando quando o server caiu.
+    Com debug=True o reloader duplica o processo — só inicia no filho real
+    (WERKZEUG_RUN_MAIN); sem debug, inicia direto."""
+    import os as _os
+    if _os.environ.get("WERKZEUG_RUN_MAIN") != "true" and _os.environ.get("FLASK_DEBUG", "1") != "0":
+        return
+    from automation import store as _astore
+    from automation.runner import ensure_started as _ensure
+    _astore.init_db()
+    if _astore.list_deployments(status="running"):
+        _ensure()
+
+
 if __name__ == "__main__":
     print("========================================")
     print("   Backtesting API - Flask Server")
     print("   http://localhost:5000")
     print("========================================")
+    _start_automation_runner()
     app.run(debug=True, port=5000, host="0.0.0.0", threaded=True)
