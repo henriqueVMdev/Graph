@@ -220,4 +220,8 @@ export function getRunnerStatus() {
   return api.get('/automation/runner/status')
 }
 
+export function getAutomationAccounts() {
+  return api.get('/automation/accounts')
+}
+
 export default api

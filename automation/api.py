@@ -19,7 +19,19 @@ automation_bp = Blueprint("automation", __name__, url_prefix="/api/automation")
 
 store.init_db()          # idempotente — garante o schema em qualquer entrada
 
-_VALID_MODES = ("paper", "demo")
+_VALID_MODES = ("paper", "demo", "real")
+
+# Perfis de conta p/ mode=real -> prefixo das chaves no .env
+_ACCOUNT_PROFILES = {"prop": "BYBIT_PROP", "personal": "BYBIT_REAL"}
+
+
+def _account_configured(profile: str) -> bool:
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    prefix = _ACCOUNT_PROFILES[profile]
+    return bool(os.getenv(f"{prefix}_API_KEY", "").strip()
+                and os.getenv(f"{prefix}_API_SECRET", "").strip())
 
 
 @automation_bp.get("/deployments")
@@ -31,7 +43,8 @@ def list_deployments():
         out.append({
             "id": d["id"], "name": d["name"], "strategy_file": d["strategy_file"],
             "symbol": d["symbol"], "interval": d["interval"],
-            "exchange": d["exchange"], "mode": d["mode"], "status": d["status"],
+            "exchange": d["exchange"], "mode": d["mode"],
+            "account": d.get("account"), "status": d["status"],
             "initial_capital": d["initial_capital"], "equity": d["equity"],
             "return_pct": round((d["equity"] / d["initial_capital"] - 1) * 100, 2)
                           if d["initial_capital"] else None,
@@ -63,6 +76,32 @@ def create_deployment():
         if initial_capital <= 0:
             return jsonify({"error": "initial_capital deve ser positivo"}), 400
 
+        # Guardrails opcionais (default: nenhum) — números devem ser positivos
+        guardrails = body.get("guardrails") or None
+        if guardrails:
+            for k in ("daily_loss_pct", "max_loss_pct", "max_notional"):
+                v = guardrails.get(k)
+                if v is not None and float(v) <= 0:
+                    return jsonify({"error": f"guardrail {k} deve ser positivo"}), 400
+
+        account = body.get("account")
+        if mode == "real":
+            if account not in _ACCOUNT_PROFILES:
+                return jsonify({"error": "mode=real exige account 'prop' ou "
+                                         "'personal'"}), 400
+            if not _account_configured(account):
+                return jsonify({"error": f"chaves da conta '{account}' ausentes "
+                                         "no .env"}), 400
+            # one-way mode: a reconciliação adota posições/cancela órfãs por
+            # símbolo — 2 deployments reais no mesmo símbolo+conta conflitam
+            for d in store.list_deployments():
+                if (d["mode"] == "real" and d["status"] != "stopped"
+                        and d["symbol"] == symbol and d.get("account") == account):
+                    return jsonify({"error": f"já existe deployment REAL ativo em "
+                                             f"{symbol} na conta '{account}'"}), 409
+        else:
+            account = None
+
         dep_id = store.create_deployment(
             name=body.get("name") or f"{strategy_file} {symbol} {interval}",
             strategy_file=strategy_file,
@@ -70,8 +109,11 @@ def create_deployment():
             symbol=symbol, interval=interval,
             exchange=(body.get("exchange") or "bybit").lower(),
             mode=mode, initial_capital=initial_capital,
-            backtest_ref=body.get("backtest_ref"))
-        store.add_event(dep_id, "created", f"Deployment criado ({mode})")
+            backtest_ref=body.get("backtest_ref"),
+            account=account, guardrails=guardrails)
+        store.add_event(dep_id, "created",
+                        f"Deployment criado ({mode}"
+                        + (f", conta {account}" if account else "") + ")")
         return jsonify({"id": dep_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -82,6 +124,13 @@ def start_deployment(dep_id):
     dep = store.get_deployment(dep_id)
     if not dep:
         return jsonify({"error": "deployment não encontrado"}), 404
+    if dep["mode"] == "real":
+        from . import executor_bybit
+        try:
+            executor_bybit._get_client(dep.get("account")).fetch_time()
+        except Exception as e:
+            return jsonify({"error": f"exchange inacessível para conta "
+                                     f"'{dep.get('account')}': {str(e)[:200]}"}), 400
     store.update_deployment(dep_id, status="running", error=None,
                             started_at=int(time.time() * 1000))
     store.add_event(dep_id, "started", "Deployment iniciado")
@@ -101,7 +150,14 @@ def stop_deployment(dep_id):
         pos = store.get_open_position(dep_id)
         if pos:
             try:
-                _close_paper_position_now(dep, pos)
+                if dep["mode"] == "paper":
+                    from . import engine_paper
+                    engine_paper.close_position_now(dep, pos)
+                else:
+                    # demo/real: cancela ordem, fecha a mercado NA EXCHANGE e
+                    # reconcilia o PnL real (antes o stop demo só fechava no DB)
+                    from . import executor_bybit
+                    executor_bybit.stop_close(dep, pos)
             except Exception as e:
                 return jsonify({"error": f"falha ao fechar posição: {e}"}), 500
 
@@ -119,21 +175,13 @@ def stop_deployment(dep_id):
     return jsonify({"ok": True, "status": "stopped"})
 
 
-def _close_paper_position_now(dep, pos):
-    """Fecha a posição paper no close do último candle FECHADO (taker)."""
-    from market_data import fetch_ohlcv
-    from . import engine_paper as engine
-    df = fetch_ohlcv(dep["symbol"], dep["interval"], exchange=dep["exchange"],
-                     limit=5)
-    # penúltima linha: a última pode estar em formação
-    close = float(df["Close"].iloc[-2])
-    ts = int((df.index[-2] - pd.Timestamp(0)).total_seconds() * 1000)
-    res = engine.close_pnl(pos, close, engine.TAKER, float(dep["equity"]))
-    store.update_position(pos["id"], status="closed", exit_price=close,
-                          exit_candle_ts=ts, exit_reason="Fechado manualmente",
-                          pnl_pct=res["pnl_pct"], pnl_quote=res["pnl_quote"],
-                          fees_quote=res["fees_quote"])
-    store.update_deployment(dep["id"], equity=res["new_equity"])
+@automation_bp.get("/accounts")
+def list_accounts():
+    """Perfis de conta real disponíveis e se as chaves estão no .env."""
+    return jsonify({"accounts": [
+        {"id": p, "configured": _account_configured(p)}
+        for p in _ACCOUNT_PROFILES
+    ]})
 
 
 @automation_bp.delete("/deployments/<dep_id>")

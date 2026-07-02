@@ -101,3 +101,23 @@ def mark_to_market(pos: dict | None, equity: float, close: float) -> float:
     if pos is None:
         return equity
     return equity * (1 + pos["side"] * (close / pos["entry_price"] - 1) * pos["exposure"])
+
+
+def close_position_now(dep: dict, pos: dict) -> None:
+    """Fecha a posição paper no close do último candle FECHADO (taker).
+    Usado pelo stop manual (api) e pelos guardrails do runner."""
+    from market_data import fetch_ohlcv
+    import pandas as pd
+    from . import store
+
+    df = fetch_ohlcv(dep["symbol"], dep["interval"], exchange=dep["exchange"],
+                     limit=5)
+    # penúltima linha: a última pode estar em formação
+    close = float(df["Close"].iloc[-2])
+    ts = int((df.index[-2] - pd.Timestamp(0)).total_seconds() * 1000)
+    res = close_pnl(pos, close, TAKER, float(dep["equity"]))
+    store.update_position(pos["id"], status="closed", exit_price=close,
+                          exit_candle_ts=ts, exit_reason="Fechado manualmente",
+                          pnl_pct=res["pnl_pct"], pnl_quote=res["pnl_quote"],
+                          fees_quote=res["fees_quote"])
+    store.update_deployment(dep["id"], equity=res["new_equity"])

@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import {
   getDeployments, createDeployment, startDeployment, stopDeployment,
   deleteDeployment, getDeploymentStatus, getRunnerStatus, getStrategies,
+  getAutomationAccounts,
 } from '@/api/client.js'
 
 export const useAutomationStore = defineStore('automation', () => {
   const deployments = ref([])
   const strategies = ref([])
+  const accounts = ref([])          // perfis de conta p/ mode=real
   const selectedId = ref(null)
   const status = ref(null)          // detalhe do deployment selecionado
   const runnerStatus = ref(null)
@@ -26,6 +28,15 @@ export const useAutomationStore = defineStore('automation', () => {
       strategies.value = (data.strategies || []).filter((s) => !s.error)
     } catch (e) {
       error.value = e.response?.data?.error || e.message
+    }
+  }
+
+  async function fetchAccounts() {
+    try {
+      const { data } = await getAutomationAccounts()
+      accounts.value = data.accounts || []
+    } catch {
+      accounts.value = []
     }
   }
 
@@ -118,6 +129,7 @@ export const useAutomationStore = defineStore('automation', () => {
     fetchDeployments()
     fetchRunner()
     fetchStatus()
+    fetchAccounts()
     pollTimer = setInterval(() => {
       fetchDeployments()
       fetchRunner()
@@ -133,9 +145,9 @@ export const useAutomationStore = defineStore('automation', () => {
   }
 
   return {
-    deployments, strategies, selectedId, status, runnerStatus,
+    deployments, strategies, accounts, selectedId, status, runnerStatus,
     isLoading, error, pendingDeployment, showForm,
-    fetchStrategies, fetchDeployments, fetchStatus, select,
+    fetchStrategies, fetchAccounts, fetchDeployments, fetchStatus, select,
     create, start, stop, remove, startPolling, stopPolling,
   }
 })

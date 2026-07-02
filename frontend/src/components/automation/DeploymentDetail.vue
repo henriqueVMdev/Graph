@@ -3,10 +3,19 @@
     <!-- Header + ações -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-base text-gray-100 font-semibold">{{ dep.name }}</h2>
+        <h2 class="text-base text-gray-100 font-semibold flex items-center gap-2">
+          {{ dep.name }}
+          <span v-if="dep.mode === 'real'"
+                class="text-[10px] px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 font-bold uppercase">
+            REAL · {{ dep.account }}
+          </span>
+        </h2>
         <p class="text-xs text-gray-500">
           {{ dep.strategy_file }} · {{ dep.symbol }} {{ dep.interval }} ·
           {{ dep.exchange }} · {{ dep.mode }}
+          <span v-if="dep.guardrails" class="text-accent-yellow/70">
+            · proteções: {{ guardrailSummary }}
+          </span>
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -165,6 +174,16 @@ const dep = computed(() => s.value?.deployment || {})
 const ret = computed(() =>
   dep.value.initial_capital
     ? (dep.value.equity / dep.value.initial_capital - 1) * 100 : 0)
+
+const guardrailSummary = computed(() => {
+  const g = dep.value.guardrails || {}
+  const parts = []
+  if (g.daily_loss_pct) parts.push(`diária -${g.daily_loss_pct}%`)
+  if (g.max_loss_pct) parts.push(`total -${g.max_loss_pct}%`)
+  if (g.check_balance) parts.push('checa saldo')
+  if (g.max_notional) parts.push(`notional ≤ $${g.max_notional}`)
+  return parts.join(' · ') || 'nenhuma'
+})
 
 // Parâmetros do deployment com labels do schema da estratégia.
 // Só as chaves do schema: o objeto salvo carrega sobras de outras

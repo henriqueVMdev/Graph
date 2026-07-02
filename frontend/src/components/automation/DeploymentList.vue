@@ -17,7 +17,14 @@
         >{{ d.status }}</span>
       </div>
       <div class="flex items-center justify-between mt-1.5 text-xs text-gray-500">
-        <span>{{ d.symbol }} · {{ d.interval }} · {{ d.mode }}</span>
+        <span class="flex items-center gap-1.5">
+          {{ d.symbol }} · {{ d.interval }} ·
+          <span v-if="d.mode === 'real'"
+                class="text-[10px] px-1.5 py-px rounded bg-red-500/15 text-red-400 font-semibold">
+            REAL · {{ d.account }}
+          </span>
+          <template v-else>{{ d.mode }}</template>
+        </span>
         <span :class="(d.return_pct ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
           {{ d.return_pct != null ? (d.return_pct >= 0 ? '+' : '') + d.return_pct + '%' : '—' }}
         </span>

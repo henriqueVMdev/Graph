@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS deployments (
   symbol TEXT NOT NULL,
   interval TEXT NOT NULL DEFAULT '15m',
   exchange TEXT NOT NULL DEFAULT 'bybit',
-  mode TEXT NOT NULL CHECK(mode IN ('paper','demo')),
+  mode TEXT NOT NULL CHECK(mode IN ('paper','demo','real')),
+  account TEXT,                        -- perfil de chaves p/ mode=real: 'prop'|'personal'
+  guardrails_json TEXT,                -- {daily_loss_pct, max_loss_pct, check_balance, max_notional}
   status TEXT NOT NULL CHECK(status IN ('created','running','stopped','error')),
   initial_capital REAL NOT NULL,
   equity REAL NOT NULL,
@@ -98,6 +100,30 @@ def _conn() -> sqlite3.Connection:
 def init_db() -> None:
     with _conn() as con:
         con.executescript(_DDL)
+        _migrate_real_mode(con)
+
+
+def _migrate_real_mode(con) -> None:
+    """Rebuild da tabela deployments p/ incluir mode='real' no CHECK e as
+    colunas account/guardrails_json. SQLite não altera CHECK — renomeia,
+    recria pelo _DDL e copia. Idempotente: só roda se o schema for antigo."""
+    row = con.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='deployments'"
+    ).fetchone()
+    if row is None or "'real'" in row["sql"]:
+        return
+    con.executescript("ALTER TABLE deployments RENAME TO deployments_old;")
+    con.executescript(_DDL)          # recria deployments com o schema novo
+    con.execute(
+        """INSERT INTO deployments
+             (id, name, strategy_file, params_json, symbol, interval, exchange,
+              mode, status, initial_capital, equity, backtest_ref_json,
+              last_candle_ts, last_tick_at, error, created_at, started_at, stopped_at)
+           SELECT id, name, strategy_file, params_json, symbol, interval, exchange,
+              mode, status, initial_capital, equity, backtest_ref_json,
+              last_candle_ts, last_tick_at, error, created_at, started_at, stopped_at
+           FROM deployments_old""")
+    con.executescript("DROP TABLE deployments_old;")
 
 
 def _now_ms() -> int:
@@ -108,7 +134,8 @@ def _row_to_dict(row) -> dict | None:
     if row is None:
         return None
     d = dict(row)
-    for k in ("params_json", "backtest_ref_json", "raw_json", "data_json"):
+    for k in ("params_json", "backtest_ref_json", "raw_json", "data_json",
+              "guardrails_json"):
         if k in d and d[k]:
             try:
                 d[k[:-5]] = json.loads(d[k])
@@ -121,16 +148,20 @@ def _row_to_dict(row) -> dict | None:
 # ── Deployments ──────────────────────────────────────────────────────────
 
 def create_deployment(name, strategy_file, params, symbol, interval, exchange,
-                      mode, initial_capital, backtest_ref=None) -> str:
+                      mode, initial_capital, backtest_ref=None,
+                      account=None, guardrails=None) -> str:
     dep_id = uuid.uuid4().hex[:12]
     with _conn() as con:
         con.execute(
             """INSERT INTO deployments
                (id, name, strategy_file, params_json, symbol, interval, exchange,
-                mode, status, initial_capital, equity, backtest_ref_json, created_at)
-               VALUES (?,?,?,?,?,?,?,?,'created',?,?,?,?)""",
+                mode, account, guardrails_json, status, initial_capital, equity,
+                backtest_ref_json, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,'created',?,?,?,?)""",
             (dep_id, name, strategy_file, json.dumps(params), symbol, interval,
-             exchange, mode, float(initial_capital), float(initial_capital),
+             exchange, mode, account,
+             json.dumps(guardrails) if guardrails else None,
+             float(initial_capital), float(initial_capital),
              json.dumps(backtest_ref) if backtest_ref else None, _now_ms()))
     return dep_id
 
@@ -244,6 +275,22 @@ def add_equity_snapshot(dep_id, candle_ts, equity) -> None:
         con.execute(
             "INSERT OR REPLACE INTO equity_snapshots (deployment_id, candle_ts, equity) "
             "VALUES (?,?,?)", (dep_id, candle_ts, float(equity)))
+
+
+def get_day_start_equity(dep_id, day_start_ms) -> float | None:
+    """Equity de referência p/ o limite de perda diária: primeiro snapshot
+    do dia UTC; se o dia ainda não tem snapshot, o último anterior."""
+    with _conn() as con:
+        row = con.execute(
+            "SELECT equity FROM equity_snapshots WHERE deployment_id=? AND "
+            "candle_ts>=? ORDER BY candle_ts ASC LIMIT 1",
+            (dep_id, day_start_ms)).fetchone()
+        if row is None:
+            row = con.execute(
+                "SELECT equity FROM equity_snapshots WHERE deployment_id=? AND "
+                "candle_ts<? ORDER BY candle_ts DESC LIMIT 1",
+                (dep_id, day_start_ms)).fetchone()
+    return float(row["equity"]) if row else None
 
 
 def get_equity_curve(dep_id, limit=5000) -> list:

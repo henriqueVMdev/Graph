@@ -31,30 +31,42 @@ import pandas as pd
 
 from . import store
 
-_client = None
+# Perfis de credenciais: None = demo trading; 'personal'/'prop' = mainnet
+# (dinheiro REAL) com as chaves do prefixo correspondente no .env.
+_ENV_PREFIX = {None: "BYBIT_DEMO", "personal": "BYBIT_REAL", "prop": "BYBIT_PROP"}
+_clients: dict = {}
 
 
-def _get_client():
-    global _client
-    if _client is not None:
-        return _client
+def profile_for(dep) -> str | None:
+    """Perfil de chaves do deployment: conta real escolhida ou demo."""
+    return dep.get("account") if dep.get("mode") == "real" else None
+
+
+def _get_client(profile=None):
+    if profile in _clients:
+        return _clients[profile]
+    if profile not in _ENV_PREFIX:
+        raise RuntimeError(f"perfil de conta desconhecido: {profile!r}")
     import ccxt
     from dotenv import load_dotenv
     load_dotenv()
-    key = os.getenv("BYBIT_DEMO_API_KEY", "").strip()
-    secret = os.getenv("BYBIT_DEMO_API_SECRET", "").strip()
+    prefix = _ENV_PREFIX[profile]
+    key = os.getenv(f"{prefix}_API_KEY", "").strip()
+    secret = os.getenv(f"{prefix}_API_SECRET", "").strip()
     if not key or not secret:
         raise RuntimeError(
-            "BYBIT_DEMO_API_KEY/SECRET ausentes no .env — crie a chave na "
-            "seção Demo Trading da Bybit (gratuita)")
+            f"{prefix}_API_KEY/SECRET ausentes no .env"
+            + (" — crie a chave na seção Demo Trading da Bybit (gratuita)"
+               if profile is None else ""))
     ex = ccxt.bybit({
         "apiKey": key, "secret": secret,
         "enableRateLimit": True, "timeout": 30000,
         "options": {"defaultType": "swap"},
     })
-    ex.enable_demo_trading(True)
+    if profile is None:
+        ex.enable_demo_trading(True)      # mainnet (dinheiro real) nos demais
     ex.load_markets()
-    _client = ex
+    _clients[profile] = ex
     return ex
 
 
@@ -189,11 +201,11 @@ def _reconcile(ex, sym, dep):
 # ── Ciclo principal ──────────────────────────────────────────────────────
 
 def process(dep, df_closed, interval):
-    """Chamado pelo runner a cada tick para deployments mode='demo'."""
+    """Chamado pelo runner a cada tick para deployments mode='demo'|'real'."""
     from . import signals
     from . import engine_paper as engine
 
-    ex = _get_client()
+    ex = _get_client(profile_for(dep))
     sym = _sym(dep)
     dep_id = dep["id"]
     tfm = _tf_ms(interval)
@@ -251,6 +263,27 @@ def _place_or_amend(ex, sym, dep, order_db, sig, valid_ts):
     equity = float(dep["equity"])
     qty_raw = sig["exposure"] * equity / price if price > 0 else 0
     qty = float(ex.amount_to_precision(sym, qty_raw))
+
+    # Proteções de sizing OPCIONAIS (default: desligadas — sizing puro da
+    # estratégia sobre o capital virtual do deployment)
+    g = dep.get("guardrails") or {}
+    if g.get("max_notional") and qty * price > float(g["max_notional"]):
+        qty = float(ex.amount_to_precision(sym, float(g["max_notional"]) / price))
+        store.add_event(dep_id, "order_capped",
+                        f"Notional limitado a {g['max_notional']} (proteção)", level="warn")
+    if dep.get("mode") == "real" and g.get("check_balance"):
+        try:
+            free = float(((ex.fetch_balance().get("USDT") or {}).get("free")) or 0)
+        except Exception as e:
+            store.add_event(dep_id, "order_skipped",
+                            f"check_balance falhou: {str(e)[:120]}", level="warn")
+            return
+        if free < qty * price:
+            store.add_event(dep_id, "order_skipped",
+                            f"saldo USDT livre {free:.2f} < notional {qty * price:.2f}",
+                            level="warn")
+            return
+
     mkt = ex.market(sym)
     min_qty = ((mkt.get("limits") or {}).get("amount") or {}).get("min") or 0
     if qty < min_qty:
@@ -300,6 +333,33 @@ def _place_or_amend(ex, sym, dep, order_db, sig, valid_ts):
     except Exception as e:
         store.update_order(oid_db, status="rejected")
         store.add_event(dep_id, "order_rejected", str(e)[:300], level="warn")
+
+
+def stop_close(dep, pos):
+    """Parada definitiva (stop manual ou guardrail): cancela a ordem pendente
+    na exchange, fecha a posição a mercado e reconcilia JÁ — o deployment
+    parado não ticka mais, então o PnL real precisa ser resolvido agora."""
+    ex = _get_client(profile_for(dep))
+    sym = _sym(dep)
+    order = store.get_working_order(dep["id"])
+    if order:
+        if order.get("exchange_order_id"):
+            try:
+                ex.cancel_order(order["exchange_order_id"], sym)
+            except Exception:
+                pass
+        store.update_order(order["id"], status="cancelled")
+    if pos:
+        import time as _time
+        side_str = "sell" if pos["side"] == 1 else "buy"
+        ex.create_order(sym, "market", side_str, pos["qty"],
+                        params={"reduceOnly": True, "positionIdx": 0})
+        # resolve PnL/fees reais da saída; 1 retry se o fill ainda não refletiu
+        for _ in range(2):
+            _time.sleep(1.5)
+            _reconcile(ex, sym, dep)
+            if store.get_open_position(dep["id"]) is None:
+                break
 
 
 def _close_market(ex, sym, dep, pos, late=False):

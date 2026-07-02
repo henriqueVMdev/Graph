@@ -82,12 +82,57 @@ class Runner(threading.Thread):
                 continue
             for dep in group:
                 try:
+                    if self._guardrails_breached(dep, df):
+                        continue
                     self._process_deployment(dep, df, interval)
                 except Exception as e:
                     store.update_deployment(dep["id"], status="error",
                                             error=str(e)[:500])
                     store.add_event(dep["id"], "runner_error", str(e)[:500],
                                     level="error")
+
+    def _guardrails_breached(self, dep, df_closed) -> bool:
+        """Guardrails OPCIONAIS por deployment (default: desligados).
+        Violou limite diário/total -> fecha posição, cancela ordem, para o
+        deployment e registra evento. Avalia no close do último candle
+        fechado; a proteção intra-candle continua sendo o SL server-side."""
+        g = dep.get("guardrails") or {}
+        if not (g.get("daily_loss_pct") or g.get("max_loss_pct")):
+            return False
+
+        pos = store.get_open_position(dep["id"])
+        eq = engine.mark_to_market(pos, float(dep["equity"]),
+                                   float(df_closed["Close"].iloc[-1]))
+        reason = None
+        if g.get("max_loss_pct"):
+            floor = float(dep["initial_capital"]) * (1 - float(g["max_loss_pct"]) / 100)
+            if eq <= floor:
+                reason = f"perda máxima {g['max_loss_pct']}% (equity {eq:.2f})"
+        if reason is None and g.get("daily_loss_pct"):
+            day_start = (int(time.time() * 1000) // 86_400_000) * 86_400_000
+            base = store.get_day_start_equity(dep["id"], day_start)
+            if base and eq <= base * (1 - float(g["daily_loss_pct"]) / 100):
+                reason = (f"perda diária {g['daily_loss_pct']}% "
+                          f"(equity {eq:.2f} vs base {base:.2f})")
+        if reason is None:
+            return False
+
+        if dep["mode"] == "paper":
+            if pos:
+                engine.close_position_now(dep, pos)
+            order = store.get_working_order(dep["id"])
+            if order:
+                store.update_order(order["id"], status="cancelled")
+        else:
+            from . import executor_bybit
+            # cancela ordem na exchange, fecha posição a mercado e reconcilia
+            executor_bybit.stop_close(dep, pos)
+        store.update_deployment(dep["id"], status="stopped",
+                                stopped_at=int(time.time() * 1000))
+        store.add_event(dep["id"], "guardrail_stop",
+                        f"Guardrail violado: {reason} — deployment parado e "
+                        "posição fechada", level="error")
+        return True
 
     def _exchange_now_ms(self, exchange: str) -> int:
         try:
