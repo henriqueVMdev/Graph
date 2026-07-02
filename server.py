@@ -1062,6 +1062,9 @@ def _random_config_from_grid(base_config, param_specs, rng):
 
 
 # Barras por ano por timeframe — usado para anualizar Sharpe corretamente
+# FALLBACK de barras/ano (calendario de PREGAO: 6,5h x 252d — nao vale p/
+# cripto 24/7). Usado so quando nao da p/ inferir do span real dos dados;
+# a WFA e o Monte Carlo inferem de len(barras)/anos do proprio slice.
 _BARS_PER_YEAR = {
     '1m': 98280, '5m': 19656, '15m': 6552, '30m': 3276,
     '1h': 1638,  '2h': 819,   '4h': 410,
@@ -1144,29 +1147,30 @@ def _build_wfa_cost_ctx(df, body, cfg_dict):
     return ctx, warnings
 
 
-def _net_metrics_from_result(result, cost_ctx, base_return_pct):
+def _net_metrics_from_result(eval_trades, cost_ctx, base_return_pct, base_equity=None):
     """Aplica fees + funding aos trades de uma janela e devolve métricas líquidas.
 
-    `base_return_pct` é o retorno bruto que a própria plataforma reportou
-    (metrics.total_return); subtraímos dele o arrasto de custo (fees+funding
-    sobre o notional) para obter o retorno líquido — mantendo a base consistente
-    com o resto da WFA em vez de recomputar o retorno por outro caminho.
+    `eval_trades` são os dicts de trade da janela AVALIADA (trades iniciados no
+    warm-up ficam de fora). `base_return_pct` é o retorno bruto medido na janela;
+    subtraímos dele o arrasto de custo (fees+funding sobre o notional) para obter
+    o retorno líquido. `base_equity` é o equity na fronteira da janela — mesma
+    base do retorno bruto e do sizing dos trades (fallback: capital inicial).
     """
     from costs import trades_from_platform
 
-    trades = trades_from_platform(result.get("trades", []))
+    trades = trades_from_platform(eval_trades)
     if not trades:
         return {
             "net_return_pct": None, "net_sharpe": None,
             "fees_total": 0.0, "funding_total": 0.0, "cost_drag_pct": 0.0,
         }
 
+    base = float(base_equity or cost_ctx["initial_capital"] or 1.0)
     res = cost_ctx["calc"].apply(
         trades, cost_ctx["funding_events"],
-        initial_capital=cost_ctx["initial_capital"],
+        initial_capital=base,
     )
-    ic = cost_ctx["initial_capital"] or 1.0
-    cost_drag_pct = float(res.pnl_liquido_total - res.pnl_bruto_total) / ic * 100.0
+    cost_drag_pct = float(res.pnl_liquido_total - res.pnl_bruto_total) / base * 100.0
     return {
         "net_return_pct": _safe(float(base_return_pct or 0.0) + cost_drag_pct),
         "net_sharpe":     _safe(res.metrics_net.get("sharpe")),
@@ -1224,52 +1228,85 @@ def _net_pnl_pcts(raw_trades, cost_ctx):
     }
 
 
-def _compute_window_metrics(df_slice, module, cfg_dict, interval='1d', cost_ctx=None):
-    """Roda a estrategia em um slice do DataFrame e retorna metricas WFA.
-    Retorna None se o slice for pequeno demais ou nao gerar trades suficientes.
+def _compute_window_metrics(df_slice, module, cfg_dict, cost_ctx=None, eval_start=0):
+    """Roda a estrategia em um slice do DataFrame e mede APENAS a janela avaliada.
+
+    `df_slice` pode incluir um prefixo de warm-up (barras ANTERIORES a janela)
+    para aquecer os indicadores como no trading real — sem ele, cada janela OOS
+    partia fria e a MA/regime consumia boa parte da janela sem gerar sinais.
+    `eval_start` marca onde a avaliacao comeca: retorno, Sharpe, max DD e curva
+    de equity sao medidos da fronteira em diante, e so contam trades INICIADOS
+    dentro da janela avaliada. (Trade aberto no warm-up que fecha dentro da
+    janela entra na equity, mas nao na contagem nem nos custos — impreciso e
+    conservador.) Retorna None se a janela for pequena ou gerar <2 trades.
 
     Se `cost_ctx` for dado, anexa metricas liquidas (fees + funding reais da
-    exchange) ao dicionario retornado: net_return_pct, net_sharpe, fees_total,
-    funding_total, cost_drag_pct.
+    exchange): net_return_pct, net_sharpe, fees_total, funding_total,
+    cost_drag_pct.
     """
-    if len(df_slice) < 20:
+    if len(df_slice) - eval_start < 20:
         return None
     try:
         result = module.run(df_slice.copy(), {**cfg_dict, "_fast": True})
     except Exception:
         return None
 
-    metrics = result.get("metrics", {})
-    n_trades = int(metrics.get("total_trades", 0))
-    if n_trades < 2:
-        return None
-
     eq_values = result.get("equity_curve", {}).get("values", [])
     eq_dates  = result.get("equity_curve", {}).get("dates", [])
 
-    # Sharpe anualizado com fator correto para o timeframe (ddof=1 = variancia amostral)
+    # Fronteira da janela avaliada na curva de equity. Alinha pelo FIM: se a
+    # estrategia descartar barras iniciais (indicadores NaN), o rabo da curva
+    # continua correspondendo as ultimas barras do slice.
+    n_eval_bars = len(df_slice) - eval_start
+    b = max(len(eq_values) - n_eval_bars, 0)
+    if len(eq_values) - b < 3:
+        return None
+    eq = np.array(eq_values[b:], dtype=float)
+    base = eq[0] if eq[0] else 1.0
+
+    # So trades iniciados dentro da janela avaliada (entry_ts em epoch ms).
+    # Trades sem timestamp passam (não da p/ situa-los; comportamento antigo).
+    boundary_ts = int(df_slice.index[eval_start].value // 1_000_000)
+    eval_trades = [t for t in result.get("trades", [])
+                   if not t.get("entry_ts") or int(t["entry_ts"]) >= boundary_ts]
+    n_trades = len(eval_trades)
+    if n_trades < 2:
+        return None
+
+    return_pct = (eq[-1] / base - 1) * 100
+
+    # Barras/ano inferidas do proprio slice (24/7 p/ cripto, pregao p/ acoes).
+    # A tabela fixa antiga assumia calendario de bolsa (6,5h x 252d) e
+    # subestimava o Sharpe de cripto intraday em ~2,3x.
+    span_s = (df_slice.index[-1] - df_slice.index[eval_start]).total_seconds()
+    years = span_s / (365.25 * 24 * 3600)
+    ann_factor = (len(eq) / years) if years > 0 else 252.0
+
+    # Sharpe anualizado da janela avaliada (ddof=1 = variancia amostral)
     sharpe = 0.0
-    if len(eq_values) > 2:
-        ann_factor = _BARS_PER_YEAR.get(interval, 252)
-        arr = np.array(eq_values, dtype=float)
-        rets = np.diff(arr) / np.where(arr[:-1] != 0, arr[:-1], 1.0)
-        rets = rets[np.isfinite(rets)]
+    rets = np.diff(eq) / np.where(eq[:-1] != 0, eq[:-1], 1.0)
+    rets = rets[np.isfinite(rets)]
+    if len(rets) > 1:
         std = rets.std(ddof=1)
-        if len(rets) > 1 and std > 0:
+        if std > 0:
             sharpe = float(rets.mean() / std * np.sqrt(ann_factor))
 
+    peak = np.maximum.accumulate(eq)
+    dd = (eq - peak) / np.where(peak != 0, peak, 1.0) * 100
+    max_dd = float(dd.min()) if len(dd) else 0.0
+
     out = {
-        "return_pct":    _safe(float(metrics.get("total_return", 0.0))),
+        "return_pct":    _safe(float(return_pct)),
         "sharpe":        _safe(sharpe),
         "n_trades":      n_trades,
-        "max_dd":        _safe(float(metrics.get("max_dd", 0.0))),
-        "equity_values": [_safe(float(v)) for v in eq_values],
-        "equity_dates":  eq_dates,
+        "max_dd":        _safe(max_dd),
+        "equity_values": [_safe(float(v)) for v in eq],
+        "equity_dates":  eq_dates[b:],
     }
 
     if cost_ctx is not None:
         out.update(_net_metrics_from_result(
-            result, cost_ctx, metrics.get("total_return", 0.0)
+            eval_trades, cost_ctx, return_pct, base_equity=float(base)
         ))
 
     return out
@@ -1316,54 +1353,71 @@ def api_backtest_wfa():
         is_bars   = int(step_size * is_pct)
         oos_bars  = step_size - is_bars
 
+        # Warm-up: barras ANTERIORES a cada janela para aquecer indicadores
+        # (MA/regime) como no trading real. Sem isso cada janela partia fria e
+        # os primeiros ~ma_length candles nao geravam sinais — em janelas OOS
+        # curtas isso consumia boa parte da janela. A avaliacao (retorno,
+        # Sharpe, trades, custos) continua estritamente dentro da janela.
+        warmup_bars = 300
+
         windows = []
         for i in range(n_windows):
             is_start  = i * step_size
             is_end    = is_start + is_bars
             oos_start = is_end
-            oos_end   = min(oos_start + oos_bars, total_bars)
+            # Ultima janela absorve o resto da divisao — sem descartar as
+            # barras mais recentes.
+            oos_end   = total_bars if i == n_windows - 1 else min(oos_start + oos_bars, total_bars)
 
             if oos_end <= oos_start:
                 continue
 
-            df_is  = df.iloc[is_start:is_end]
-            df_oos = df.iloc[oos_start:oos_end]
+            is_warm  = min(is_start, warmup_bars)
+            oos_warm = min(oos_start, warmup_bars)
+            df_is  = df.iloc[is_start - is_warm:is_end]
+            df_oos = df.iloc[oos_start - oos_warm:oos_end]
 
-            # IS optimization: random-sample the grid, keep best Sharpe config
+            # IS optimization: random-sample the grid, keep best Sharpe config.
+            # Com custos ligados, ranqueia pelo Sharpe LIQUIDO — o bruto
+            # favorece configs que giram demais e morrem depois das fees.
             if optimize_is_samples > 0 and param_specs:
                 best_sharpe = float('-inf')
                 window_cfg  = dict(cfg_dict)
                 win_rng     = np.random.default_rng(42 + i)
                 for _ in range(optimize_is_samples):
                     trial_cfg = _random_config_from_grid(cfg_dict, param_specs, win_rng)
-                    trial_m   = _compute_window_metrics(df_is, module, trial_cfg, interval)
+                    trial_m   = _compute_window_metrics(df_is, module, trial_cfg,
+                                                        cost_ctx, eval_start=is_warm)
                     if trial_m is None:
                         continue
-                    trial_sharpe = trial_m['sharpe'] if trial_m['sharpe'] is not None else 0.0
+                    if cost_ctx is not None and trial_m.get('net_sharpe') is not None:
+                        trial_sharpe = trial_m['net_sharpe']
+                    else:
+                        trial_sharpe = trial_m['sharpe'] if trial_m['sharpe'] is not None else 0.0
                     if trial_sharpe > best_sharpe:
                         best_sharpe = trial_sharpe
                         window_cfg  = trial_cfg
             else:
                 window_cfg = dict(cfg_dict)
 
-            is_m  = _compute_window_metrics(df_is,  module, window_cfg, interval, cost_ctx)
-            oos_m = _compute_window_metrics(df_oos, module, window_cfg, interval, cost_ctx)
+            is_m  = _compute_window_metrics(df_is,  module, window_cfg, cost_ctx, eval_start=is_warm)
+            oos_m = _compute_window_metrics(df_oos, module, window_cfg, cost_ctx, eval_start=oos_warm)
 
             if is_m is None or oos_m is None:
                 continue
 
-            # Annualized return: (1 + r)^(365/days) - 1
-            is_days  = max((df_is.index[-1]  - df_is.index[0]).days,  1)
-            oos_days = max((df_oos.index[-1] - df_oos.index[0]).days, 1)
+            # Annualized return: (1 + r)^(365/days) - 1  (janela avaliada, sem warm-up)
+            is_days  = max((df.index[is_end - 1]  - df.index[is_start]).days,  1)
+            oos_days = max((df.index[oos_end - 1] - df.index[oos_start]).days, 1)
             is_ann  = _safe(((1 + (is_m["return_pct"]  or 0) / 100) ** (365 / is_days)  - 1) * 100)
             oos_ann = _safe(((1 + (oos_m["return_pct"] or 0) / 100) ** (365 / oos_days) - 1) * 100)
 
             windows.append({
                 "window_idx":       i,
-                "is_start":         str(df_is.index[0])[:10],
-                "is_end":           str(df_is.index[-1])[:10],
-                "oos_start":        str(df_oos.index[0])[:10],
-                "oos_end":          str(df_oos.index[-1])[:10],
+                "is_start":         str(df.index[is_start])[:10],
+                "is_end":           str(df.index[is_end - 1])[:10],
+                "oos_start":        str(df.index[oos_start])[:10],
+                "oos_end":          str(df.index[oos_end - 1])[:10],
                 "is_return":        is_m["return_pct"],
                 "oos_return":       oos_m["return_pct"],
                 "is_annualized":    is_ann,
@@ -1721,6 +1775,16 @@ def api_backtest_validate():
         ic           = float(metrics_in.get("initial_capital", eq_values[0]))
         interval_mc  = body.get("interval", "1d")
         ann_factor   = _BARS_PER_YEAR.get(interval_mc, 252)
+        # Prefere inferir barras/ano do span real da equity (24/7 p/ cripto);
+        # a tabela fixa assume pregao de bolsa (6,5h x 252d) e subestima o
+        # Sharpe de cripto intraday em ~2,3x. Fallback: tabela.
+        try:
+            span_s = (pd.Timestamp(eq_dates[-1]) - pd.Timestamp(eq_dates[0])).total_seconds()
+            years = span_s / (365.25 * 24 * 3600)
+            if years > 0 and len(eq_values) > 1:
+                ann_factor = len(eq_values) / years
+        except Exception:
+            pass
 
         # ── Monte Carlo ──────────────────────────────────────────────────────
         mc = MonteCarlo(initial_capital=ic, seed=seed, ann_factor=ann_factor)
