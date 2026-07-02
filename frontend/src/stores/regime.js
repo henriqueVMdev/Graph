@@ -13,10 +13,15 @@ export const useRegimeStore = defineStore('regime', () => {
   const symbol = ref('')
   const symbolLabel = ref('')
   const interval = ref('1d')
+  // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
+  const exchange = ref('')
   const method = ref('hmm')        // 'hmm' | 'markov_switching' | 'changepoint'
   const nStates = ref(0)           // 0 = auto
   const features = ref(['log_return', 'volatility'])
   const volWindow = ref(20)
+  // true = probabilidades filtradas (tempo real, sem lookahead);
+  // false = suavizadas (descrição histórica com a série inteira)
+  const causal = ref(true)
 
   const hasResults = computed(() => results.value !== null)
 
@@ -37,6 +42,7 @@ export const useRegimeStore = defineStore('regime', () => {
       n_states: nStates.value,
       features: features.value,
       vol_window: volWindow.value,
+      causal: causal.value,
     }
 
     try {
@@ -44,7 +50,7 @@ export const useRegimeStore = defineStore('regime', () => {
       if (dataSource.value === 'csv' && csvFile) {
         resp = await detectRegimeCsv(csvFile, params)
       } else {
-        resp = await detectRegimeAsset(symbol.value, interval.value, params)
+        resp = await detectRegimeAsset(symbol.value, interval.value, params, exchange.value)
       }
       results.value = resp.data
     } catch (e) {
@@ -61,8 +67,8 @@ export const useRegimeStore = defineStore('regime', () => {
 
   return {
     assets, isRunning, error, results,
-    dataSource, symbol, symbolLabel, interval,
-    method, nStates, features, volWindow,
+    dataSource, symbol, symbolLabel, interval, exchange,
+    method, nStates, features, volWindow, causal,
     hasResults, fetchAssets, run, clear,
   }
 })

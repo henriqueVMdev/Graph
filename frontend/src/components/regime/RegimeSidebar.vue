@@ -45,8 +45,16 @@
           </select>
 
           <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
-          <select v-model="store.interval" class="form-select w-full text-xs">
+          <select v-model="store.interval" class="form-select w-full mb-2 text-xs">
             <option v-for="tf in timeframes" :key="tf.value" :value="tf.value">{{ tf.label }}</option>
+          </select>
+
+          <label class="text-xs text-gray-400 block mb-1">Fonte dos candles</label>
+          <select v-model="store.exchange" class="form-select w-full text-xs">
+            <option value="">Yahoo Finance (15m/30m: só 60 dias)</option>
+            <option value="bybit">Bybit perp (~1 ano de 15m)</option>
+            <option value="binance">Binance perp (~1 ano de 15m)</option>
+            <option value="okx">OKX perp (~1 ano de 15m)</option>
           </select>
         </template>
 
@@ -108,8 +116,21 @@
           type="range"
           v-model.number="store.volWindow"
           min="5" max="60" step="5"
-          class="w-full accent-accent-yellow"
+          class="w-full accent-accent-yellow mb-3"
         />
+
+        <label v-if="store.method !== 'changepoint'"
+               class="flex items-start gap-2 text-xs text-gray-300 cursor-pointer">
+          <input type="checkbox" v-model="store.causal" class="accent-accent-yellow mt-0.5" />
+          <span>
+            Causal (tempo real)
+            <span class="block text-[10px] text-gray-600">
+              Probabilidades filtradas: o regime da barra t usa só dados até t —
+              operável ao vivo. Desmarcado = suavizado com a série inteira
+              (descrição histórica melhor, mas com lookahead).
+            </span>
+          </span>
+        </label>
       </div>
 
       <!-- ── Executar ────────────────────────────────────────────────── -->

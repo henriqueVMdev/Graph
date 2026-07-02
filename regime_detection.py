@@ -223,6 +223,11 @@ def _fit_hmm(X: np.ndarray, n_states: int, n_iter: int = 50, tol: float = 1e-4):
     log_gamma_f -= np.logaddexp.reduce(log_gamma_f, axis=1, keepdims=True)
     posteriors = np.exp(log_gamma_f)
 
+    # Posteriors FILTRADOS: P(s_t | obs_1..t) — o alpha escalado do forward já
+    # é a distribuição filtrada. É o que dá para saber em tempo real na barra t
+    # (dado o modelo ajustado), sem olhar o futuro.
+    filtered = np.exp(log_alpha_f)
+
     # BIC
     n_params = n_states * D + n_states * D * (D + 1) / 2 + n_states * (n_states - 1) + (n_states - 1)
     bic = -2 * np.sum(log_scale) + n_params * np.log(T)
@@ -230,6 +235,7 @@ def _fit_hmm(X: np.ndarray, n_states: int, n_iter: int = 50, tol: float = 1e-4):
     return {
         "states": states,
         "posteriors": posteriors,
+        "filtered": filtered,
         "transmat": transmat,
         "means": means,
         "bic": float(bic),
@@ -392,9 +398,12 @@ def _detect_changepoints(X: np.ndarray, close_aligned, min_segment: int = 20):
     labels = ["sideways"] * T
     for seg in segments:
         r = seg["mean_return"]
-        if r <= q33:
+        # percentis relativos + sinal: 'bear' exige retorno negativo e 'bull'
+        # positivo — sem isso, serie de segmento unico (q33=q66=r) caia sempre
+        # em bear, mesmo num uptrend puro
+        if r <= q33 and r < 0:
             l = "bear"
-        elif r >= q66:
+        elif r >= q66 and r > 0:
             l = "bull"
         else:
             l = "sideways"
@@ -473,10 +482,11 @@ def _metrics_by_regime(close_aligned, labels):
 
         total_ret = float((1 + rets).prod() - 1)
 
-        # Annualized return: usa dias calendario reais do regime
-        regime_dates = df.index[mask]
-        calendar_days = max((regime_dates[-1] - regime_dates[0]).days, 1)
-        ann_ret = (1 + total_ret) ** (365.25 / calendar_days) - 1
+        # Annualized return: anualiza pela EXPOSICAO real (barras no regime),
+        # consistente com vol/Sharpe. O span de calendario do regime inclui os
+        # buracos em que outros regimes estavam ativos e distorcia forte
+        # (regime fragmentado tinha o anualizado subestimado em ate ~3x).
+        ann_ret = (1 + total_ret) ** (bars_per_year / len(rets)) - 1
 
         # Volatilidade e Sharpe: anualiza por barras/ano (consistente)
         vol = float(rets.std(ddof=1) * np.sqrt(bars_per_year))
@@ -538,6 +548,7 @@ def detect_regimes(
     n_states: int = 0,
     features: list = None,
     vol_window: int = 20,
+    causal: bool = False,
 ) -> dict:
     """
     Detecta regimes de mercado.
@@ -549,11 +560,18 @@ def detect_regimes(
     n_states : numero de estados (0 = auto via BIC, so para HMM/MS)
     features : lista de features ["log_return", "volatility", "volume"]
     vol_window : janela para calculo de volatilidade realizada
+    causal : True = probabilidades FILTRADAS (P(s_t | obs ate t) — o que dá
+        para saber em tempo real na barra t, sem olhar o futuro). False =
+        suavizadas com a série inteira (melhor descrição histórica, mas o
+        rótulo de uma barra passada usa informação futura). Os parâmetros do
+        modelo continuam ajustados na série inteira nos dois casos.
+        Ignorado no changepoint (retrospectivo por construção).
 
     Returns
     -------
     dict com: dates, prices, regimes, regime_probs, metrics_by_regime,
-              transition_matrix, state_names, method, n_states, bic_scores
+              transition_matrix, state_names, method, n_states, bic_scores,
+              causal
     """
     if features is None:
         features = ["log_return", "volatility"]
@@ -588,9 +606,10 @@ def detect_regimes(
 
         ms_result = _fit_markov_switching(log_ret_series, n_states)
 
-        smoothed = ms_result.smoothed_marginal_probabilities
-        states = np.array(smoothed.values.argmax(axis=1), dtype=int)
-        posteriors = smoothed.values
+        probs = (ms_result.filtered_marginal_probabilities if causal
+                 else ms_result.smoothed_marginal_probabilities)
+        states = np.array(probs.values.argmax(axis=1), dtype=int)
+        posteriors = probs.values
 
         labels, label_map = _label_regimes(states, n_states, close_aligned)
 
@@ -610,8 +629,13 @@ def detect_regimes(
             n_states, bic_scores = _select_n_states(X, max_states=5)
 
         hmm_result = _fit_hmm(X, n_states)
-        states = hmm_result["states"]
-        posteriors = hmm_result["posteriors"]
+        if causal:
+            # filtrado: estado da barra t decidido só com obs até t
+            posteriors = hmm_result["filtered"]
+            states = np.asarray(posteriors.argmax(axis=1), dtype=int)
+        else:
+            states = hmm_result["states"]          # Viterbi (série inteira)
+            posteriors = hmm_result["posteriors"]  # suavizado
 
         labels, label_map = _label_regimes(states, n_states, close_aligned)
 
@@ -652,4 +676,5 @@ def detect_regimes(
         "method": method,
         "n_states": n_states,
         "bic_scores": bic_scores,
+        "causal": bool(causal) if method != "changepoint" else None,
     }

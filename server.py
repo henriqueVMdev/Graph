@@ -2731,6 +2731,7 @@ def regime_detect():
         n_states = int(params.get("n_states", 0))
         features = params.get("features", ["log_return", "volatility"])
         vol_window = int(params.get("vol_window", 20))
+        causal = bool(params.get("causal", False))
 
         result = detect_regimes(
             df,
@@ -2738,6 +2739,7 @@ def regime_detect():
             n_states=n_states,
             features=features,
             vol_window=vol_window,
+            causal=causal,
         )
 
         return jsonify(result)

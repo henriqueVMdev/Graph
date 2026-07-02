@@ -140,11 +140,12 @@ export function getOptimizerResult() {
 }
 
 // Regime Detection API
-export function detectRegimeAsset(symbol, interval, params = {}) {
+export function detectRegimeAsset(symbol, interval, params = {}, exchange = '') {
   return api.post('/regime/detect', {
     source: 'asset',
     symbol,
     interval,
+    exchange: exchange || undefined,
     params,
   }, { timeout: 180000 })
 }
