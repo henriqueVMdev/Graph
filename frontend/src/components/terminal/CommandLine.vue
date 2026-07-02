@@ -83,6 +83,7 @@ const FUNCS = [
   { codes: ['PAR'], label: 'Parâmetros', route: '/dashboard' },
   { codes: ['MON', 'W'], label: 'Monitor', route: '/monitor' },
   { codes: ['SCR'], label: 'Screener', route: '/screener' },
+  { codes: ['EQS'], label: 'Screening fundamentalista', route: '/eqs' },
   { codes: ['DES'], label: 'Descrição do ativo', route: '/des' },
   { codes: ['N', 'NEWS'], label: 'Notícias', route: '/news' },
   { codes: ['ALRT'], label: 'Alertas', route: '/alerts' },

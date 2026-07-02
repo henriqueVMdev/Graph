@@ -56,6 +56,7 @@ const routes = [
   // ── Terminal (Bloomberg-like) — lazy-loaded ──
   { path: '/monitor', name: 'monitor', component: () => import('@/views/MonitorView.vue') },
   { path: '/screener', name: 'screener', component: () => import('@/views/ScreenerView.vue') },
+  { path: '/eqs', name: 'eqs', component: () => import('@/views/EqsView.vue') },
   { path: '/des', name: 'des', component: () => import('@/views/DesView.vue') },
   { path: '/alerts', name: 'alerts', component: () => import('@/views/AlertsView.vue') },
   { path: '/news', name: 'news', component: () => import('@/views/NewsView.vue') },

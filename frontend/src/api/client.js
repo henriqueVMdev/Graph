@@ -246,6 +246,18 @@ export function getDes(symbol, exchange = 'bybit', market = 'auto') {
   return api.get('/terminal/des', { params: { symbol, exchange, market }, timeout: 60000 })
 }
 
+export function getEqsMeta() {
+  return api.get('/terminal/eqs/meta')
+}
+
+export function runEqsScreen(filters) {
+  return api.post('/terminal/eqs/equity', filters, { timeout: 120000 })
+}
+
+export function getEqsFunds(screen) {
+  return api.get('/terminal/eqs/funds', { params: { screen }, timeout: 120000 })
+}
+
 export function getAlerts() {
   return api.get('/terminal/alerts')
 }

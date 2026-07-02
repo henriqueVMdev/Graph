@@ -267,6 +267,39 @@ def des():
         return jsonify({"error": str(e)[:300]}), 500
 
 
+# ── EQS — screening fundamentalista (Yahoo screener server-side) ────────
+
+@terminal_bp.get("/eqs/meta")
+def eqs_meta():
+    try:
+        import eqs_data
+        return jsonify(eqs_data.meta())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.post("/eqs/equity")
+def eqs_equity():
+    try:
+        import eqs_data
+        filters = request.get_json(force=True) or {}
+        return jsonify(eqs_data.run_equity_screen(filters))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/eqs/funds")
+def eqs_funds():
+    try:
+        import eqs_data
+        screen = request.args.get("screen") or "top_etfs_us"
+        return jsonify(eqs_data.run_fund_screen(screen))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
 # ── Alertas (preço/funding) ──────────────────────────────────────────────
 
 _ALERTS_FILE = Path(__file__).parent / "alerts_data.json"
