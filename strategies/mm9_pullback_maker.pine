@@ -1,0 +1,133 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════
+// MM9 Pullback Maker — 15m (Bybit perps)
+//
+// Pullback à EMA9 com entrada por ordem LIMITE (maker), filtros de
+// tendência 15m + 1h (sem repaint), volatilidade e janela de horário
+// (19h-00h Brasília por padrão).
+//
+// USAR SOMENTE NO GRÁFICO DE 15 MINUTOS.
+//
+// Validação (Python, 1 ano Bybit, fees+funding reais, sem lookahead):
+//   forward OOS BTC: WR 81.5% | PF 1.66 | +0.148%/trade (janela 19-00h)
+//   ETH 1.46 | SOL 1.39 | DOGE 1.78 | XRP 0.98 (não operar XRP)
+//
+// Notas de fidelidade vs backtest Python:
+//  - commission_value 0.0375%/ponta é a MÉDIA maker(0.02)/taker(0.055);
+//    o Python usa maker na entrada/TP e taker no SL/time-stop. Ajuste em
+//    Propriedades se quiser outro cenário.
+//  - TP e SL no mesmo candle: o emulador do TV decide pela forma da barra;
+//    nossa validação contou como LOSS (mais conservadora). O TV pode
+//    reportar resultado levemente melhor.
+//  - A janela de horário é avaliada no candle do SETUP; a ordem executa
+//    no candle seguinte (borda de 15min vs o Python, efeito desprezível).
+// ═══════════════════════════════════════════════════════════════════════
+strategy("MM9 Pullback Maker [15m]",
+     overlay = true,
+     initial_capital = 50000,
+     currency = currency.USDT,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.0375,
+     slippage = 0,
+     pyramiding = 0,
+     calc_on_every_tick = false,
+     process_orders_on_close = false)
+
+// ── Inputs ──────────────────────────────────────────────────────────────
+tpPct      = input.float(0.5,  "Alvo (%)",             minval = 0.1, step = 0.1,  group = "Saídas")
+slPct      = input.float(1.5,  "Stop (%)",             minval = 0.3, step = 0.1,  group = "Saídas")
+maxBars    = input.int(48,     "Time-stop (barras)",   minval = 4,                group = "Saídas")
+
+emaFastLen = input.int(9,   "EMA pullback",            minval = 3,   group = "Filtros")
+trendFast  = input.int(50,  "EMA tendência rápida",    minval = 10,  group = "Filtros")
+trendSlow  = input.int(200, "EMA tendência lenta",     minval = 50,  group = "Filtros")
+use1h      = input.bool(true,  "Filtro slope EMA9 1h", group = "Filtros")
+volRankMin = input.float(0.5,  "Rank vol mínimo (0-1)", minval = 0.0, maxval = 0.9, step = 0.1, group = "Filtros")
+allowShort = input.bool(true,  "Operar short",         group = "Filtros")
+
+useSession = input.bool(true, "Restringir horário de entrada", group = "Horário")
+sess       = input.session("1900-0000", "Janela (hora local)",  group = "Horário")
+tzName     = input.string("America/Sao_Paulo", "Fuso horário",  group = "Horário")
+
+riskPct    = input.float(1.0, "Risco por trade (% da conta)", minval = 0.1, step = 0.25, group = "Sizing")
+levCap     = input.float(2.0, "Alavancagem máx (x)",          minval = 1.0, step = 0.5,  group = "Sizing")
+
+// ── Indicadores (15m) ───────────────────────────────────────────────────
+e9   = ta.ema(close, emaFastLen)
+e50  = ta.ema(close, trendFast)
+e200 = ta.ema(close, trendSlow)
+
+// ATR estilo ewm(span=14) do Python (ta.atr usa RMA; diferença mínima)
+atrE   = ta.ema(ta.tr(true), 14)
+atrPct = atrE / close * 100
+// rank percentual da vol na janela de 4 dias (384 barras de 15m)
+volOk  = volRankMin <= 0.0 or ta.percentrank(atrPct, 384) / 100 >= volRankMin
+
+// ── Slope da EMA9 do 1h SEM REPAINT ─────────────────────────────────────
+// [1] + lookahead_on = valor da última hora FECHADA (idioma clássico
+// anti-repaint). Espelha o fix de lookahead da validação Python: nunca
+// usar o bucket 1h em formação.
+e1h = request.security(syminfo.tickerid, "60", ta.ema(close, 9)[1],
+     lookahead = barmerge.lookahead_on)
+// e1h muda 1x por hora; 4 barras de 15m atrás = valor da hora anterior
+slopeUp = e1h > e1h[4]
+
+// ── Janela de horário (entradas apenas) ─────────────────────────────────
+inSession = not useSession or not na(time(timeframe.period, sess, tzName))
+
+// ── Setup (avaliado no candle fechado; ordem executa no seguinte) ───────
+longSetup  = e50 > e200 and close > e200 and (not use1h or slopeUp)      and close > e9 and volOk
+shortSetup = allowShort and e50 < e200 and close < e200 and (not use1h or not slopeUp) and close < e9 and volOk
+
+// ── Sizing: SL cheio = riskPct da conta; notional limitado por levCap ───
+calcQty(price) =>
+    riskQty = strategy.equity * (riskPct / 100) / (slPct / 100 * price)
+    maxQty  = strategy.equity * levCap / price
+    math.min(riskQty, maxQty)
+
+// ── Entradas: limite na EMA9 do candle atual (= "anterior" na execução).
+// Validade de 1 candle: a cada barra a ordem é substituída ou cancelada. ─
+if strategy.position_size == 0
+    if longSetup and inSession
+        strategy.entry("L", strategy.long, qty = calcQty(e9), limit = e9,
+             comment = "Pullback L")
+    else
+        strategy.cancel("L")
+    if shortSetup and inSession
+        strategy.entry("S", strategy.short, qty = calcQty(e9), limit = e9,
+             comment = "Pullback S")
+    else
+        strategy.cancel("S")
+else
+    strategy.cancel("L")
+    strategy.cancel("S")
+
+// ── Saídas: TP limite / SL stop; time-stop a mercado ────────────────────
+if strategy.position_size > 0
+    avgL = strategy.position_avg_price
+    strategy.exit("XL", "L", limit = avgL * (1 + tpPct / 100),
+         stop = avgL * (1 - slPct / 100), comment_profit = "Alvo (maker)",
+         comment_loss = "Stop Loss")
+if strategy.position_size < 0
+    avgS = strategy.position_avg_price
+    strategy.exit("XS", "S", limit = avgS * (1 - tpPct / 100),
+         stop = avgS * (1 + slPct / 100), comment_profit = "Alvo (maker)",
+         comment_loss = "Stop Loss")
+
+if strategy.opentrades > 0
+    barsHeld = bar_index - strategy.opentrades.entry_bar_index(strategy.opentrades - 1)
+    if barsHeld >= maxBars
+        strategy.close_all(comment = "Time Stop")
+
+// ── Visual ──────────────────────────────────────────────────────────────
+plot(e9,   "EMA9",   color = color.orange, linewidth = 2)
+plot(e50,  "EMA50",  color = color.teal)
+plot(e200, "EMA200", color = color.gray)
+bgcolor(useSession and inSession ? color.new(color.blue, 94) : na,
+     title = "Janela de entrada")
+
+// Aviso: timeframe errado invalida o filtro 1h (e1h[4]) e a janela de vol
+if barstate.islast and timeframe.period != "15"
+    var table warn = table.new(position.top_center, 1, 1)
+    table.cell(warn, 0, 0, "⚠ Use o gráfico de 15 minutos",
+         bgcolor = color.new(color.red, 20), text_color = color.white)

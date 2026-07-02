@@ -1,62 +1,84 @@
 # ══════════════════════════════════════════════════════════════════
-# ESTRATÉGIA: MM9 Pullback Maker — BTC/USDT Perp (Bybit) 15m
-# Validada em 1 ano de dados reais (jul/2025→jul/2026, 35.000 candles)
-# Split 70/30 treino/forward + stress test — 2026-07-01
+# ESTRATÉGIA: MM9 Pullback Maker — Perps Bybit 15m
+# Validada em 1 ano de dados reais (jul/2025→jul/2026, 35.000 candles
+# por ativo), split 70/30 treino/forward + stress — revisão 2026-07-02
+# NOTA: números REVISADOS após correção de lookahead no filtro 1h
+# (a 1ª versão vazava até 45min de futuro e inflava o resultado ~40%).
 # ══════════════════════════════════════════════════════════════════
 
-ativo:            BTC/USDT:USDT (perpétuo, Bybit)
+ativos:           BTC, ETH, SOL, DOGE /USDT:USDT (perp Bybit)
+                  # XRP REPROVADO no forward corrigido (PF 0.98 stress)
 timeframe:        15m
 direcao:          long e short
+janela_horario:   19:00-00:00 Brasília (22:00-03:00 UTC) — SÓ ENTRADAS;
+                  # saídas (TP/SL/time-stop) são ordens 24/7 na exchange.
+                  # A janela MELHORA a expectância em todos os ativos.
 
 # ── ENTRADA (maker — é o que viabiliza a estratégia) ─────────────
 entrada:
   tipo:           ordem LIMITE no valor da EMA9 do candle ANTERIOR (fechado)
-  gatilho:        preço recua e toca a limite (pullback à média)
+  gatilho:        preço recua e atravessa a limite (pullback à média)
+  validade:       1 candle; a cada candle de setup a limite é reposicionada
   # NUNCA entrar a mercado: com taker nas duas pontas (0.11% ida-volta)
-  # a estratégia MORRE (PF cai para ~1.0). Maker entry = fee 0.02%.
+  # a estratégia MORRE. Maker entry = fee 0.02%.
 
-# ── FILTROS (todos avaliados no candle anterior, sem lookahead) ──
+# ── FILTROS (todos no candle anterior, sem lookahead) ────────────
 filtros_long:                      # short = espelho exato
   tendencia_15m:  EMA50 > EMA200  E  Close > EMA200
-  tendencia_1h:   EMA9 do 1h com inclinação POSITIVA (subindo)
-  posicao:        Close > EMA9    # pullback ainda não aconteceu
+  tendencia_1h:   EMA9 do 1h subindo — usando APENAS horas FECHADAS
+                  # (bucket 1h só é conhecido 1h após abrir; nunca usar
+                  #  resample+ffill ingênuo: vaza até 45min de futuro)
+  posicao:        Close > EMA9
   volatilidade:   rank do ATR14% >= 0.5 na janela de 4 dias (384 barras)
-                  # só opera em vol ACIMA da mediana — em vol baixa o edge some
 
 # ── SAÍDAS ───────────────────────────────────────────────────────
-take_profit:      +0.5%  do preço de entrada (ordem limite -> maker 0.02%)
-stop_loss:        -1.5%  do preço de entrada (a mercado -> taker 0.055%)
+take_profit:      +0.5%  (ordem limite -> maker 0.02%)
+stop_loss:        -1.5%  (a mercado -> taker 0.055%)
 time_stop:        48 barras (12h) -> fecha a mercado no close
-regra_conflito:   TP e SL tocados no MESMO candle = conta como LOSS
+regra_conflito:   TP e SL no MESMO candle = conta como LOSS
 
-# ── SIZING (prop challenge: alvo +5%, perda máx -10%, diária -5%) ─
-risco_por_trade:  1.0% da conta   # SL cheio = -1% da conta
-notional:         conta x (1% / 1.5%) ~ 0.67x a conta -> alavancagem < 1x
-                  # zero risco de liquidação; nunca aumentar risco após perda
+# ── SIZING (prop: alvo +5%, perda máx -10%, diária -5%) ──────────
+btc_solo:         risco 1.0-1.5%/trade  (aprovação ~98.6-98.9%)
+portfolio_4:      risco 0.75%/trade em BTC+ETH+SOL+DOGE (aprov. ~98.5%)
+                  # posições simultâneas são CORRELACIONADAS: com 1%/trade
+                  # o pior dia histórico chegou a -6% e VIOLA a regra diária
+alavancagem:      notional = conta x (risco/1.5%) -> sempre < 1x
 
-# ── RESULTADOS VALIDADOS (líquidos de fees + funding real Bybit) ─
-forward_test:     # 3,5 meses out-of-sample, 312 trades, ~3.5 trades/dia
-  win_rate:       77.6%
-  profit_factor:  1.32
-  expectancia:    +0.085% por trade
-  max_drawdown:   -5.4%
-  pior_dia:       -2.1%
-cenario_stress:   # funding 1.5x + slippage 0.05% nos stops + fill atravessando
-  win_rate:       77.2%
-  profit_factor:  1.26
-  expectancia:    +0.074% por trade
+# ── RESULTADOS (líquidos: fees+funding Bybit, SEM lookahead) ─────
+forward_19_00h:   # 3,5 meses out-of-sample, cenário realista
+  BTC:  {n: 81, wr: 81.5%, pf: 1.66, exp: +0.148%}
+  ETH:  {n: 90, wr: 82.2%, pf: 1.46, exp: +0.120%}
+  SOL:  {n: 96, wr: 80.2%, pf: 1.39, exp: +0.104%}
+  DOGE: {n: 94, wr: 85.1%, pf: 1.78, exp: +0.171%}
+  XRP:  {n: 80, wr: 76.2%, pf: 1.01, exp: +0.005%}   # morto — excluído
+stress_forward:   # funding 1.5x + slippage 0.05% em saídas a mercado
+  BTC 1.59 | ETH 1.42 | SOL 1.34 | DOGE 1.72 | XRP 0.98 (PF)
+referencia_24h:   # sem janela de horário o edge cai muito
+  BTC: {wr: 75.6%, pf: 1.16, exp: +0.048%}
 
-prop_challenge:   # Monte Carlo 5.000 sims, bootstrap de dias, pool stress OOS
-  aprovacao:      ~95%  (risco 1%/trade)
-  reprovacao:     <1%
-  mediana:        ~20 dias de trading para passar
+prop_challenge:   # MC bootstrap de dias, pool stress, forward-only
+  btc_solo_1pct:      {aprova: 98.6%, mediana: 29 dias, maxDD_hist: -2.1%}
+  btc_solo_1.5pct:    {aprova: 98.9%, mediana: 18 dias}
+  # varredura 12 perps (seleção de cesta APENAS pelo treino):
+  top8_0.5pct:        {aprova: 96.1%, mediana: 12 dias, pior_dia: -4.5%}
+                      # XRP+SOL+SUI+ADA+LINK+AVAX+NEAR+ETH (top8 do treino)
+  top5_0.6pct:        {aprova: 96.5%, mediana: 14 dias}
 
-# ── CONDIÇÕES DE INVALIDAÇÃO (pare se acontecer) ─────────────────
+# ── LIÇÃO DA VARREDURA MULTI-CRIPTO (NÃO ESQUECER) ───────────────
+# Correlação treino->forward entre símbolos = 0.08 (~zero):
+# NÃO dá para prever qual cripto vai performar. Solo "agressivo" no
+# suposto vencedor = loteria (aprovação média 79-84%, pior caso 44-51%).
+# Diversificar em cesta com risco baixo domina: a cesta absorve os
+# símbolos que morrem no forward (XRP/AVAX) e ainda aprova 96%.
+# Cesta grande + risco alto viola a regra diária (top12 @ 1% = 72%).
+
+# ── CONDIÇÕES DE INVALIDAÇÃO ─────────────────────────────────────
 invalida_se:
-  - WR real em demo < 72% após 2-4 semanas   # edge não sobreviveu à fila maker
-  - fills maker sistematicamente piores que o backtest (seleção adversa)
+  - WR real em demo < 72% após 2-4 semanas
+  - fills maker sistematicamente piores que o backtest
   - 3 dias seguidos no limite diário
-antes_de_pagar:   2-4 semanas em demo/testnet Bybit comparando fills com backtest
+antes_de_pagar:   2-4 semanas em demo/testnet Bybit comparando fills
 
-# Ressalvas: hipótese mais frágil é o fill maker (fila real pode excluir os
-# melhores trades); validação em 1 ano / 1 ativo / 1 regime de mercado.
+# Ressalvas: fill maker é a hipótese mais frágil; 1 ano / 1 regime;
+# amostra OOS de ~80-96 trades/ativo (WR ±8pp). Implementações:
+# strategies/mm9_pullback.py (app) e strategies/mm9_pullback_maker.pine (TradingView).
