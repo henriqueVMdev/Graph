@@ -54,8 +54,16 @@
         </select>
 
         <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
-        <select v-model="store.interval" class="form-select w-full text-xs">
+        <select v-model="store.interval" class="form-select w-full mb-2 text-xs">
           <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
+        </select>
+
+        <label class="text-xs text-gray-400 block mb-1">Fonte dos candles</label>
+        <select v-model="store.exchange" class="form-select w-full text-xs">
+          <option value="">Yahoo Finance (15m/30m: só 60 dias)</option>
+          <option value="bybit">Bybit perp (~1 ano de 15m)</option>
+          <option value="binance">Binance perp (~1 ano de 15m)</option>
+          <option value="okx">OKX perp (~1 ano de 15m)</option>
         </select>
       </div>
 

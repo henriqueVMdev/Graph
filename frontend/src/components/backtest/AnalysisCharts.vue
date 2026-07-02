@@ -104,12 +104,24 @@ const BASE_LAYOUT = {
 const PLOT_CFG = { responsive: true, displaylogo: false, displayModeBar: false }
 
 // ── Tab 0: Candles + MA/bandas + marcadores de trade ──────────────────────
+// Candlestick do Plotly degrada muito acima de ~10k pontos; com histórico de
+// 1 ano de 15m (35k candles) o gráfico de preço mostra só o rabo. Equity e
+// funding continuam com o range completo.
+const MAX_PRICE_BARS = 6000
+
 function renderPrice() {
   if (!priceChart.value || !store.chartData) return
-  const c = store.chartData.candles
-  const ind = store.chartData.indicators || {}
+  const full = store.chartData.candles
+  const indFull = store.chartData.indicators || {}
   const trades = store.chartData.trades || []
-  if (!c?.dates?.length) return
+  if (!full?.dates?.length) return
+
+  const n = full.dates.length
+  const s = Math.max(0, n - MAX_PRICE_BARS)
+  const cut = a => (a ? a.slice(s) : a)
+  const c = { dates: cut(full.dates), open: cut(full.open), high: cut(full.high), low: cut(full.low), close: cut(full.close) }
+  const ind = { ma: cut(indFull.ma), ma_slow: cut(indFull.ma_slow), upper: cut(indFull.upper), lower: cut(indFull.lower) }
+  const firstTs = new Date(c.dates[0]).getTime()
 
   const traces = [
     {
@@ -124,9 +136,11 @@ function renderPrice() {
   if (ind.upper) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Sup.', x: c.dates, y: ind.upper, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
   if (ind.lower) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Inf.', x: c.dates, y: ind.lower, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
 
-  // Marcadores de entrada (long ▲ verde / short ▼ vermelho) e saída (✕)
+  // Marcadores de entrada (long ▲ verde / short ▼ vermelho) e saída (✕),
+  // só dentro do range de candles exibido
   const longX = [], longY = [], shortX = [], shortY = [], exitX = [], exitY = []
   for (const t of trades) {
+    if (t.entry_ts < firstTs) continue
     const ed = new Date(t.entry_ts)
     if (t.direction === 1) { longX.push(ed); longY.push(t.entry_price) }
     else { shortX.push(ed); shortY.push(t.entry_price) }
@@ -141,6 +155,11 @@ function renderPrice() {
     xaxis: { ...BASE_LAYOUT.xaxis, type: 'date', rangeslider: { visible: false } },
     yaxis: { ...BASE_LAYOUT.yaxis, title: 'Preço' },
     hovermode: 'x unified',
+    annotations: s > 0 ? [{
+      xref: 'paper', yref: 'paper', x: 0.99, y: 1.04, showarrow: false, xanchor: 'right',
+      text: `exibindo os últimos ${MAX_PRICE_BARS.toLocaleString()} candles de ${n.toLocaleString()} (equity/funding cobrem tudo)`,
+      font: { size: 10, color: '#777' },
+    }] : [],
   }, PLOT_CFG)
 }
 

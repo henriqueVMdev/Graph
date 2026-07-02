@@ -31,6 +31,8 @@ export const useBacktestStore = defineStore('backtest', () => {
   const selectedSymbol = ref('')
   const interval = ref('1d')
   const csvFile = ref(null)
+  // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
+  const exchange = ref('')
 
   // ─── Resultados ───────────────────────────────────────────────────────────
   const isRunning = ref(false)
@@ -182,6 +184,7 @@ export const useBacktestStore = defineStore('backtest', () => {
           interval.value,
           params.value,
           stratFile,
+          exchange.value,
         )
       }
       results.value = resp.data
@@ -208,6 +211,7 @@ export const useBacktestStore = defineStore('backtest', () => {
       const { data } = await runWfaApi({
         symbol:        selectedSymbol.value,
         interval:      interval.value,
+        exchange:      exchange.value || undefined,
         strategy_file: selectedStrategy.value?.file || 'depaula',
         config:        params.value,
         n_windows:            wfaConfig.value.n_windows,
@@ -317,7 +321,7 @@ export const useBacktestStore = defineStore('backtest', () => {
   return {
     assets, strategies, selectedStrategy, params, config,
     pendingParams,
-    dataSource, selectedAssetLabel, selectedSymbol, interval, csvFile,
+    dataSource, selectedAssetLabel, selectedSymbol, interval, csvFile, exchange,
     isRunning, results, error,
     correlationData, correlationLoading, correlationError,
     wfaResults, wfaLoading, wfaError, wfaConfig,

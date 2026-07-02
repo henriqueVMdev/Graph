@@ -14,6 +14,8 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
   const selectedAssetLabel = ref('')
   const selectedSymbol = ref('')
   const interval = ref('1d')
+  // '' = yfinance (60d p/ 15m); exchange CCXT = histórico longo (35k de 15m)
+  const exchange = ref('')
 
   // Prop challenge config
   const accountSize = ref(50000)
@@ -155,6 +157,7 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
         symbol: selectedSymbol.value,
         symbol_label: selectedAssetLabel.value,
         interval: interval.value,
+        exchange: exchange.value || undefined,
         config: params.value,
         account_size: accountSize.value,
         num_sims: numSims.value,
@@ -185,6 +188,7 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
       const { data } = await runWfaApi({
         symbol:        selectedSymbol.value,
         interval:      interval.value,
+        exchange:      exchange.value || undefined,
         strategy_file: selectedStrategy.value?.file || 'depaula',
         config:        params.value,
         n_windows:            wfaConfig.value.n_windows,
@@ -208,7 +212,7 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
   return {
     assets, strategies, selectedStrategy, params,
     pendingParams,
-    dataSource, selectedAssetLabel, selectedSymbol, interval,
+    dataSource, selectedAssetLabel, selectedSymbol, interval, exchange,
     accountSize, numSims, costConfig,
     isRunning, results, error,
     wfaResults, wfaLoading, wfaError, wfaConfig,

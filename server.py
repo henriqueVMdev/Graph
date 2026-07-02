@@ -48,6 +48,20 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
 
 
+# Candles a paginar por timeframe no caminho CCXT (~1 ano de 15m, como na
+# pesquisa; timeframes maiores pegam mais anos com menos requisições).
+_CCXT_TOTALS = {
+    "1m": 40000, "5m": 40000, "15m": 35000, "30m": 17600,
+    "1h": 17600, "2h": 8800, "4h": 4400, "1d": 3000,
+}
+
+# Cache de OHLCV por (symbol, interval, exchange). 35k candles = ~35 requisições
+# paginadas; sem cache, backtest + WFA + gráficos re-baixam tudo e estouram o
+# rate limit da exchange (Bybit 10006).
+_OHLCV_CACHE: dict = {}
+_OHLCV_TTL_S = 600
+
+
 def _download_data_safe(symbol: str, interval: str, exchange: str | None = None) -> pd.DataFrame:
     """Versão segura de download_data — nunca chama sys.exit.
 
@@ -60,8 +74,17 @@ def _download_data_safe(symbol: str, interval: str, exchange: str | None = None)
     if exchange:
         from market_data import SUPPORTED_EXCHANGES, fetch_ohlcv
         if exchange.lower() in SUPPORTED_EXCHANGES:
-            # total alto p/ histórico de backtest; a exchange devolve o que tiver.
-            return fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=5000)
+            import time as _time
+            key = (symbol.upper(), interval, exchange.lower())
+            hit = _OHLCV_CACHE.get(key)
+            if hit and _time.time() - hit[0] < _OHLCV_TTL_S:
+                return hit[1].copy()
+            # ~1 ano p/ intraday curto (35k de 15m = setup da pesquisa do
+            # RELATORIO_prop_challenge); a exchange devolve o que tiver.
+            total = _CCXT_TOTALS.get(interval, 5000)
+            df = fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=total)
+            _OHLCV_CACHE[key] = (_time.time(), df)
+            return df.copy()
         raise ValueError(
             f"exchange '{exchange}' não suportada. "
             f"Opções: {', '.join(SUPPORTED_EXCHANGES)}"
@@ -1360,7 +1383,8 @@ def api_backtest_wfa():
         # os primeiros ~ma_length candles nao geravam sinais — em janelas OOS
         # curtas isso consumia boa parte da janela. A avaliacao (retorno,
         # Sharpe, trades, custos) continua estritamente dentro da janela.
-        warmup_bars = 300
+        # 400 cobre o rank de volatilidade da MM9 pullback (rolling 384).
+        warmup_bars = 400
 
         windows = []
         for i in range(n_windows):

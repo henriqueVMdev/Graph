@@ -46,7 +46,7 @@ export function getStrategies() {
   return api.get('/backtest/strategies')
 }
 
-export function runBacktestAsset(symbol, symbolLabel, interval, config, strategyFile = 'depaula') {
+export function runBacktestAsset(symbol, symbolLabel, interval, config, strategyFile = 'depaula', exchange = '') {
   return api.post('/backtest/run', {
     data_source: 'asset',
     symbol,
@@ -54,7 +54,8 @@ export function runBacktestAsset(symbol, symbolLabel, interval, config, strategy
     interval,
     config,
     strategy_file: strategyFile,
-  })
+    exchange: exchange || undefined,
+  }, { timeout: 300000 })
 }
 
 export function runBacktestCsv(file, config, strategyFile = 'depaula') {
