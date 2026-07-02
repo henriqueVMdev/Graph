@@ -12,7 +12,7 @@
             v-model="query"
             @keydown.enter.prevent="go"
             @keydown.esc.prevent="close"
-            placeholder="ex.: BTC 15M BT · ETH DES · SCR · NEWS"
+            placeholder="ex.: BTC 15M BT · OURO DES · EURUSD MON · SCR · NEWS"
             class="flex-1 bg-transparent font-mono text-base text-accent-yellow uppercase
                    placeholder:normal-case placeholder:text-gray-600 focus:outline-none"
             spellcheck="false" autocomplete="off"
@@ -46,6 +46,9 @@
           </div>
           <div class="col-span-full mt-1 text-gray-700">
             [SÍMBOLO] [TIMEFRAME] FUNÇÃO — ex.: SOL 1H REG · DOGE MON · BTC BYBIT BT
+          </div>
+          <div class="col-span-full text-gray-700">
+            mercado tradicional: OURO DES · EURUSD MON · AAPL TRAD DES · SPX DES
           </div>
         </div>
       </div>
@@ -90,6 +93,22 @@ const FUNC_BY_CODE = Object.fromEntries(
 const TFS = ['1M', '5M', '15M', '30M', '1H', '2H', '4H', '1D', '1WK']
 const EXCHANGES = ['BYBIT', 'BINANCE', 'OKX', 'HYPERLIQUID']
 
+// mercado tradicional: aliases (espelho do backend tradfi_data.ALIASES)
+// e formatos yfinance (GC=F, EURUSD=X, ^GSPC, DX-Y.NYB)
+const TRADFI_ALIASES = new Set([
+  'OURO', 'GOLD', 'PRATA', 'SILVER', 'COBRE', 'COPPER', 'PETROLEO', 'OIL',
+  'WTI', 'BRENT', 'GAS', 'NATGAS', 'MILHO', 'CORN', 'TRIGO', 'WHEAT',
+  'SOJA', 'CAFE', 'COFFEE', 'ACUCAR', 'SUGAR', 'CACAU', 'ALGODAO',
+  'SPX', 'SP500', 'DJI', 'DOW', 'NASDAQ', 'NDX', 'RUSSELL', 'VIX',
+  'IBOV', 'IBOVESPA', 'DAX', 'NIKKEI', 'DXY',
+  'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD',
+  'USDBRL', 'DOLAR', 'EURBRL', 'EURGBP', 'EURJPY', 'USDMXN', 'USDCNY',
+])
+
+function isTradfiToken(t) {
+  return TRADFI_ALIASES.has(t) || t.includes('=') || t.startsWith('^') || t.includes('.')
+}
+
 function resolveSymbol(token) {
   // procura na lista de assets do backend (label ou ticker)
   const t = token.toUpperCase()
@@ -110,16 +129,23 @@ const parsed = computed(() => {
   const funcCode = tokens[tokens.length - 1]
   const func = FUNC_BY_CODE[funcCode]
   let tf = null, exchange = null, symbol = null, symbolLabel = null, base = null
+  let market = null
   for (const tok of tokens.slice(0, -1)) {
     if (TFS.includes(tok)) { tf = tok.toLowerCase(); continue }
     if (EXCHANGES.includes(tok)) { exchange = tok.toLowerCase(); continue }
+    if (tok === 'TRAD' || tok === 'US') { market = 'tradfi'; continue }
     const hit = resolveSymbol(tok)
     if (hit) { symbol = hit.ticker; symbolLabel = hit.label; base = tok }
-    else { base = tok; symbol = null; symbolLabel = tok }
+    else {
+      base = tok; symbol = null; symbolLabel = tok
+      if (isTradfiToken(tok)) market = 'tradfi'
+    }
   }
   return {
     func, funcLabel: func?.label, route: func?.route,
-    tf, exchange, symbol, symbolLabel, base,
+    tf, exchange, symbol, symbolLabel: market === 'tradfi' && symbolLabel
+      ? `${symbolLabel} · tradicional` : symbolLabel,
+    base, market,
   }
 })
 
@@ -132,9 +158,15 @@ function go() {
   if (p.exchange) ws.exchange = p.exchange
   // rotas do terminal recebem o ativo por query (base crua serve p/ DES/monitor)
   if (p.route === '/des' && (p.base || ws.symbol)) {
-    router.push({ path: '/des', query: { symbol: p.base || ws.symbol.replace(/-USD.*$/, '') } })
+    router.push({
+      path: '/des',
+      query: {
+        symbol: p.base || ws.symbol.replace(/-USD.*$/, ''),
+        market: p.market || 'auto',
+      },
+    })
   } else if (p.route === '/monitor' && p.base) {
-    terminal.addToWatchlist(p.base)
+    terminal.addToWatchlist(p.base, p.market || 'crypto')
     router.push('/monitor')
   } else {
     router.push(p.route)

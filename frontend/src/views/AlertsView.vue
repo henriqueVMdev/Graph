@@ -9,8 +9,15 @@
       </h2>
       <form @submit.prevent="create" class="flex flex-wrap items-end gap-3">
         <label class="text-xs text-gray-500 block">
+          Mercado
+          <select v-model="form.market" class="form-select !py-1.5 text-xs mt-1 block">
+            <option value="crypto">Cripto</option>
+            <option value="tradfi">Tradicional</option>
+          </select>
+        </label>
+        <label class="text-xs text-gray-500 block">
           Símbolo
-          <input v-model="form.symbol" placeholder="BTC" required
+          <input v-model="form.symbol" :placeholder="form.market === 'crypto' ? 'BTC' : 'AAPL, OURO...'" required
                  class="form-input !py-1.5 text-xs w-28 uppercase mt-1 block" />
         </label>
         <label class="text-xs text-gray-500 block">
@@ -18,8 +25,8 @@
           <select v-model="form.kind" class="form-select !py-1.5 text-xs mt-1 block">
             <option value="price_above">Preço acima de</option>
             <option value="price_below">Preço abaixo de</option>
-            <option value="funding_above">Funding acima de</option>
-            <option value="funding_below">Funding abaixo de</option>
+            <option v-if="form.market === 'crypto'" value="funding_above">Funding acima de</option>
+            <option v-if="form.market === 'crypto'" value="funding_below">Funding abaixo de</option>
           </select>
         </label>
         <label class="text-xs text-gray-500 block">
@@ -44,7 +51,9 @@
       <table v-if="active.length" class="w-full text-xs font-mono">
         <tbody>
           <tr v-for="a in active" :key="a.id" class="border-b border-surface-600/50">
-            <td class="py-1.5 font-bold text-gray-100">{{ a.symbol }}</td>
+            <td class="py-1.5 font-bold text-gray-100">{{ a.symbol }}
+              <span v-if="a.market === 'tradfi'" class="ml-1 text-[9px] font-mono px-1 py-0.5
+                    rounded bg-blue-900/40 text-blue-300 border border-blue-800/50">TRAD</span></td>
             <td class="py-1.5 text-gray-400">{{ terminal.kindLabel(a.kind) }} {{ a.level }}</td>
             <td class="py-1.5 text-gray-600">{{ a.note }}</td>
             <td class="py-1.5 text-gray-600">{{ tsFmt(a.created_at) }}</td>
@@ -83,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'
 
@@ -91,7 +100,12 @@ const terminal = useTerminalStore()
 const route = useRoute()
 const error = ref(null)
 
-const form = reactive({ symbol: '', kind: 'price_above', level: null, note: '' })
+const form = reactive({ symbol: '', kind: 'price_above', level: null, note: '', market: 'crypto' })
+
+// tradfi não tem funding — reseta a condição se trocar de mercado
+watch(() => form.market, (m) => {
+  if (m === 'tradfi' && form.kind.startsWith('funding')) form.kind = 'price_above'
+})
 
 const active = computed(() => terminal.alerts.filter((a) => a.active))
 const triggered = computed(() =>
@@ -123,5 +137,6 @@ onMounted(() => {
   // pré-preenche vindo do Monitor ("⏰" na linha)
   if (route.query.symbol) form.symbol = String(route.query.symbol).toUpperCase()
   if (route.query.price) form.level = Number(route.query.price)
+  if (route.query.market) form.market = String(route.query.market)
 })
 </script>

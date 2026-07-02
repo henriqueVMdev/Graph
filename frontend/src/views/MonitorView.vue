@@ -2,11 +2,15 @@
   <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">Monitor de Mercado</h1>
-      <span class="text-[10px] text-gray-600 font-mono">bybit perp · atualiza 5s</span>
+      <span class="text-[10px] text-gray-600 font-mono">cripto: bybit perp · tradicional: yahoo (~15min) · atualiza 5s</span>
       <div class="flex-1" />
       <form @submit.prevent="add" class="flex gap-2">
-        <input v-model="newSymbol" placeholder="adicionar (ex.: SUI)"
-               class="form-input !py-1.5 text-xs w-40" />
+        <select v-model="newMarket" class="form-select !py-1.5 text-xs">
+          <option value="crypto">Cripto</option>
+          <option value="tradfi">Tradicional</option>
+        </select>
+        <input v-model="newSymbol" :placeholder="newMarket === 'crypto' ? 'ex.: SUI' : 'ex.: AAPL, OURO, EURUSD'"
+               class="form-input !py-1.5 text-xs w-44" />
         <button type="submit" class="btn-secondary !py-1.5 text-xs">+ Adicionar</button>
       </form>
     </div>
@@ -31,14 +35,17 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in terminal.watchRows" :key="r.base"
+          <tr v-for="r in terminal.watchRows" :key="rowKey(r)"
               class="border-b border-surface-600/60 hover:bg-surface-600/40 transition-colors">
             <td class="px-3 py-2 text-left">
-              <button @click="openDes(r.base)"
+              <button @click="openDes(r)"
                       class="font-bold text-gray-100 hover:text-accent-yellow">{{ r.base }}</button>
+              <span v-if="r.market === 'tradfi'" class="ml-1.5 text-[9px] font-mono px-1 py-0.5
+                    rounded bg-blue-900/40 text-blue-300 border border-blue-800/50 align-middle"
+                    :title="r.label">TRAD</span>
             </td>
             <td class="px-3 py-2 text-right font-semibold transition-colors duration-500"
-                :class="flash[r.base]">{{ fmt(r.last) }}</td>
+                :class="flash[rowKey(r)]">{{ fmt(r.last) }}</td>
             <td class="px-3 py-2 text-right"
                 :class="(r.pct24h ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
               {{ fmtPct(r.pct24h) }}
@@ -51,12 +58,12 @@
               {{ fmtFunding(r.funding) }}
             </td>
             <td class="px-3 py-2">
-              <Sparkline :points="terminal.sparks[r.base]" />
+              <Sparkline :points="terminal.sparks[rowKey(r)]" />
             </td>
             <td class="px-3 py-2 text-right whitespace-nowrap">
               <button @click="alertFor(r)" title="Criar alerta"
                       class="text-gray-600 hover:text-accent-yellow text-xs px-1">⏰</button>
-              <button @click="terminal.removeFromWatchlist(r.base)" title="Remover"
+              <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
                       class="text-gray-600 hover:text-red-400 text-xs px-1">✕</button>
             </td>
           </tr>
@@ -79,35 +86,40 @@ import { useTerminalStore } from '@/stores/terminal.js'
 const terminal = useTerminalStore()
 const router = useRouter()
 const newSymbol = ref('')
-const flash = ref({})           // base -> classe de flash
+const newMarket = ref('crypto')
+const flash = ref({})           // rowKey -> classe de flash
 const lastPrices = {}
+
+function rowKey(r) {
+  return `${r.market || 'crypto'}:${r.base}`
+}
 
 // flash verde/vermelho quando o preço muda
 watch(() => terminal.watchRows, (rows) => {
   for (const r of rows) {
-    const prev = lastPrices[r.base]
+    const k = rowKey(r)
+    const prev = lastPrices[k]
     if (prev != null && r.last != null && r.last !== prev) {
-      flash.value = { ...flash.value, [r.base]: r.last > prev ? 'text-green-400' : 'text-red-400' }
-      setTimeout(() => { flash.value = { ...flash.value, [r.base]: '' } }, 600)
+      flash.value = { ...flash.value, [k]: r.last > prev ? 'text-green-400' : 'text-red-400' }
+      setTimeout(() => { flash.value = { ...flash.value, [k]: '' } }, 600)
     }
-    lastPrices[r.base] = r.last
+    lastPrices[k] = r.last
   }
 }, { deep: true })
 
 function add() {
   if (newSymbol.value.trim()) {
-    terminal.addToWatchlist(newSymbol.value)
-    terminal.fetchSpark(newSymbol.value.trim().toUpperCase())
+    terminal.addToWatchlist(newSymbol.value, newMarket.value)
     newSymbol.value = ''
   }
 }
 
-function openDes(base) {
-  router.push({ path: '/des', query: { symbol: base } })
+function openDes(r) {
+  router.push({ path: '/des', query: { symbol: r.base, market: r.market || 'auto' } })
 }
 
 function alertFor(r) {
-  router.push({ path: '/alerts', query: { symbol: r.base, price: r.last } })
+  router.push({ path: '/alerts', query: { symbol: r.base, price: r.last, market: r.market || 'crypto' } })
 }
 
 function fmt(v) {

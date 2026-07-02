@@ -51,30 +51,38 @@ def watch():
         exchange = (request.args.get("exchange") or "bybit").lower()
         bases = [s.strip() for s in (request.args.get("symbols") or "").split(",")
                  if s.strip()]
-        if not bases:
+        tradfi = [s.strip() for s in (request.args.get("tradfi") or "").split(",")
+                  if s.strip()]
+        if not bases and not tradfi:
             return jsonify({"rows": []})
-        ex = get_exchange(exchange)
-        syms = [normalize_symbol(b, exchange) for b in bases]
-        tickers = ex.fetch_tickers(syms)
-        try:
-            frs = ex.fetch_funding_rates(syms)
-        except Exception:
-            frs = {}
         rows = []
-        for base, sym in zip(bases, syms):
-            t = tickers.get(sym) or {}
-            fr = frs.get(sym) or {}
-            rows.append({
-                "base": base.upper(),
-                "symbol": sym,
-                "last": _safe_float(t.get("last")),
-                "pct24h": _safe_float(t.get("percentage")),
-                "high24": _safe_float(t.get("high")),
-                "low24": _safe_float(t.get("low")),
-                "vol_usd": _safe_float(t.get("quoteVolume")),
-                "funding": _safe_float(fr.get("fundingRate")),
-                "next_funding_ts": fr.get("fundingTimestamp") or fr.get("nextFundingTimestamp"),
-            })
+        if bases:
+            ex = get_exchange(exchange)
+            syms = [normalize_symbol(b, exchange) for b in bases]
+            tickers = ex.fetch_tickers(syms)
+            try:
+                frs = ex.fetch_funding_rates(syms)
+            except Exception:
+                frs = {}
+            for base, sym in zip(bases, syms):
+                t = tickers.get(sym) or {}
+                fr = frs.get(sym) or {}
+                rows.append({
+                    "base": base.upper(),
+                    "symbol": sym,
+                    "market": "crypto",
+                    "last": _safe_float(t.get("last")),
+                    "pct24h": _safe_float(t.get("percentage")),
+                    "high24": _safe_float(t.get("high")),
+                    "low24": _safe_float(t.get("low")),
+                    "vol_usd": _safe_float(t.get("quoteVolume")),
+                    "funding": _safe_float(fr.get("fundingRate")),
+                    "next_funding_ts": fr.get("fundingTimestamp") or fr.get("nextFundingTimestamp"),
+                })
+        if tradfi:
+            import tradfi_data
+            tq = tradfi_data.quotes(tradfi)
+            rows.extend(tq[s] for s in tradfi if tq.get(s))
         return jsonify({"rows": rows, "ts": int(time.time() * 1000)})
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 500
@@ -91,6 +99,9 @@ def spark():
         bars = min(int(request.args.get("bars", 96)), 500)
         if not base:
             return jsonify({"error": "symbol obrigatório"}), 400
+        if (request.args.get("market") or "").lower() == "tradfi":
+            import tradfi_data
+            return jsonify({"closes": tradfi_data.closes(base, tf, bars)})
         sym = normalize_symbol(base, exchange)
 
         def fetch():
@@ -129,6 +140,11 @@ def _kline_stats(ex, sym):
 @terminal_bp.get("/screener")
 def screener():
     try:
+        market = (request.args.get("market") or "crypto").lower()
+        if market != "crypto":
+            import tradfi_data
+            rows = tradfi_data.screener_rows(market)
+            return jsonify({"rows": rows, "ts": int(time.time() * 1000)})
         exchange = (request.args.get("exchange") or "bybit").lower()
         top = min(int(request.args.get("top", 50)), 100)
         ex = get_exchange(exchange)
@@ -170,12 +186,25 @@ def screener():
 def des():
     try:
         exchange = (request.args.get("exchange") or "bybit").lower()
+        market = (request.args.get("market") or "crypto").lower()
         base = (request.args.get("symbol") or "").strip()
         if not base:
             return jsonify({"error": "symbol obrigatório"}), 400
-        ex = get_exchange(exchange)
-        sym = normalize_symbol(base, exchange)
-        mkt = ex.market(sym)
+
+        if market == "tradfi":
+            import tradfi_data
+            return jsonify(tradfi_data.describe(base))
+
+        try:
+            ex = get_exchange(exchange)
+            sym = normalize_symbol(base, exchange)
+            mkt = ex.market(sym)
+        except Exception:
+            # modo auto: símbolo não existe na exchange -> tenta tradicional
+            if market == "auto":
+                import tradfi_data
+                return jsonify(tradfi_data.describe(base))
+            raise
         ticker = ex.fetch_ticker(sym)
 
         try:
@@ -213,6 +242,8 @@ def des():
 
         limits = mkt.get("limits") or {}
         return jsonify({
+            "kind": "crypto",
+            "market": "crypto",
             "base": base.upper(),
             "symbol": sym,
             "exchange": exchange,
@@ -270,13 +301,17 @@ def alerts_create():
     kind = body.get("kind")
     symbol = (body.get("symbol") or "").strip().upper()
     level = _safe_float(body.get("level"))
+    market = (body.get("market") or "crypto").lower()
     if kind not in _ALERT_KINDS:
         return jsonify({"error": f"kind deve ser um de {_ALERT_KINDS}"}), 400
     if not symbol or level is None:
         return jsonify({"error": "symbol e level obrigatórios"}), 400
+    if market == "tradfi" and kind.startswith("funding"):
+        return jsonify({"error": "funding não existe no mercado tradicional"}), 400
     alert = {
         "id": uuid.uuid4().hex[:10],
         "symbol": symbol,
+        "market": market,
         "exchange": (body.get("exchange") or "bybit").lower(),
         "kind": kind,
         "level": level,
@@ -330,9 +365,22 @@ def _alert_watcher():
                 continue
             # agrupa por exchange; 1 fetch de tickers+funding por exchange
             by_ex: dict = {}
+            tradfi_syms: set = set()
             for a in active:
-                by_ex.setdefault(a["exchange"], set()).add(a["symbol"])
+                if a.get("market") == "tradfi":
+                    tradfi_syms.add(a["symbol"])
+                else:
+                    by_ex.setdefault(a["exchange"], set()).add(a["symbol"])
             quotes: dict = {}
+            if tradfi_syms:
+                try:
+                    import tradfi_data
+                    tq = tradfi_data.quotes(list(tradfi_syms))
+                    for s, row in tq.items():
+                        quotes[("tradfi", s)] = {"price": row.get("last"),
+                                                 "funding": None}
+                except Exception:
+                    pass
             for exch, bases in by_ex.items():
                 ex = get_exchange(exch)
                 syms = {b: normalize_symbol(b, exch) for b in bases}
@@ -348,7 +396,9 @@ def _alert_watcher():
                     }
             changed = False
             for a in active:
-                q = quotes.get((a["exchange"], a["symbol"])) or {}
+                qkey = ("tradfi", a["symbol"]) if a.get("market") == "tradfi" \
+                    else (a["exchange"], a["symbol"])
+                q = quotes.get(qkey) or {}
                 v = q.get("funding") if a["kind"].startswith("funding") else q.get("price")
                 if v is None:
                     continue
@@ -372,10 +422,15 @@ def _alert_watcher():
 # ── /news — RSS agregado ─────────────────────────────────────────────────
 
 _NEWS_SOURCES = [
-    ("CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
-    ("Cointelegraph", "https://cointelegraph.com/rss"),
-    ("Decrypt", "https://decrypt.co/feed"),
-    ("Livecoins", "https://livecoins.com.br/feed/"),
+    # (nome, url, categoria)
+    ("CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/", "crypto"),
+    ("Cointelegraph", "https://cointelegraph.com/rss", "crypto"),
+    ("Decrypt", "https://decrypt.co/feed", "crypto"),
+    ("Livecoins", "https://livecoins.com.br/feed/", "crypto"),
+    ("Yahoo Finance", "https://finance.yahoo.com/news/rssindex", "markets"),
+    ("MarketWatch", "https://feeds.content.dowjones.io/public/rss/mw_topstories", "markets"),
+    ("CNBC", "https://www.cnbc.com/id/100003114/device/rss/rss.html", "markets"),
+    ("InfoMoney", "https://www.infomoney.com.br/feed/", "markets"),
 ]
 
 
@@ -420,16 +475,26 @@ def _parse_feed(name, url):
 
 @terminal_bp.get("/news")
 def news():
+    cat = (request.args.get("cat") or "all").lower()
+
     def fetch():
         items, failed = [], []
-        for name, url in _NEWS_SOURCES:
+        for name, url, source_cat in _NEWS_SOURCES:
             try:
-                items.extend(_parse_feed(name, url)[:25])
+                got = _parse_feed(name, url)[:25]
+                for it in got:
+                    it["cat"] = source_cat
+                items.extend(got)
             except Exception:
                 failed.append(name)
         items.sort(key=lambda x: x["ts"] or 0, reverse=True)
-        return {"items": items[:80], "failed_sources": failed}
+        return {"items": items, "failed_sources": failed}
+
     try:
-        return jsonify(_cached(("news",), 600, fetch))
+        data = _cached(("news",), 600, fetch)
+        items = data["items"]
+        if cat in ("crypto", "markets"):
+            items = [it for it in items if it.get("cat") == cat]
+        return jsonify({"items": items[:100], "failed_sources": data["failed_sources"]})
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 500

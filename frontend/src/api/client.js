@@ -227,20 +227,23 @@ export function getAutomationAccounts() {
 
 // ─── Terminal (Bloomberg-like) ───────────────────────────────────────────────
 
-export function getWatch(symbols, exchange = 'bybit') {
-  return api.get('/terminal/watch', { params: { symbols: symbols.join(','), exchange } })
+export function getWatch(symbols, exchange = 'bybit', tradfi = []) {
+  return api.get('/terminal/watch', {
+    params: { symbols: symbols.join(','), exchange, tradfi: tradfi.join(',') },
+    timeout: 60000,
+  })
 }
 
-export function getSpark(symbol, exchange = 'bybit', tf = '15m', bars = 96) {
-  return api.get('/terminal/spark', { params: { symbol, exchange, tf, bars } })
+export function getSpark(symbol, exchange = 'bybit', tf = '15m', bars = 96, market = 'crypto') {
+  return api.get('/terminal/spark', { params: { symbol, exchange, tf, bars, market } })
 }
 
-export function getScreener(top = 50, exchange = 'bybit') {
-  return api.get('/terminal/screener', { params: { top, exchange }, timeout: 180000 })
+export function getScreener(top = 50, exchange = 'bybit', market = 'crypto') {
+  return api.get('/terminal/screener', { params: { top, exchange, market }, timeout: 180000 })
 }
 
-export function getDes(symbol, exchange = 'bybit') {
-  return api.get('/terminal/des', { params: { symbol, exchange }, timeout: 60000 })
+export function getDes(symbol, exchange = 'bybit', market = 'auto') {
+  return api.get('/terminal/des', { params: { symbol, exchange, market }, timeout: 60000 })
 }
 
 export function getAlerts() {
@@ -255,8 +258,8 @@ export function deleteAlert(id) {
   return api.delete(`/terminal/alerts/${id}`)
 }
 
-export function getNews() {
-  return api.get('/terminal/news', { timeout: 60000 })
+export function getNews(cat = 'all') {
+  return api.get('/terminal/news', { params: { cat }, timeout: 60000 })
 }
 
 export default api

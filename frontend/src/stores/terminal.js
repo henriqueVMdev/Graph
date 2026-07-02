@@ -9,57 +9,66 @@ const WATCHLIST_KEY = 'graph.watchlist'
 const SEEN_KEY = 'graph.alerts.seen'
 
 export const useTerminalStore = defineStore('terminal', () => {
-  // ── Watchlist (persistida) ────────────────────────────────────────────
+  // ── Watchlist (persistida; itens {s, m} — m: 'crypto' | 'tradfi') ─────
+  function normalizeList(list) {
+    if (!Array.isArray(list)) return null
+    return list.map((x) => (typeof x === 'string' ? { s: x, m: 'crypto' } : x))
+  }
   const watchlist = ref(
-    JSON.parse(localStorage.getItem(WATCHLIST_KEY) || 'null')
-    || ['BTC', 'ETH', 'SOL', 'DOGE'],   // cesta do relatório como default
+    normalizeList(JSON.parse(localStorage.getItem(WATCHLIST_KEY) || 'null'))
+    || [{ s: 'BTC', m: 'crypto' }, { s: 'ETH', m: 'crypto' },
+        { s: 'SOL', m: 'crypto' }, { s: 'DOGE', m: 'crypto' }],
   )
   const watchRows = ref([])
   const watchError = ref(null)
-  const sparks = ref({})                 // base -> closes[]
+  const sparks = ref({})                 // `${m}:${base}` -> closes[]
   let watchTimer = null
 
   function saveWatchlist() {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist.value))
   }
 
-  function addToWatchlist(base) {
+  function addToWatchlist(base, market = 'crypto') {
     const b = base.trim().toUpperCase()
-    if (b && !watchlist.value.includes(b)) {
-      watchlist.value.push(b)
+    if (b && !watchlist.value.some((w) => w.s === b && w.m === market)) {
+      watchlist.value.push({ s: b, m: market })
       saveWatchlist()
       fetchWatch()
+      fetchSpark(b, market)
     }
   }
 
-  function removeFromWatchlist(base) {
-    watchlist.value = watchlist.value.filter((s) => s !== base)
+  function removeFromWatchlist(base, market = 'crypto') {
+    watchlist.value = watchlist.value.filter((w) => !(w.s === base && w.m === market))
     saveWatchlist()
-    watchRows.value = watchRows.value.filter((r) => r.base !== base)
+    watchRows.value = watchRows.value.filter((r) => !(r.base === base && r.market === market))
   }
 
   async function fetchWatch() {
     if (!watchlist.value.length) { watchRows.value = []; return }
     try {
-      const { data } = await getWatch(watchlist.value)
+      const crypto = watchlist.value.filter((w) => w.m === 'crypto').map((w) => w.s)
+      const tradfi = watchlist.value.filter((w) => w.m === 'tradfi').map((w) => w.s)
+      const { data } = await getWatch(crypto, 'bybit', tradfi)
       if (data.rows) { watchRows.value = data.rows; watchError.value = null }
     } catch (e) {
       watchError.value = e.response?.data?.error || e.message
     }
   }
 
-  async function fetchSpark(base) {
-    if (sparks.value[base]) return
+  async function fetchSpark(base, market = 'crypto') {
+    const key = `${market}:${base}`
+    if (sparks.value[key]) return
     try {
-      const { data } = await getSpark(base)
-      sparks.value = { ...sparks.value, [base]: data.closes || [] }
+      const { data } = await getSpark(base, 'bybit', '15m', 96, market)
+      sparks.value = { ...sparks.value, [key]: data.closes || [] }
     } catch { /* sparkline é decorativa */ }
   }
 
   function startWatchPolling() {
     stopWatchPolling()
     fetchWatch()
-    watchlist.value.forEach(fetchSpark)
+    watchlist.value.forEach((w) => fetchSpark(w.s, w.m))
     watchTimer = setInterval(fetchWatch, 5000)
   }
 
@@ -71,18 +80,26 @@ export const useTerminalStore = defineStore('terminal', () => {
   const screenerRows = ref([])
   const screenerLoading = ref(false)
   const screenerError = ref(null)
+  const screenerMarket = ref('crypto')   // crypto|stocks|commodities|forex|indices
   let screenerTimer = null
 
   async function fetchScreener(top = 50) {
     screenerLoading.value = screenerRows.value.length === 0
     try {
-      const { data } = await getScreener(top)
+      const { data } = await getScreener(top, 'bybit', screenerMarket.value)
       if (data.rows) { screenerRows.value = data.rows; screenerError.value = null }
     } catch (e) {
       screenerError.value = e.response?.data?.error || e.message
     } finally {
       screenerLoading.value = false
     }
+  }
+
+  function setScreenerMarket(m) {
+    if (screenerMarket.value === m) return
+    screenerMarket.value = m
+    screenerRows.value = []
+    fetchScreener()
   }
 
   function startScreenerPolling() {
@@ -100,11 +117,11 @@ export const useTerminalStore = defineStore('terminal', () => {
   const desLoading = ref(false)
   const desError = ref(null)
 
-  async function fetchDes(base) {
+  async function fetchDes(base, market = 'auto') {
     desLoading.value = true
     desError.value = null
     try {
-      const { data } = await getDes(base)
+      const { data } = await getDes(base, 'bybit', market)
       desData.value = data.error ? null : data
       if (data.error) desError.value = data.error
     } catch (e) {
@@ -187,17 +204,25 @@ export const useTerminalStore = defineStore('terminal', () => {
   const newsItems = ref([])
   const newsFailed = ref([])
   const newsLoading = ref(false)
+  const newsCat = ref('all')             // all | crypto | markets
   let newsTimer = null
 
   async function fetchNews() {
     newsLoading.value = newsItems.value.length === 0
     try {
-      const { data } = await getNews()
+      const { data } = await getNews(newsCat.value)
       newsItems.value = data.items || []
       newsFailed.value = data.failed_sources || []
     } catch { /* proximo ciclo */ } finally {
       newsLoading.value = false
     }
+  }
+
+  function setNewsCat(c) {
+    if (newsCat.value === c) return
+    newsCat.value = c
+    newsItems.value = []
+    fetchNews()
   }
 
   function startNewsPolling() {
@@ -214,11 +239,12 @@ export const useTerminalStore = defineStore('terminal', () => {
     watchlist, watchRows, watchError, sparks,
     addToWatchlist, removeFromWatchlist, fetchWatch, fetchSpark,
     startWatchPolling, stopWatchPolling,
-    screenerRows, screenerLoading, screenerError,
-    fetchScreener, startScreenerPolling, stopScreenerPolling,
+    screenerRows, screenerLoading, screenerError, screenerMarket,
+    fetchScreener, setScreenerMarket, startScreenerPolling, stopScreenerPolling,
     desData, desLoading, desError, fetchDes,
     alerts, toasts, unseenTriggered, kindLabel,
     fetchAlerts, addAlert, removeAlert, startAlertsPolling, markAlertsSeen, pushToast,
-    newsItems, newsFailed, newsLoading, startNewsPolling, stopNewsPolling,
+    newsItems, newsFailed, newsLoading, newsCat, setNewsCat,
+    startNewsPolling, stopNewsPolling,
   }
 })

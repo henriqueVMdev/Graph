@@ -1,9 +1,19 @@
 <template>
   <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
-      <h1 class="text-base font-semibold text-gray-100">Notícias Cripto</h1>
+      <h1 class="text-base font-semibold text-gray-100">Notícias</h1>
       <span class="text-[10px] text-gray-600 font-mono">RSS agregado · atualiza 5 min</span>
       <div class="flex-1" />
+      <div class="flex rounded-lg overflow-hidden border border-surface-500">
+        <button v-for="c in CATS" :key="c.key"
+                @click="setCat(c.key)"
+                class="px-2.5 py-1 text-[11px] font-mono transition-colors"
+                :class="terminal.newsCat === c.key
+                  ? 'bg-accent-yellow text-black font-bold'
+                  : 'text-gray-400 hover:text-gray-200'">
+          {{ c.label }}
+        </button>
+      </div>
       <select v-model="sourceFilter" class="form-select !py-1 text-xs">
         <option value="">Todas as fontes</option>
         <option v-for="s in sources" :key="s" :value="s">{{ s }}</option>
@@ -41,11 +51,26 @@ import { useTerminalStore } from '@/stores/terminal.js'
 const terminal = useTerminalStore()
 const sourceFilter = ref('')
 
+const CATS = [
+  { key: 'all', label: 'TODAS' },
+  { key: 'crypto', label: 'CRIPTO' },
+  { key: 'markets', label: 'MERCADOS' },
+]
+
+function setCat(c) {
+  sourceFilter.value = ''
+  terminal.setNewsCat(c)
+}
+
 const SOURCE_COLORS = {
   CoinDesk: 'text-accent-yellow/80',
   Cointelegraph: 'text-blue-400/80',
   Decrypt: 'text-purple-400/80',
   Livecoins: 'text-green-400/80',
+  'Yahoo Finance': 'text-purple-300/80',
+  MarketWatch: 'text-teal-400/80',
+  CNBC: 'text-sky-400/80',
+  InfoMoney: 'text-orange-400/80',
 }
 
 const sources = computed(() =>
