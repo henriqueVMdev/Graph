@@ -59,7 +59,7 @@ _CCXT_TOTALS = {
 # paginadas; sem cache, backtest + WFA + gráficos re-baixam tudo e estouram o
 # rate limit da exchange (Bybit 10006).
 _OHLCV_CACHE: dict = {}
-_OHLCV_TTL_S = 600
+_OHLCV_TTL_S = 1800
 
 
 def _download_data_safe(symbol: str, interval: str, exchange: str | None = None) -> pd.DataFrame:
@@ -82,7 +82,12 @@ def _download_data_safe(symbol: str, interval: str, exchange: str | None = None)
             # ~1 ano p/ intraday curto (35k de 15m = setup da pesquisa do
             # RELATORIO_prop_challenge); a exchange devolve o que tiver.
             total = _CCXT_TOTALS.get(interval, 5000)
-            df = fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=total)
+            try:
+                df = fetch_ohlcv(symbol, interval, exchange=exchange.lower(), total=total)
+            except Exception:
+                if hit is not None:      # cache vencido > erro (ex.: rate limit)
+                    return hit[1].copy()
+                raise
             _OHLCV_CACHE[key] = (_time.time(), df)
             return df.copy()
         raise ValueError(

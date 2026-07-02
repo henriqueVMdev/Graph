@@ -121,6 +121,7 @@ function renderPrice() {
   const cut = a => (a ? a.slice(s) : a)
   const c = { dates: cut(full.dates), open: cut(full.open), high: cut(full.high), low: cut(full.low), close: cut(full.close) }
   const ind = { ma: cut(indFull.ma), ma_slow: cut(indFull.ma_slow), upper: cut(indFull.upper), lower: cut(indFull.lower) }
+  const lbl = indFull.labels || {}
   const firstTs = new Date(c.dates[0]).getTime()
 
   const traces = [
@@ -131,20 +132,39 @@ function renderPrice() {
       decreasing: { line: { color: '#ef5350' } },
     },
   ]
-  if (ind.ma)      traces.push({ type: 'scatter', mode: 'lines', name: 'MA', x: c.dates, y: ind.ma, line: { color: '#f5c518', width: 1.5 } })
-  if (ind.ma_slow) traces.push({ type: 'scatter', mode: 'lines', name: 'MM Lenta', x: c.dates, y: ind.ma_slow, line: { color: '#42a5f5', width: 1.5 } })
-  if (ind.upper) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Sup.', x: c.dates, y: ind.upper, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
-  if (ind.lower) traces.push({ type: 'scatter', mode: 'lines', name: 'Banda Inf.', x: c.dates, y: ind.lower, line: { color: 'rgba(120,160,255,0.5)', width: 1, dash: 'dot' } })
+  if (ind.ma)      traces.push({ type: 'scatter', mode: 'lines', name: lbl.ma || 'MA', x: c.dates, y: ind.ma, line: { color: '#f5c518', width: 1.5 } })
+  if (ind.ma_slow) traces.push({ type: 'scatter', mode: 'lines', name: lbl.ma_slow || 'MM Lenta', x: c.dates, y: ind.ma_slow, line: { color: '#42a5f5', width: 1.5 } })
+  if (ind.upper) traces.push({ type: 'scatter', mode: 'lines', name: lbl.upper || 'Banda Sup.', x: c.dates, y: ind.upper, line: { color: 'rgba(66,165,245,0.8)', width: 1.2 } })
+  if (ind.lower) traces.push({ type: 'scatter', mode: 'lines', name: lbl.lower || 'Banda Inf.', x: c.dates, y: ind.lower, line: { color: 'rgba(171,71,188,0.8)', width: 1.2 } })
 
   // Marcadores de entrada (long ▲ verde / short ▼ vermelho) e saída (✕),
-  // só dentro do range de candles exibido
+  // e caixas de posição estilo TradingView: verde = entrada→alvo,
+  // vermelho = entrada→stop, do candle de entrada ao de saída.
   const longX = [], longY = [], shortX = [], shortY = [], exitX = [], exitY = []
+  const tradeShapes = []
   for (const t of trades) {
     if (t.entry_ts < firstTs) continue
     const ed = new Date(t.entry_ts)
     if (t.direction === 1) { longX.push(ed); longY.push(t.entry_price) }
     else { shortX.push(ed); shortY.push(t.entry_price) }
     if (t.exit_ts) { exitX.push(new Date(t.exit_ts)); exitY.push(t.exit_price) }
+
+    const xd = t.exit_ts ? new Date(t.exit_ts) : ed
+    if (t.target_price != null) tradeShapes.push({
+      type: 'rect', xref: 'x', yref: 'y', layer: 'below',
+      x0: ed, x1: xd, y0: t.entry_price, y1: t.target_price,
+      fillcolor: 'rgba(38,166,154,0.18)', line: { width: 0 },
+    })
+    if (t.stop_price != null) tradeShapes.push({
+      type: 'rect', xref: 'x', yref: 'y', layer: 'below',
+      x0: ed, x1: xd, y0: t.entry_price, y1: t.stop_price,
+      fillcolor: 'rgba(239,83,80,0.18)', line: { width: 0 },
+    })
+    if (t.target_price != null || t.stop_price != null) tradeShapes.push({
+      type: 'line', xref: 'x', yref: 'y',
+      x0: ed, x1: xd, y0: t.entry_price, y1: t.entry_price,
+      line: { color: 'rgba(220,220,220,0.7)', width: 1, dash: 'dot' },
+    })
   }
   if (longX.length)  traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Long', x: longX, y: longY, marker: { symbol: 'triangle-up', size: 9, color: '#26a69a', line: { color: '#063', width: 1 } } })
   if (shortX.length) traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Short', x: shortX, y: shortY, marker: { symbol: 'triangle-down', size: 9, color: '#ef5350', line: { color: '#600', width: 1 } } })
@@ -155,6 +175,7 @@ function renderPrice() {
     xaxis: { ...BASE_LAYOUT.xaxis, type: 'date', rangeslider: { visible: false } },
     yaxis: { ...BASE_LAYOUT.yaxis, title: 'Preço' },
     hovermode: 'x unified',
+    shapes: tradeShapes,
     annotations: s > 0 ? [{
       xref: 'paper', yref: 'paper', x: 0.99, y: 1.04, showarrow: false, xanchor: 'right',
       text: `exibindo os últimos ${MAX_PRICE_BARS.toLocaleString()} candles de ${n.toLocaleString()} (equity/funding cobrem tudo)`,

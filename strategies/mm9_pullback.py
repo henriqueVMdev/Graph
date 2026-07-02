@@ -349,6 +349,8 @@ def run(df: pd.DataFrame, params: dict) -> dict:
             "comment": "Pullback EMA9 (limite)",
             "entry_price": _safe(entry),
             "exit_price": _safe(float(exit_price)),
+            "stop_price": _safe(float(sl)),
+            "target_price": _safe(float(tp)),
             "exit_comment": exit_comment,
             "pnl_pct": _safe(float(pnl_pct)),
             "partial_exit_price": None,
@@ -457,6 +459,10 @@ def run(df: pd.DataFrame, params: dict) -> dict:
                 "ma":    [_safe(float(v)) for v in e9v.tolist()],
                 "upper": [_safe(float(v)) for v in e50.values.tolist()],
                 "lower": [_safe(float(v)) for v in e200.values.tolist()],
+                # nomes reais p/ a legenda do gráfico de análise
+                "labels": {"ma": f"EMA{cfg['ma_fast']}",
+                           "upper": f"EMA{cfg['trend_fast']}",
+                           "lower": f"EMA{cfg['trend_slow']}"},
             },
         }
 

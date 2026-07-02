@@ -74,6 +74,24 @@
       </div>
     </div>
 
+    <!-- Parâmetros da estratégia automatizada -->
+    <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
+      <div class="text-[10px] text-gray-500 uppercase mb-2">
+        Parâmetros da estratégia · {{ dep.strategy_file }}
+      </div>
+      <div v-if="paramList.length" class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-0.5">
+        <div
+          v-for="p in paramList"
+          :key="p.key"
+          class="flex justify-between gap-2 text-[11px] border-b border-surface-600/40 py-1"
+        >
+          <span class="text-gray-500 truncate" :title="p.key">{{ p.label }}</span>
+          <span class="text-gray-300 font-medium shrink-0">{{ p.value }}</span>
+        </div>
+      </div>
+      <div v-else class="text-xs text-gray-600">defaults da estratégia</div>
+    </div>
+
     <!-- Monitor de invalidação -->
     <LiveVsBacktestPanel :comparison="s.comparison" />
 
@@ -147,6 +165,32 @@ const dep = computed(() => s.value?.deployment || {})
 const ret = computed(() =>
   dep.value.initial_capital
     ? (dep.value.equity / dep.value.initial_capital - 1) * 100 : 0)
+
+// Parâmetros do deployment com labels do schema da estratégia.
+// Só as chaves do schema: o objeto salvo carrega sobras de outras
+// estratégias (o form acumula defaults), que a estratégia ignora.
+const paramList = computed(() => {
+  const params = dep.value.params || {}
+  const schema = store.strategies.find(x => x.file === dep.value.strategy_file)?.schema || []
+  const labels = {}
+  const order = []
+  for (const sec of schema) {
+    for (const f of (sec.fields || [])) { labels[f.key] = f.label; order.push(f.key) }
+  }
+  const keys = order.length
+    ? order.filter(k => k in params)
+    : Object.keys(params)                       // schema ainda não carregado
+  return keys.map(k => ({ key: k, label: labels[k] || k, value: fmtParam(params[k]) }))
+})
+
+function fmtParam(v) {
+  if (typeof v === 'boolean') return v ? 'sim' : 'não'
+  if (Array.isArray(v)) return v.length > 8 ? `${v.length} itens` : v.join(', ')
+  if (typeof v === 'number') {
+    return Number.isInteger(v) ? String(v) : v.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+  }
+  return v == null || v === '' ? '—' : String(v)
+}
 
 function fmt(v) {
   return v == null ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
