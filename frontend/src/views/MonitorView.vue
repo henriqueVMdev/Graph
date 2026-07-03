@@ -61,6 +61,8 @@
               <Sparkline :points="terminal.sparks[rowKey(r)]" />
             </td>
             <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button @click="openBook(r)" title="Book de ofertas"
+                      class="text-gray-600 hover:text-accent-yellow text-xs px-1">📖</button>
               <button @click="alertFor(r)" title="Criar alerta"
                       class="text-gray-600 hover:text-accent-yellow text-xs px-1">⏰</button>
               <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
@@ -120,6 +122,10 @@ function openDes(r) {
 
 function alertFor(r) {
   router.push({ path: '/alerts', query: { symbol: r.base, price: r.last, market: r.market || 'crypto' } })
+}
+
+function openBook(r) {
+  router.push({ path: '/book', query: { symbol: r.base, market: r.market || 'crypto' } })
 }
 
 function fmt(v) {

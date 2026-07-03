@@ -84,6 +84,13 @@ const FUNCS = [
   { codes: ['MON', 'W'], label: 'Monitor', route: '/monitor' },
   { codes: ['SCR'], label: 'Screener', route: '/screener' },
   { codes: ['EQS'], label: 'Screening fundamentalista', route: '/eqs' },
+  { codes: ['FA', 'EA'], label: 'Análise da empresa', route: '/ea' },
+  { codes: ['OMON'], label: 'Opções (chain + vol)', route: '/omon' },
+  { codes: ['BOOK', 'QM'], label: 'Book de ofertas', route: '/book' },
+  { codes: ['FI', 'RATES'], label: 'Juros & crédito', route: '/rates' },
+  { codes: ['CDTY'], label: 'Commodities', route: '/cdty' },
+  { codes: ['OSA'], label: 'Estratégias com opções', route: '/osa' },
+  { codes: ['GT', 'TA'], label: 'Análise técnica multi-ativo', route: '/tech' },
   { codes: ['DES'], label: 'Descrição do ativo', route: '/des' },
   { codes: ['N', 'NEWS'], label: 'Notícias', route: '/news' },
   { codes: ['ALRT'], label: 'Alertas', route: '/alerts' },
@@ -166,6 +173,11 @@ function go() {
         market: p.market || 'auto',
       },
     })
+  } else if (['/ea', '/omon', '/book', '/osa', '/tech'].includes(p.route)) {
+    const sym = p.base || (ws.symbol ? ws.symbol.replace(/-USD.*$/, '') : '')
+    const query = sym ? { symbol: sym } : {}
+    if (p.route === '/book') query.market = p.market || 'crypto'
+    router.push({ path: p.route, query })
   } else if (p.route === '/monitor' && p.base) {
     terminal.addToWatchlist(p.base, p.market || 'crypto')
     router.push('/monitor')

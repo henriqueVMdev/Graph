@@ -246,6 +246,58 @@ export function getDes(symbol, exchange = 'bybit', market = 'auto') {
   return api.get('/terminal/des', { params: { symbol, exchange, market }, timeout: 60000 })
 }
 
+export function getRates() {
+  return api.get('/terminal/rates', { timeout: 120000 })
+}
+
+export function getOptionsChain(symbol, expiry) {
+  return api.get('/terminal/options', { params: { symbol, expiry }, timeout: 90000 })
+}
+
+export function getBook(symbol, exchange = 'bybit', market = 'crypto') {
+  return api.get('/terminal/book', { params: { symbol, exchange, market }, timeout: 30000 })
+}
+
+export function getEa(symbol) {
+  return api.get('/terminal/ea', { params: { symbol }, timeout: 180000 })
+}
+
+export function getCdtyOverview() {
+  return api.get('/terminal/cdty/overview', { timeout: 120000 })
+}
+
+export function getCdtyCurves() {
+  return api.get('/terminal/cdty/curves')
+}
+
+export function getCdtyCurve(c) {
+  return api.get('/terminal/cdty/curve', { params: { c }, timeout: 120000 })
+}
+
+export function getCdtyWeather() {
+  return api.get('/terminal/cdty/weather', { timeout: 120000 })
+}
+
+export function getCdtyShipping() {
+  return api.get('/terminal/cdty/shipping', { timeout: 120000 })
+}
+
+export function getCdtyInventories() {
+  return api.get('/terminal/cdty/inventories', { timeout: 60000 })
+}
+
+export function getVolSurface(symbol) {
+  return api.get('/terminal/options/surface', { params: { symbol }, timeout: 300000 })
+}
+
+export function evalStrategy(payload) {
+  return api.post('/terminal/options/strategy', payload, { timeout: 30000 })
+}
+
+export function postChart(payload) {
+  return api.post('/terminal/chart', payload, { timeout: 180000 })
+}
+
 export function getEqsMeta() {
   return api.get('/terminal/eqs/meta')
 }
@@ -270,8 +322,8 @@ export function deleteAlert(id) {
   return api.delete(`/terminal/alerts/${id}`)
 }
 
-export function getNews(cat = 'all') {
-  return api.get('/terminal/news', { params: { cat }, timeout: 60000 })
+export function getNews(cat = 'all', q = '') {
+  return api.get('/terminal/news', { params: { cat, q }, timeout: 60000 })
 }
 
 export default api

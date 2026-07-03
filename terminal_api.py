@@ -267,6 +267,168 @@ def des():
         return jsonify({"error": str(e)[:300]}), 500
 
 
+# ── Mercado macro/derivativos: juros, crédito, opções, book ─────────────
+
+@terminal_bp.get("/rates")
+def rates():
+    try:
+        import markets_data
+        out = markets_data.yield_curve()
+        out = {**out, "credit": markets_data.credit_spreads()}
+        return jsonify(out)
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/options")
+def options():
+    try:
+        import markets_data
+        import options_analytics
+        base = (request.args.get("symbol") or "").strip()
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        expiry = request.args.get("expiry") or None
+        chain = dict(markets_data.option_chain(base, expiry))
+        return jsonify(options_analytics.add_greeks(chain))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/options/surface")
+def options_surface():
+    try:
+        import options_analytics
+        base = (request.args.get("symbol") or "").strip()
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        return jsonify(options_analytics.vol_surface(base))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.post("/options/strategy")
+def options_strategy():
+    try:
+        import options_analytics
+        payload = request.get_json(force=True) or {}
+        return jsonify(options_analytics.strategy_eval(payload))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── GT — análise técnica multi-ativo ─────────────────────────────────────
+
+@terminal_bp.post("/chart")
+def chart():
+    try:
+        import technical_data
+        body = request.get_json(force=True) or {}
+        symbols = body.get("symbols") or []
+        if not symbols:
+            return jsonify({"error": "symbols obrigatório"}), 400
+        interval = body.get("interval") or "1d"
+        bars = int(body.get("bars") or 500)
+        if body.get("mode") == "compare":
+            return jsonify(technical_data.compare_chart(
+                symbols, interval, bars, int(body.get("corr_window") or 30)))
+        return jsonify(technical_data.single_chart(
+            symbols[0], interval, bars, body.get("studies") or []))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── CDTY — painel de commodities ─────────────────────────────────────────
+
+@terminal_bp.get("/cdty/overview")
+def cdty_overview():
+    try:
+        import commodities_data
+        return jsonify(commodities_data.overview())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/cdty/curves")
+def cdty_curves():
+    try:
+        import commodities_data
+        return jsonify({"curves": commodities_data.curves_meta()})
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/cdty/curve")
+def cdty_curve():
+    try:
+        import commodities_data
+        root = (request.args.get("c") or "CL").strip()
+        return jsonify(commodities_data.futures_curve(root))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/cdty/weather")
+def cdty_weather():
+    try:
+        import commodities_data
+        return jsonify(commodities_data.weather())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/cdty/shipping")
+def cdty_shipping():
+    try:
+        import commodities_data
+        return jsonify(commodities_data.shipping())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/cdty/inventories")
+def cdty_inventories():
+    try:
+        import commodities_data
+        return jsonify(commodities_data.inventories())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/book")
+def book():
+    try:
+        import markets_data
+        base = (request.args.get("symbol") or "").strip()
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        return jsonify(markets_data.order_book(
+            base,
+            (request.args.get("exchange") or "bybit").lower(),
+            (request.args.get("market") or "crypto").lower(),
+        ))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── EA — análise completa de empresa (estilo Bloomberg FA) ───────────────
+
+@terminal_bp.get("/ea")
+def ea():
+    try:
+        import equity_analysis
+        base = (request.args.get("symbol") or "").strip()
+        if not base:
+            return jsonify({"error": "symbol obrigatório"}), 400
+        return jsonify(equity_analysis.analyze(base))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
 # ── EQS — screening fundamentalista (Yahoo screener server-side) ────────
 
 @terminal_bp.get("/eqs/meta")
@@ -464,6 +626,8 @@ _NEWS_SOURCES = [
     ("MarketWatch", "https://feeds.content.dowjones.io/public/rss/mw_topstories", "markets"),
     ("CNBC", "https://www.cnbc.com/id/100003114/device/rss/rss.html", "markets"),
     ("InfoMoney", "https://www.infomoney.com.br/feed/", "markets"),
+    ("OilPrice", "https://oilprice.com/rss/main", "commodities"),
+    ("Mining.com", "https://www.mining.com/feed/", "commodities"),
 ]
 
 
@@ -526,8 +690,13 @@ def news():
     try:
         data = _cached(("news",), 600, fetch)
         items = data["items"]
-        if cat in ("crypto", "markets"):
+        if cat in ("crypto", "markets", "commodities"):
             items = [it for it in items if it.get("cat") == cat]
+        q = (request.args.get("q") or "").strip().lower()
+        if q:
+            terms = [w for w in q.split("|") if w]
+            items = [it for it in items
+                     if any(w in it["title"].lower() for w in terms)]
         return jsonify({"items": items[:100], "failed_sources": data["failed_sources"]})
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 500

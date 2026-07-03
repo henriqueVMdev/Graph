@@ -55,6 +55,7 @@ const CATS = [
   { key: 'all', label: 'TODAS' },
   { key: 'crypto', label: 'CRIPTO' },
   { key: 'markets', label: 'MERCADOS' },
+  { key: 'commodities', label: 'COMMODITIES' },
 ]
 
 function setCat(c) {
@@ -71,6 +72,8 @@ const SOURCE_COLORS = {
   MarketWatch: 'text-teal-400/80',
   CNBC: 'text-sky-400/80',
   InfoMoney: 'text-orange-400/80',
+  OilPrice: 'text-amber-400/80',
+  'Mining.com': 'text-stone-400/80',
 }
 
 const sources = computed(() =>

@@ -42,11 +42,14 @@
           </div>
         </div>
         <div class="flex-1" />
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <button @click="quick('/backtest')" class="btn-secondary !py-1.5 text-xs">⚡ Backtest</button>
           <button @click="quick('/grafico')" class="btn-secondary !py-1.5 text-xs">📈 Gráfico</button>
           <button @click="quick('/regime')" class="btn-secondary !py-1.5 text-xs">〰 Regimes</button>
           <button @click="toMonitor" class="btn-secondary !py-1.5 text-xs">👁 Monitor</button>
+          <button v-if="isTradfi" @click="toRoute('/ea')" class="btn-secondary !py-1.5 text-xs">🏛 FA</button>
+          <button v-if="isTradfi" @click="toRoute('/omon')" class="btn-secondary !py-1.5 text-xs">OMON</button>
+          <button v-else @click="toBook" class="btn-secondary !py-1.5 text-xs">📖 Book</button>
         </div>
       </div>
 
@@ -193,6 +196,14 @@ function quick(path) {
     if (!ws.exchange) ws.exchange = 'bybit'
   }
   router.push(path)
+}
+
+function toRoute(path) {
+  router.push({ path, query: { symbol: d.value.symbol } })
+}
+
+function toBook() {
+  router.push({ path: '/book', query: { symbol: d.value.base, market: 'crypto' } })
 }
 
 function toMonitor() {
