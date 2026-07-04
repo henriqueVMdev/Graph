@@ -31,6 +31,15 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     apply_costs: false, cost_exchange: 'binance', cost_scenario: 'realista', use_funding: true,
   })
 
+  // Sizing por risco fixo: redimensiona cada trade p/ arriscar risk_pct na
+  // distância real do stop (alavancagem implícita, com teto) e desconta
+  // fees + funding esperados. Substitui o módulo de custos históricos.
+  const riskSizing = ref({
+    enabled: false, risk_pct: 1.0, lev_cap: 5.0,
+    fee_maker_pct: 0.02, fee_taker_pct: 0.055,
+    funding_8h_pct: 0.0032, maker_entry: true,
+  })
+
   // ─── Walk-Forward Analysis (forward testing) ─────────────────────────────
   const wfaResults = ref(null)
   const wfaLoading = ref(false)
@@ -172,6 +181,7 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
         cost_scenario: costConfig.value.cost_scenario,
         use_funding: costConfig.value.use_funding,
         cost_symbol: inferCcxtSymbol(),
+        risk_sizing: riskSizing.value.enabled ? { ...riskSizing.value } : undefined,
       })
       results.value = data
     } catch (e) {
@@ -218,7 +228,7 @@ export const usePropChallengeStore = defineStore('propChallenge', () => {
     assets, strategies, selectedStrategy, params,
     pendingParams,
     dataSource, selectedAssetLabel, selectedSymbol, interval, exchange,
-    accountSize, numSims, costConfig,
+    accountSize, numSims, costConfig, riskSizing,
     isRunning, results, error,
     wfaResults, wfaLoading, wfaError, wfaConfig,
     fetchAssets, fetchStrategies, selectStrategy,

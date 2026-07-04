@@ -783,27 +783,23 @@ onBeforeUnmount(() => {
 }
 
 /* Dollar-sign pulsing loader */
-@keyframes mc-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.8);  border-color: #f5c518; color: #f5c518; background: #000; }
-  50%  { box-shadow: 0 0 24px 8px rgba(245, 197, 24, 0.25); border-color: #f5c518; color: #000;   background: #f5c518; }
-  100% { box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.8);  border-color: #f5c518; color: #f5c518; background: #000; }
+@keyframes mc-ring-spin {
+  to { transform: rotate(360deg); }
 }
 
+/* Loader minimalista (mesmo anel do global); o "$" do markup fica
+   invisível via font-size 0 */
 .mc-dollar-loader {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  border: 2px solid #f5c518;
-  background: #000;
-  color: #f5c518;
-  font-size: 2.4rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: mc-pulse 1.4s ease-in-out infinite;
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: -1px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: 2px solid rgba(245, 197, 24, 0.15);
+  border-top-color: #f5c518;
+  background: transparent;
+  font-size: 0;
+  color: transparent;
+  display: inline-block;
+  animation: mc-ring-spin 0.7s linear infinite;
 }
 
 /* Metric info icon + tooltip */

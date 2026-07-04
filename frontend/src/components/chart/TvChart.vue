@@ -19,6 +19,7 @@ const legend = ref(null)
 const COLORS = {
   up: '#26a69a', down: '#ef5350',
   ma: '#f5c518', maSlow: '#42a5f5',
+  upper: 'rgba(66,165,245,0.85)', lower: 'rgba(171,71,188,0.85)',
   stop: '#ef5350', target: '#26a69a',
 }
 
@@ -28,6 +29,8 @@ let candleSeries = null
 let volumeSeries = null
 let maSeries = null
 let maSlowSeries = null
+let upperSeries = null   // p/ mm9: EMA50 · p/ bandas: banda superior
+let lowerSeries = null   // p/ mm9: EMA200 · p/ bandas: banda inferior
 let zones = null   // primitive: caixas de risco/retorno por trade
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -142,6 +145,8 @@ async function ensureChart() {
   const lineOpts = { lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }
   maSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.ma })
   maSlowSeries = chart.addLineSeries({ ...lineOpts, color: COLORS.maSlow })
+  upperSeries = chart.addLineSeries({ ...lineOpts, lineWidth: 1, color: COLORS.upper })
+  lowerSeries = chart.addLineSeries({ ...lineOpts, lineWidth: 1, color: COLORS.lower })
 
   zones = makeZonesPrimitive()
   candleSeries.attachPrimitive(zones)
@@ -176,6 +181,9 @@ function render(fit) {
   }
   maSeries.setData(ov.indicators ? lineData(ind.ma) : [])
   maSlowSeries.setData(ov.indicators ? lineData(ind.ma_slow) : [])
+  // linhas de tendência da estratégia (mm9: EMA50/EMA200; depaula: bandas)
+  upperSeries.setData(ov.indicators ? lineData(ind.upper) : [])
+  lowerSeries.setData(ov.indicators ? lineData(ind.lower) : [])
 
   renderTrades(times)
 
@@ -244,13 +252,18 @@ function onCrosshair(param) {
   const up = cd.close >= cd.open
   const maV = param.seriesData.get(maSeries)?.value
   const maSV = param.seriesData.get(maSlowSeries)?.value
+  const upV = param.seriesData.get(upperSeries)?.value
+  const loV = param.seriesData.get(lowerSeries)?.value
+  const lbl = store.chartData?.indicators?.labels || {}
   legend.value.innerHTML =
     `<span style="color:#777">O</span> ${fmt(cd.open)} ` +
     `<span style="color:#777">H</span> ${fmt(cd.high)} ` +
     `<span style="color:#777">L</span> ${fmt(cd.low)} ` +
     `<span style="color:#777">C</span> <span style="color:${up ? COLORS.up : COLORS.down}">${fmt(cd.close)}</span>` +
-    (maV != null ? ` &nbsp;<span style="color:${COLORS.ma}">MA ${fmt(maV)}</span>` : '') +
-    (maSV != null ? ` <span style="color:${COLORS.maSlow}">MM ${fmt(maSV)}</span>` : '')
+    (maV != null ? ` &nbsp;<span style="color:${COLORS.ma}">${lbl.ma || 'MA'} ${fmt(maV)}</span>` : '') +
+    (maSV != null ? ` <span style="color:${COLORS.maSlow}">${lbl.ma_slow || 'MM'} ${fmt(maSV)}</span>` : '') +
+    (upV != null ? ` <span style="color:${COLORS.upper}">${lbl.upper || 'Sup'} ${fmt(upV)}</span>` : '') +
+    (loV != null ? ` <span style="color:${COLORS.lower}">${lbl.lower || 'Inf'} ${fmt(loV)}</span>` : '')
 }
 
 async function draw(fit) {
