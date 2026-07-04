@@ -404,6 +404,10 @@ async function fetchGbm() {
   try {
     const { data } = await runMonteCarlo(props.equityCurve, gbmSims.value, horizon.value, gbmSeed.value)
     gbmData.value = data
+    // liberar o v-show ANTES de renderizar: com o container display:none o
+    // Plotly mede largura 0 e cai no default ~700px (gráfico deformado)
+    gbmLoading.value = false
+    await nextTick()
     await renderGbmChart(data)
   } catch (e) {
     gbmError.value = e.response?.data?.error || e.message

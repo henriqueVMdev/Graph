@@ -291,6 +291,9 @@ async function runSingle() {
     if (data.error) { error.value = data.error; return }
     singleData.value = data
     studyErrors.value = data.study_errors || []
+    // o template esconde as divs com v-if="!loading" — baixar a flag ANTES
+    // do render, senão o nextTick resolve com as divs ainda fora do DOM
+    loading.value = false
     await renderSingle()
   } catch (e) {
     error.value = e.response?.data?.error || e.message
@@ -369,6 +372,7 @@ async function runCompare() {
     })
     if (data.error) { error.value = data.error; return }
     cmpData.value = data
+    loading.value = false            // divs só existem com !loading
     await renderCompare()
   } catch (e) {
     error.value = e.response?.data?.error || e.message
@@ -419,6 +423,7 @@ async function runSpreadWith(symbols) {
     })
     if (data.error) { error.value = data.error; return }
     spreadData.value = data
+    loading.value = false            // divs só existem com !loading
     await renderSpread()
   } catch (e) {
     error.value = e.response?.data?.error || e.message

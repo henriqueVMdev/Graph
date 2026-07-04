@@ -33,3 +33,4 @@ automation/state.db*
 alerts_data.json
 server_out.log
 server_err.log
+oms_data.json

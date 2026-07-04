@@ -91,6 +91,8 @@ const FUNCS = [
   { codes: ['CDTY'], label: 'Commodities', route: '/cdty' },
   { codes: ['OSA'], label: 'Estratégias com opções', route: '/osa' },
   { codes: ['GT', 'TA'], label: 'Análise técnica multi-ativo', route: '/tech' },
+  { codes: ['TRD', 'EMSX'], label: 'Execução de ordens (OMS/EMS)', route: '/trade' },
+  { codes: ['ALT', 'ALTD'], label: 'Dados alternativos', route: '/alt' },
   { codes: ['DES'], label: 'Descrição do ativo', route: '/des' },
   { codes: ['N', 'NEWS'], label: 'Notícias', route: '/news' },
   { codes: ['ALRT'], label: 'Alertas', route: '/alerts' },
@@ -173,10 +175,10 @@ function go() {
         market: p.market || 'auto',
       },
     })
-  } else if (['/ea', '/omon', '/book', '/osa', '/tech'].includes(p.route)) {
+  } else if (['/ea', '/omon', '/book', '/osa', '/tech', '/trade'].includes(p.route)) {
     const sym = p.base || (ws.symbol ? ws.symbol.replace(/-USD.*$/, '') : '')
     const query = sym ? { symbol: sym } : {}
-    if (p.route === '/book') query.market = p.market || 'crypto'
+    if (['/book', '/trade'].includes(p.route)) query.market = p.market || 'crypto'
     router.push({ path: p.route, query })
   } else if (p.route === '/monitor' && p.base) {
     terminal.addToWatchlist(p.base, p.market || 'crypto')

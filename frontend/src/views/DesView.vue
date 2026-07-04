@@ -217,9 +217,12 @@ function toMonitor() {
 }
 
 async function renderFunding() {
-  if (!fundingChart.value) return
   if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  // o watch dispara antes do DOM trocar o loader pelo conteúdo; só depois
+  // do nextTick a div do gráfico existe — checar o ref antes disso fazia
+  // o render abortar e o funding ficar em branco
   await nextTick()
+  if (!fundingChart.value) return
 
   const layoutBase = {
     template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
@@ -257,7 +260,7 @@ async function renderFunding() {
   }, cfg)
 }
 
-watch(d, () => { if (d.value) renderFunding() })
+watch(d, () => { if (d.value) renderFunding() }, { flush: 'post' })
 
 onMounted(() => {
   if (!Object.keys(btStore.assets || {}).length) btStore.fetchAssets?.()

@@ -298,6 +298,70 @@ export function postChart(payload) {
   return api.post('/terminal/chart', payload, { timeout: 180000 })
 }
 
+// ── ALTD — dados alternativos ────────────────────────────────────────────
+
+export function getAltIndicators() {
+  return api.get('/terminal/alt/indicators', { timeout: 180000 })
+}
+
+export function getAltSupplyChain() {
+  return api.get('/terminal/alt/supplychain', { timeout: 120000 })
+}
+
+export function getAltTraffic() {
+  return api.get('/terminal/alt/traffic', { timeout: 60000 })
+}
+
+export function getAltClimate() {
+  return api.get('/terminal/alt/climate', { timeout: 120000 })
+}
+
+export function getAltSectors(s) {
+  return api.get('/terminal/alt/sectors', { params: { s }, timeout: 180000 })
+}
+
+export function getAltCryptoMicro() {
+  return api.get('/terminal/alt/cryptomicro', { timeout: 120000 })
+}
+
+export function getAltOnchain() {
+  return api.get('/terminal/alt/onchain', { timeout: 120000 })
+}
+
+export function getAltOnchainCoin(symbol) {
+  return api.get('/terminal/alt/onchain/coin', { params: { symbol }, timeout: 120000 })
+}
+
+// ── OMS/EMS — execução de ordens ─────────────────────────────────────────
+
+export function getOmsAccounts() {
+  return api.get('/terminal/oms/accounts')
+}
+
+export function postPreTrade(payload) {
+  return api.post('/terminal/oms/pretrade', payload, { timeout: 60000 })
+}
+
+export function submitOmsOrder(payload) {
+  return api.post('/terminal/oms/orders', payload, { timeout: 60000 })
+}
+
+export function cancelOmsOrder(id) {
+  return api.delete(`/terminal/oms/orders/${id}`)
+}
+
+export function getOmsBlotter(account = 'paper') {
+  return api.get('/terminal/oms/blotter', { params: { account }, timeout: 90000 })
+}
+
+export function getOmsTca(account = 'paper') {
+  return api.get('/terminal/oms/tca', { params: { account }, timeout: 30000 })
+}
+
+export function resetOmsPaper() {
+  return api.post('/terminal/oms/reset', { confirm: true })
+}
+
 export function getEqsMeta() {
   return api.get('/terminal/eqs/meta')
 }

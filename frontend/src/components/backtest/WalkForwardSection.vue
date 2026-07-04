@@ -550,7 +550,21 @@ async function renderAll() {
 
 // ── Watchers ─────────────────────────────────────────────────────────────
 
+// As abas usam v-show: gráficos desenhados enquanto escondidos saem com
+// largura 0 (Plotly cai no default ~700px, deformado/em branco). Só o da
+// aba visível no renderAll fica certo de primeira — re-renderiza o da aba
+// ao entrar nela (mesmo padrão do MonteCarloSection).
+function renderActiveTab() {
+  if (!store.wfaResults || !Plotly) return
+  if (activeTab.value === 0) renderOosEquity()
+  else if (activeTab.value === 1) renderSharpeScatter()
+  else if (activeTab.value === 2) renderComparison()
+  else if (activeTab.value === 3) renderTimeline()
+  else if (activeTab.value === 4 && hasParamHeatmap.value) renderParamHeatmap()
+}
+
 watch(() => store.wfaResults, val => { if (val) renderAll() })
+watch(activeTab, () => nextTick().then(renderActiveTab))
 watch(selectedMetric, () => { if (store.wfaResults && Plotly) renderComparison() })
 
 // ── Cleanup ───────────────────────────────────────────────────────────────

@@ -309,7 +309,11 @@ async function loadCurve() {
   curveLoading.value = true
   try {
     const { data } = await getCdtyCurve(curveKey.value)
-    if (!data.error) { curve.value = data; await renderCurve() }
+    if (!data.error) {
+      curve.value = data
+      curveLoading.value = false     // conteúdo é v-else-if do loader
+      await renderCurve()
+    }
   } finally {
     curveLoading.value = false
   }

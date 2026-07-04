@@ -340,6 +340,158 @@ def chart():
         return jsonify({"error": str(e)[:300]}), 500
 
 
+# ── ALTD — dados alternativos ────────────────────────────────────────────
+
+@terminal_bp.get("/alt/indicators")
+def alt_indicators():
+    try:
+        import altdata
+        return jsonify(altdata.indicators())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/supplychain")
+def alt_supplychain():
+    try:
+        import altdata
+        return jsonify(altdata.supply_chain())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/traffic")
+def alt_traffic():
+    try:
+        import altdata
+        return jsonify(altdata.traffic())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/climate")
+def alt_climate():
+    try:
+        import altdata
+        return jsonify(altdata.climate())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/sectors")
+def alt_sectors():
+    try:
+        import altdata
+        return jsonify(altdata.sector_metrics(request.args.get("s", "varejo")))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/cryptomicro")
+def alt_cryptomicro():
+    try:
+        import altdata
+        return jsonify(altdata.crypto_micro())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/onchain")
+def alt_onchain():
+    try:
+        import onchain_data
+        return jsonify(onchain_data.overview())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/alt/onchain/coin")
+def alt_onchain_coin():
+    try:
+        import onchain_data
+        return jsonify(onchain_data.coin(request.args.get("symbol", "")))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+# ── OMS/EMS — execução de ordens ─────────────────────────────────────────
+
+@terminal_bp.get("/oms/accounts")
+def oms_accounts():
+    try:
+        import oms
+        return jsonify(oms.accounts())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.post("/oms/pretrade")
+def oms_pretrade():
+    try:
+        import oms
+        return jsonify(oms.pre_trade(request.get_json(force=True) or {}))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.post("/oms/orders")
+def oms_submit():
+    try:
+        import oms
+        return jsonify(oms.submit_order(request.get_json(force=True) or {}))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.delete("/oms/orders/<order_id>")
+def oms_cancel(order_id):
+    try:
+        import oms
+        return jsonify(oms.cancel_order(order_id))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/oms/blotter")
+def oms_blotter():
+    try:
+        import oms
+        return jsonify(oms.blotter(request.args.get("account", "paper")))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.get("/oms/tca")
+def oms_tca():
+    try:
+        import oms
+        return jsonify(oms.tca(request.args.get("account", "paper")))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
+@terminal_bp.post("/oms/reset")
+def oms_reset():
+    try:
+        body = request.get_json(force=True) or {}
+        if not body.get("confirm"):
+            return jsonify({"error": "reset da conta paper exige confirm=true"}), 400
+        import oms
+        return jsonify(oms.reset_paper())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 500
+
+
 # ── CDTY — painel de commodities ─────────────────────────────────────────
 
 @terminal_bp.get("/cdty/overview")
