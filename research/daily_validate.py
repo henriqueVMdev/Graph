@@ -16,8 +16,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from daily_lab import (SCRATCH, SYMS, FAMILIES, run_daily,
                        portfolio_stats, TRAIN_END)
 
-# preencher apos a selecao no treino (nomes de FAMILIES)
-SELECTED = []
+# selecao feita no treino (2026-07-08): melhores por sharpe/PF com amostra
+# decente; MA crosses descartados (n<200, trades de meses = beta do bull)
+SELECTED = ["tsmom 28d", "tsmom 21d", "tsmom 21d long-only", "donchian 20/10"]
 
 VAL_END = "2026-01-01"
 
