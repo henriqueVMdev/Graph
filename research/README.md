@@ -28,3 +28,28 @@ py research/combo_low_risk.py    # cestas grandes x risco baixo
    diária de -5% reprova.
 
 `research/data/` é gerado e não deve ir para o git.
+
+## Pesquisa diária (TSMOM) — CONCLUÍDA, veredito NEGATIVO (2026-07-08)
+
+Pipeline: `download_daily.py` → `daily_lab.py` (treino <2024) →
+`daily_validate.py` (validação 2024-2025, uma passada) → `daily_final.py`
+(holdout 2026 jan-jul, intocado até o fim).
+
+Resultado após custos taker+slip+funding, 13 perps Binance:
+
+| família              | treino (<2024) | valid. 24-25 | holdout 2026 |
+|----------------------|----------------|--------------|--------------|
+| tsmom 21d long-only  | PF 2.97        | PF 1.46      | **PF 0.25** (n=131, exp −2.5%) |
+| tsmom 28d L/S        | PF 2.89        | PF 1.36→0.96 | **PF 0.98** (n=277, ~zero)     |
+
+Por ano: o edge era forte 2020-2021, negativo 2022, ok 2023-2024,
+**negativo em 2025 e 2026**. No corte por símbolo 2024+, DOGE e XRP
+carregam quase todo o lucro — o resto é ruído. Conclusão honesta:
+**TSMOM diário em cripto não sobrevive a 2025-2026 depois de custos**;
+o prêmio documentado na literatura (Liu & Tsyvinski 2021) decaiu/foi
+arbitrado. Sem estratégia diária aprovada.
+
+**O holdout 2026 está queimado**: qualquer nova iteração diária avaliada
+nele é overfitting de seleção. Nova pesquisa no diário exige esperar
+dados novos (2026 H2+) ou mudar de classe de sinal (ex.: carry de
+funding, cross-sectional) com o mesmo protocolo treino/val/holdout.
