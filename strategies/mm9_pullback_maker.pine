@@ -71,7 +71,10 @@ e200 = ta.ema(close, trendSlow)
 atrE   = ta.ema(ta.tr(true), 14)
 atrPct = atrE / close * 100
 // rank percentual da vol na janela de 4 dias (384 barras de 15m)
-volOk  = volRankMin <= 0.0 or ta.percentrank(atrPct, 384) / 100 >= volRankMin
+// (calculado fora do condicional: percentrank depende do histórico e
+// precisa executar em toda barra)
+volRank = ta.percentrank(atrPct, 384) / 100
+volOk   = volRankMin <= 0.0 or volRank >= volRankMin
 
 // ── Slope da EMA9 do 1h SEM REPAINT ─────────────────────────────────────
 // [1] + lookahead_on = valor da última hora FECHADA (idioma clássico
@@ -143,11 +146,34 @@ if strategy.opentrades > 0
         strategy.close_all(comment = "Time Stop")
 
 // ── Visual ──────────────────────────────────────────────────────────────
-plot(e9,   "EMA9",   color = color.orange, linewidth = 2)
-plot(e50,  "EMA50",  color = color.teal)
-plot(e200, "EMA200", color = color.gray)
+// force_overlay garante as linhas COLADAS ao preço mesmo se o TV tiver
+// colocado a estratégia em um painel separado.
+plot(e9,   "EMA9",   color = color.orange, linewidth = 2, force_overlay = true)
+plot(e50,  "EMA50",  color = color.teal,                  force_overlay = true)
+plot(e200, "EMA200", color = color.gray,                  force_overlay = true)
 bgcolor(useSession and inSession ? color.new(color.blue, 94) : na,
-     title = "Janela de entrada")
+     title = "Janela de entrada", force_overlay = true)
+
+// Níveis da posição aberta: entrada (preço médio real), alvo e stop.
+// linebr corta a linha quando flat (na) — nada de rastro pelo gráfico.
+inPos    = strategy.position_size != 0
+avgPrice = strategy.position_avg_price
+dirPos   = strategy.position_size > 0 ? 1 : -1
+tpLevel  = inPos ? avgPrice * (1 + tpPct / 100 * dirPos) : na
+slLevel  = inPos ? avgPrice * (1 - slPct / 100 * dirPos) : na
+plot(inPos ? avgPrice : na, "Entrada", color = color.white,
+     linewidth = 1, style = plot.style_linebr, force_overlay = true)
+plot(tpLevel, "Alvo", color = color.new(color.green, 0),
+     linewidth = 1, style = plot.style_linebr, force_overlay = true)
+plot(slLevel, "Stop", color = color.new(color.red, 0),
+     linewidth = 1, style = plot.style_linebr, force_overlay = true)
+
+// Limite de entrada pendente (setup armado no candle fechado)
+pendingLong  = strategy.position_size == 0 and longSetup and inSession
+pendingShort = strategy.position_size == 0 and shortSetup and inSession
+plot(pendingLong or pendingShort ? e9 : na, "Limite pendente",
+     color = color.new(color.yellow, 0), linewidth = 1,
+     style = plot.style_circles, force_overlay = true)
 
 // Aviso: timeframe errado invalida o filtro 1h (e1h[4]) e a janela de vol
 if barstate.islast and timeframe.period != "15"

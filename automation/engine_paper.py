@@ -6,7 +6,8 @@ Semântica idêntica ao backtest (strategies/mm9_pullback.run):
   (Low < limite p/ long, High > limite p/ short — estrito).
 - No candle da posição: SL primeiro (Low<=sl / High>=sl), depois TP
   (High>tp / Low<tp — estrito, limite maker), depois time-stop no Close.
-  TP e SL no mesmo candle = LOSS (SL testado antes).
+  TP e SL no mesmo candle = LOSS (SL testado antes). TP no candle do
+  fill só vale se a forma da barra permite (long+verde/short+vermelho).
 - pnl_pct escalado pela exposição (mesma fórmula do backtest).
 
 Fees (opcional, default ligado): maker na entrada e no TP, taker no SL e
@@ -68,6 +69,12 @@ def check_exit(pos: dict, candle: dict) -> dict | None:
     sl, tp = pos["sl_price"], pos["tp_price"]
     hit_sl = (candle["low"] <= sl) if side == 1 else (candle["high"] >= sl)
     hit_tp = (candle["high"] > tp) if side == 1 else (candle["low"] < tp)
+    if hit_tp and candle["ts"] == pos["entry_candle_ts"]:
+        # TP no candle do fill segue a forma da barra: o alvo precisa ser
+        # negociado DEPOIS do fill na trajetória intrabar (long exige candle
+        # verde, short vermelho) — mesma regra do backtest (mm9_pullback.run)
+        hit_tp = (candle["close"] >= candle["open"]) if side == 1 \
+            else (candle["close"] < candle["open"])
     if hit_sl:
         return {"exit_price": sl, "reason": "Stop Loss", "exit_fee_rate": TAKER}
     if hit_tp:

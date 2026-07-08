@@ -1,24 +1,34 @@
 """
-Estratégia MM9 — Cruzamento de Médias + Gatilho por Candle de Reversão
-======================================================================
-Viés de tendência por duas médias (rápida x lenta):
-  - Rápida ACIMA da lenta  -> só compras (LONG)
-  - Rápida ABAIXO da lenta -> só vendas (SHORT)
+Estratégia MM9 / TrapM-LW — reprodução do indicador fechado do TradingView
+===========================================================================
+Engenharia reversa validada contra o Strategy Tester (BTC 15m Bybit,
+242 posições / 374 legs, 2026-07-08 — research/analyze_trapm*.py):
 
-Gatilho (caso LONG; SHORT é o espelho):
-  1. Pullback: preço negociando ABAIXO da média rápida (abertura <= rápida), com a
-     MÁXIMA do candle alcançando a rápida ou mais (High >= rápida). O fechamento é
-     livre — pode fechar abaixo ou já romper acima da média.
-  2. Candle de reversão = engolfo clássico OU PFR de fundo (toggles independentes).
-  3. Entrada por ROMPIMENTO da máxima do candle de gatilho na barra seguinte.
-     Opcional: se a próxima barra não romper e for um INSIDE BAR, o nível de
-     rompimento passa a ser a máxima do inside bar (encadeia enquanto formar).
-  4. STOP estrutural = (menor mínima das últimas N barras até o gatilho) - tick.
-  5. ALVO = entrada + target_r * risco.  Risco = entrada - stop.
-  6. Parcial (opcional) = entrada + parcial_r * risco, realizando parcial_pct%.
+- VIÉS: Close vs média LENTA (SMA40) — acima só long, abaixo só short
+  (bateu em 100% das 242 posições).
+- GATILHO: candle de ENGOLFO clássico (230/242) que TOCA a média rápida
+  (EMA8): long exige Low <= rápida; short exige High >= rápida (241/242).
+- ENTRADA: ordem STOP no extremo do candle de gatilho (204/242 fills no
+  candle seguinte; a ordem PERSISTE armada — fills observados até 8
+  candles depois, sempre no nível do gatilho original). Cancela quando o
+  viés inverte; um novo gatilho substitui o nível.
+- FILTRO MIN GAIN (update recente do TrapM): risco entrada->stop >= 0,5%
+  (piso seco observado: min 0,504%, p5 0,511%) — elimina ruído.
+- STOP estrutural: extremo dos 4 candles até o gatilho (93% com k=4).
+- SAÍDAS em duas pernas:
+    TP1 = 1R fecha 30% (limite, SEM stop próprio — 98 fills);
+    TP2 = 2R fecha 70% (limite) com stop estrutural na perna (52+45 fills);
+    Slow MA Stop: Close cruza a SMA40 contra a posição -> fecha TUDO que
+    restar a MERCADO no close do candle (178 fills, preço == close do
+    candle do cruzamento; vale já no candle do fill — 13 casos).
+- SIZING: risco por trade (qty proporcional a risco% / distância do stop).
 
-Motor próprio (barra a barra). Reaproveita `calc_ma` e o dataclass `Trade` de
-backtesting.py e espelha o contrato de retorno de strategies/depaula.py (metrics,
+Semântica intrabar do candle do fill (entrada STOP preenche a caminho do
+extremo): TP alcançável no mesmo candle (o extremo vem depois do fill);
+SL só se o candle fechou CONTRA a posição (trajetória verde O-L-H-C /
+vermelha O-H-L-C, mesma regra validada na MM9 Pullback Maker).
+
+Espelha o contrato de retorno de strategies/depaula.py (metrics,
 equity_curve, trades, drawdown, chart), incluindo os modos _fast e _charts.
 """
 
@@ -35,233 +45,104 @@ if _ROOT not in sys.path:
 
 from backtesting import calc_ma, Trade
 
-NAME = "MM9 — Cruzamento + Reversão"
+NAME = "MM9 / TrapM — Engolfo + 2 Alvos"
 DESCRIPTION = (
-    "Cruzamento de médias para viés; entrada por rompimento de candle de reversão "
-    "(engolfo/PFR) na média rápida. Stop estrutural por mínimas e alvo/parcial em R."
+    "Reprodução do TrapM-LW: viés por Close vs média lenta, engolfo tocando "
+    "a média rápida, entrada stop no rompimento (ordem persistente), filtro "
+    "de ganho mínimo, TP1 1R (30%) + TP2 2R (70%) com stop estrutural e "
+    "saída geral no cruzamento da média lenta."
 )
 
 CONFIG_SCHEMA = [
     {
         "title": "Médias",
         "fields": [
-            {
-                "key": "ma_fast_type",
-                "label": "Tipo Rápida",
-                "type": "select",
-                "default": "EMA",
-                "options": ["SMA", "EMA", "HMA", "RMA", "WMA"],
-            },
-            {
-                "key": "ma_fast_len",
-                "label": "Período Rápida",
-                "type": "number",
-                "default": 9,
-                "min": 2,
-                "max": 200,
-                "step": 1,
-            },
-            {
-                "key": "ma_slow_type",
-                "label": "Tipo Lenta",
-                "type": "select",
-                "default": "EMA",
-                "options": ["SMA", "EMA", "HMA", "RMA", "WMA"],
-            },
-            {
-                "key": "ma_slow_len",
-                "label": "Período Lenta",
-                "type": "number",
-                "default": 21,
-                "min": 3,
-                "max": 500,
-                "step": 1,
-            },
+            {"key": "ma_fast_type", "label": "Tipo Rápida", "type": "select",
+             "default": "EMA", "options": ["SMA", "EMA", "HMA", "RMA", "WMA"]},
+            {"key": "ma_fast_len", "label": "Período Rápida", "type": "number",
+             "default": 8, "min": 2, "max": 200, "step": 1},
+            {"key": "ma_slow_type", "label": "Tipo Lenta", "type": "select",
+             "default": "SMA", "options": ["SMA", "EMA", "HMA", "RMA", "WMA"]},
+            {"key": "ma_slow_len", "label": "Período Lenta", "type": "number",
+             "default": 40, "min": 3, "max": 500, "step": 1},
         ],
     },
     {
         "title": "Gatilho",
         "fields": [
-            {
-                "key": "use_engulfing",
-                "label": "Usar Engolfo",
-                "type": "checkbox",
-                "default": True,
-            },
-            {
-                "key": "use_pfr",
-                "label": "Usar PFR",
-                "type": "checkbox",
-                "default": True,
-            },
-            {
-                "key": "use_inside_bar",
-                "label": "Usar Inside Bar",
-                "type": "checkbox",
-                "default": False,
-            },
+            {"key": "use_engulfing", "label": "Usar Engolfo", "type": "checkbox",
+             "default": True},
+            {"key": "use_pfr", "label": "Usar PFR", "type": "checkbox",
+             "default": False},
+            {"key": "min_gain_pct", "label": "Ganho mínimo (risco %)", "type": "number",
+             "default": 0.5, "min": 0.0, "max": 5.0, "step": 0.1},
         ],
     },
     {
-        "title": "Stop",
+        "title": "Stop / Alvos",
         "fields": [
-            {
-                "key": "stop_lookback",
-                "label": "Mínimas p/ Stop (N)",
-                "type": "number",
-                "default": 2,
-                "min": 1,
-                "max": 50,
-                "step": 1,
-            },
-            {
-                "key": "tick_size",
-                "label": "Tick (folga do stop)",
-                "type": "number",
-                "default": 0.01,
-                "min": 0.0,
-                "step": 0.01,
-            },
-        ],
-    },
-    {
-        "title": "Alvo",
-        "fields": [
-            {
-                "key": "target_r",
-                "label": "Alvo (x risco)",
-                "type": "number",
-                "default": 2.0,
-                "min": 0.1,
-                "step": 0.1,
-            },
-        ],
-    },
-    {
-        "title": "Saida Parcial",
-        "fields": [
-            {
-                "key": "use_parcial",
-                "label": "Usar Parcial",
-                "type": "checkbox",
-                "default": False,
-            },
-            {
-                "key": "parcial_r",
-                "label": "Parcial (x risco)",
-                "type": "number",
-                "default": 1.0,
-                "min": 0.1,
-                "step": 0.1,
-                "show_if": "use_parcial",
-            },
-            {
-                "key": "parcial_pct",
-                "label": "Realizar (%)",
-                "type": "number",
-                "default": 50.0,
-                "min": 1,
-                "max": 99,
-                "step": 5,
-                "show_if": "use_parcial",
-            },
+            {"key": "stop_lookback", "label": "Extremos p/ Stop (N candles)",
+             "type": "number", "default": 4, "min": 1, "max": 50, "step": 1},
+            {"key": "tick_size", "label": "Tick (folga do stop)", "type": "number",
+             "default": 0.1, "min": 0.0, "step": 0.01},
+            {"key": "tp1_r", "label": "Alvo 1 (x risco)", "type": "number",
+             "default": 1.0, "min": 0.1, "step": 0.1},
+            {"key": "tp1_pct", "label": "Realizar no Alvo 1 (%)", "type": "number",
+             "default": 30.0, "min": 0, "max": 100, "step": 5},
+            {"key": "tp2_r", "label": "Alvo 2 (x risco)", "type": "number",
+             "default": 2.0, "min": 0.1, "step": 0.1},
         ],
     },
     {
         "title": "Alavancagem / Sizing",
         "fields": [
-            {
-                "key": "sizing_mode",
-                "label": "Modo de Sizing",
-                "type": "select",
-                "default": "Alavancagem fixa",
-                "options": ["Alavancagem fixa", "Quantidade fixa", "Risco por trade"],
-            },
-            {
-                "key": "leverage",
-                "label": "Alavancagem (x)",
-                "type": "number",
-                "default": 1.0,
-                "min": 1.0,
-                "max": 125.0,
-                "step": 1.0,
-            },
-            {
-                "key": "margin_pct",
-                "label": "Margem por Trade (% do capital)",
-                "type": "number",
-                "default": 100.0,
-                "min": 1.0,
-                "max": 100.0,
-                "step": 5.0,
-            },
-            {
-                "key": "fixed_qty",
-                "label": "Quantidade Fixa (unidades)",
-                "type": "number",
-                "default": 0.1,
-                "min": 0.0,
-                "step": 0.01,
-            },
-            {
-                "key": "risk_per_trade",
-                "label": "Risco por Trade (%)",
-                "type": "number",
-                "default": 1.0,
-                "min": 0.1,
-                "max": 100,
-                "step": 0.1,
-            },
+            {"key": "sizing_mode", "label": "Modo de Sizing", "type": "select",
+             "default": "Risco por trade",
+             "options": ["Alavancagem fixa", "Quantidade fixa", "Risco por trade"]},
+            {"key": "leverage", "label": "Alavancagem máx (x)", "type": "number",
+             "default": 2.0, "min": 1.0, "max": 125.0, "step": 0.5},
+            {"key": "margin_pct", "label": "Margem por Trade (% do capital)",
+             "type": "number", "default": 100.0, "min": 1.0, "max": 100.0, "step": 5.0},
+            {"key": "fixed_qty", "label": "Quantidade Fixa (unidades)", "type": "number",
+             "default": 0.1, "min": 0.0, "step": 0.01},
+            {"key": "risk_per_trade", "label": "Risco por Trade (%)", "type": "number",
+             "default": 1.0, "min": 0.1, "max": 100, "step": 0.1},
         ],
     },
 ]
 
 
-# Grids de otimizacao (parametros e valores a testar)
 OPTIMIZER_GRIDS = {
     "rapido": {
-        "ma_fast_type":   ["EMA"],
-        "ma_fast_len":    [7, 9, 12],
-        "ma_slow_type":   ["EMA"],
-        "ma_slow_len":    [21, 34, 50],
-        "use_engulfing":  [True, False],
-        "use_pfr":        [True, False],
-        "use_inside_bar": [False, True],
-        "stop_lookback":  [1, 2, 3],
-        "target_r":       [1.5, 2.0, 3.0],
-        "use_parcial":    [False],
+        "ma_fast_len":   [6, 8, 12],
+        "ma_slow_len":   [30, 40, 60],
+        "stop_lookback": [2, 4, 6],
+        "tp1_r":         [1.0],
+        "tp2_r":         [1.5, 2.0, 3.0],
+        "min_gain_pct":  [0.0, 0.3, 0.5, 0.8],
     },
     "completo": {
-        "ma_fast_type":   ["SMA", "EMA"],
-        "ma_fast_len":    [5, 7, 9, 12, 20],
-        "ma_slow_type":   ["EMA", "SMA"],
-        "ma_slow_len":    [21, 34, 50, 100, 200],
-        "use_engulfing":  [True, False],
-        "use_pfr":        [True, False],
-        "use_inside_bar": [False, True],
-        "stop_lookback":  [1, 2, 3, 5],
-        "target_r":       [1.0, 1.5, 2.0, 3.0, 4.0],
-        "use_parcial":    [False, True],
-        "parcial_r":      [0.5, 1.0, 1.5],
-        "parcial_pct":    [25, 50, 75],
+        "ma_fast_type":  ["EMA"],
+        "ma_fast_len":   [5, 6, 8, 10, 12],
+        "ma_slow_type":  ["SMA", "EMA"],
+        "ma_slow_len":   [21, 30, 40, 50, 80],
+        "stop_lookback": [2, 3, 4, 6, 8],
+        "tp1_r":         [0.5, 1.0, 1.5],
+        "tp1_pct":       [30, 50],
+        "tp2_r":         [1.5, 2.0, 3.0],
+        "min_gain_pct":  [0.0, 0.3, 0.5, 0.8, 1.2],
     },
 }
 
 
 def is_valid_config(params):
     """Remove combinacoes que nao fazem sentido para esta estrategia."""
-    # Rápida precisa ser mais curta que a lenta
-    if int(params.get("ma_fast_len", 9)) >= int(params.get("ma_slow_len", 21)):
+    if int(params.get("ma_fast_len", 8)) >= int(params.get("ma_slow_len", 40)):
         return False
-    # Pelo menos um gatilho ligado
-    if not params.get("use_engulfing", True) and not params.get("use_pfr", True):
+    if float(params.get("tp1_r", 1.0)) >= float(params.get("tp2_r", 2.0)):
         return False
-    # Parcial desligada -> params parciais no default
-    if not params.get("use_parcial", False):
-        if float(params.get("parcial_r", 1.0)) != 1.0:
-            return False
-        if float(params.get("parcial_pct", 50.0)) != 50.0:
-            return False
+    if not params.get("use_engulfing", True) and not params.get("use_pfr", False):
+        return False
     return True
 
 
@@ -282,40 +163,25 @@ def _safe(val):
     return val
 
 
-# ==============================
-# Detecção de padrões (LONG = direction 1; SHORT = -1)
-# ==============================
-
 def _is_engulfing(d, o, c, o1, c1):
     """Engolfo clássico: corpo do candle atual engolfa o corpo anterior + direção."""
     if d == 1:
-        return c > o and o <= c1 and c >= o1   # candle de alta engolfando
-    return c < o and o >= c1 and c <= o1       # candle de baixa engolfando
+        return c > o and o <= c1 and c >= o1
+    return c < o and o >= c1 and c <= o1
 
 
 def _is_pfr(d, h, l, h1, l1, c, c1):
-    """PFR (Ponto de Falso Rompimento): rompe a extremidade anterior e fecha de volta.
-    Fundo (long) = mínima menor que a anterior + fecha acima do fechamento anterior.
-    Topo (short) = máxima maior que a anterior + fecha abaixo do fechamento anterior."""
+    """PFR: rompe a extremidade anterior e fecha de volta."""
     if d == 1:
         return l < l1 and c > c1
     return h > h1 and c < c1
 
 
-def _is_inside_bar(h, l, h1, l1):
-    """Inside bar clássico: contido na barra anterior."""
-    return h < h1 and l > l1
-
-
-# ==============================
-# Sizing (espelha _open_position de backtesting.py com stop estrutural)
-# ==============================
-
 def _compute_sizing(equity, entry, stop, params):
     """Retorna (qty, leverage, exposure) conforme o modo de sizing."""
     equity = equity if equity > 0 else 1.0
-    lev = max(float(params.get("leverage", 1.0)), 1.0)
-    mode = params.get("sizing_mode", "Alavancagem fixa")
+    lev = max(float(params.get("leverage", 2.0)), 1.0)
+    mode = params.get("sizing_mode", "Risco por trade")
 
     if mode == "Quantidade fixa":
         qty = max(float(params.get("fixed_qty", 0.0)), 0.0)
@@ -324,12 +190,9 @@ def _compute_sizing(equity, entry, stop, params):
 
     if mode == "Risco por trade":
         stop_dist_pct = abs(entry - stop) / entry * 100 if entry > 0 else 0.0
-        if stop_dist_pct > 0:
-            exposure = float(params.get("risk_per_trade", 1.0)) / stop_dist_pct
-        else:
-            exposure = 1.0
-        if exposure > lev:
-            exposure = lev
+        exposure = (float(params.get("risk_per_trade", 1.0)) / stop_dist_pct
+                    if stop_dist_pct > 0 else 1.0)
+        exposure = min(exposure, lev)
         qty = (exposure * equity) / entry if entry > 0 else 0.0
         return qty, lev, exposure
 
@@ -340,20 +203,15 @@ def _compute_sizing(equity, entry, stop, params):
     return qty, lev, exposure
 
 
-# ==============================
-# Motor barra a barra
-# ==============================
-
 def _run_backtest_mm9(df: pd.DataFrame, params: dict):
-    """Executa o backtest MM9. Retorna (bt_df, trades, final_equity)."""
+    """Motor barra a barra da spec TrapM. Retorna (bt_df, trades, final_equity)."""
     df = df.copy()
 
-    ma_fast_len = int(params.get("ma_fast_len", 9))
-    ma_slow_len = int(params.get("ma_slow_len", 21))
-    df["Fast"] = calc_ma(df["Close"], ma_fast_len, params.get("ma_fast_type", "EMA"))
-    df["Slow"] = calc_ma(df["Close"], ma_slow_len, params.get("ma_slow_type", "EMA"))
+    fast_len = int(params.get("ma_fast_len", 8))
+    slow_len = int(params.get("ma_slow_len", 40))
+    df["Fast"] = calc_ma(df["Close"], fast_len, params.get("ma_fast_type", "EMA"))
+    df["Slow"] = calc_ma(df["Close"], slow_len, params.get("ma_slow_type", "SMA"))
 
-    # Filtro de data opcional
     start_date = params.get("start_date")
     end_date = params.get("end_date")
     if start_date:
@@ -362,17 +220,16 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         df = df[df.index <= end_date]
 
     use_engulfing = bool(params.get("use_engulfing", True))
-    use_pfr = bool(params.get("use_pfr", True))
-    use_inside_bar = bool(params.get("use_inside_bar", False))
-    stop_lookback = max(int(params.get("stop_lookback", 2)), 1)
-    tick = float(params.get("tick_size", 0.01))
-    target_r = float(params.get("target_r", 2.0))
-    use_parcial = bool(params.get("use_parcial", False))
-    parcial_r = float(params.get("parcial_r", 1.0))
-    parcial_frac = float(params.get("parcial_pct", 50.0)) / 100.0
+    use_pfr = bool(params.get("use_pfr", False))
+    stop_lookback = max(int(params.get("stop_lookback", 4)), 1)
+    tick = float(params.get("tick_size", 0.1))
+    tp1_r = float(params.get("tp1_r", 1.0))
+    tp1_frac = float(params.get("tp1_pct", 30.0)) / 100.0
+    tp2_r = float(params.get("tp2_r", 2.0))
+    min_gain = float(params.get("min_gain_pct", 0.5))
     initial_capital = float(params.get("initial_capital", 1000.0))
 
-    # Filtro de horário (intradiário): só entra nas horas permitidas (UTC).
+    # Filtro de horário opcional (mantido do contrato antigo)
     hour_filter = bool(params.get("hour_filter", False))
     allowed_hours = set(params.get("allowed_hours", []) or [])
 
@@ -385,22 +242,20 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
     idx = df.index
     n = len(df)
 
-    # Estado
     st = {
         "position": 0,          # 0 flat, 1 long, -1 short
         "entry": 0.0,
         "stop": 0.0,
-        "target": 0.0,
-        "partial": 0.0,
-        "partial_taken": False,
-        "position_size": 1.0,   # reduz após parcial
-        "exposure": 1.0,        # notional / equity
+        "tp1": 0.0,
+        "tp2": 0.0,
+        "size1": 0.0,           # fração da perna TP1 ainda aberta
+        "size2": 0.0,           # fração da perna TP2 ainda aberta
+        "exposure": 1.0,
         "leverage": 1.0,
         "qty": 0.0,
         "entry_bar": -1,
         "trade": None,
         "equity": initial_capital,
-        # setup armado (pré-entrada)
         "armed": False,
         "armed_dir": 0,
         "armed_level": 0.0,
@@ -415,26 +270,60 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         except AttributeError:
             return 0
 
+    def _leg_exit(i, price, frac):
+        """Realiza `frac` da posição a `price`; registra parcial no Trade."""
+        d = st["position"]
+        pnl = d * (price - st["entry"]) / st["entry"] * 100
+        st["equity"] *= (1 + pnl / 100 * frac * st["exposure"])
+        tr = st["trade"]
+        if tr.partial_exit_price is None:
+            tr.partial_exit_price = price
+            tr.partial_exit_date = str(idx[i])
+            tr.partial_pct_closed = frac
+        return pnl
+
+    def _close_all(i, price, comment):
+        """Fecha o restante da posição e fecha o Trade."""
+        tr = st["trade"]
+        d = st["position"]
+        remaining = st["size1"] + st["size2"]
+        pnl_rest = d * (price - st["entry"]) / st["entry"] * 100
+        st["equity"] *= (1 + pnl_rest / 100 * remaining * st["exposure"])
+
+        tr.exit_date = str(idx[i])
+        tr.exit_price = price
+        tr.exit_comment = comment
+        tr.exit_ts = _ts(i)
+        # pnl total ponderado pelas frações já realizadas
+        total = 0.0
+        if tr.partial_exit_price is not None and tr.partial_pct_closed:
+            p_pnl = d * (tr.partial_exit_price - st["entry"]) / st["entry"] * 100
+            total += tr.partial_pct_closed * p_pnl
+        total += remaining * pnl_rest
+        tr.pnl_pct = total * st["exposure"]
+        trades.append(tr)
+
+        st["position"] = 0
+        st["entry"] = 0.0
+        st["trade"] = None
+        st["size1"] = st["size2"] = 0.0
+        st["exposure"] = 1.0
+        st["qty"] = 0.0
+        st["entry_bar"] = -1
+
     def open_position(i, direction, entry_price, stop_price):
         risk = abs(entry_price - stop_price)
         if risk <= 0:
             return False
-        if direction == 1:
-            target_price = entry_price + target_r * risk
-            partial_price = entry_price + parcial_r * risk
-        else:
-            target_price = entry_price - target_r * risk
-            partial_price = entry_price - parcial_r * risk
-
-        qty, lev, exposure = _compute_sizing(st["equity"], entry_price, stop_price, params)
-
+        qty, lev, exposure = _compute_sizing(st["equity"], entry_price,
+                                             stop_price, params)
         st["position"] = direction
         st["entry"] = entry_price
         st["stop"] = stop_price
-        st["target"] = target_price
-        st["partial"] = partial_price
-        st["partial_taken"] = False
-        st["position_size"] = 1.0
+        st["tp1"] = entry_price + direction * tp1_r * risk
+        st["tp2"] = entry_price + direction * tp2_r * risk
+        st["size1"] = tp1_frac
+        st["size2"] = 1.0 - tp1_frac
         st["exposure"] = exposure
         st["leverage"] = lev
         st["qty"] = qty
@@ -445,7 +334,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
             direction=direction,
             comment="L" if direction == 1 else "S",
             stop_price=stop_price,
-            target_price=target_price,
+            target_price=st["tp2"],
             qty=qty,
             leverage=lev,
             notional=qty * entry_price,
@@ -454,159 +343,111 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         )
         return True
 
-    def take_partial(i, price):
-        frac = parcial_frac
-        d = st["position"]
-        partial_pnl = d * (price - st["entry"]) / st["entry"] * 100
-        st["equity"] *= (1 + partial_pnl / 100 * frac * st["exposure"])
-        st["position_size"] -= frac
-        st["partial_taken"] = True
-        tr = st["trade"]
-        tr.partial_exit_price = price
-        tr.partial_exit_date = str(idx[i])
-        tr.partial_pct_closed = frac
-
-    def close_position(i, price, comment):
-        tr = st["trade"]
-        if tr is None:
-            st["position"] = 0
-            return
-        d = tr.direction
-        tr.exit_date = str(idx[i])
-        tr.exit_price = price
-        tr.exit_comment = comment
-        tr.exit_ts = _ts(i)
-
-        frac = st["exposure"]
-        remaining_pnl = d * (price - st["entry"]) / st["entry"] * 100
-        st["equity"] *= (1 + remaining_pnl / 100 * st["position_size"] * frac)
-
-        if st["partial_taken"] and tr.partial_pct_closed > 0:
-            partial_pnl = d * (tr.partial_exit_price - st["entry"]) / st["entry"] * 100
-            tr.pnl_pct = (tr.partial_pct_closed * partial_pnl
-                          + st["position_size"] * remaining_pnl) * frac
-        else:
-            tr.pnl_pct = remaining_pnl * frac
-
-        trades.append(tr)
-        # reset
-        st["position"] = 0
-        st["entry"] = 0.0
-        st["trade"] = None
-        st["partial_taken"] = False
-        st["position_size"] = 1.0
-        st["exposure"] = 1.0
-        st["leverage"] = 1.0
-        st["qty"] = 0.0
-        st["entry_bar"] = -1
-
     for i in range(n):
-        # Sem médias ainda: marca equity e segue
         if np.isnan(fast[i]) or np.isnan(slow[i]):
             equity_curve.append(st["equity"])
             continue
 
-        # ── 1. ENTRADA a partir de setup armado (flat) ──────────────────────
-        _hour_ok = (not hour_filter) or (
-            getattr(idx[i], "hour", 0) in allowed_hours)
+        bias = 1 if c[i] > slow[i] else (-1 if c[i] < slow[i] else 0)
+
+        # ── 1. FILL da ordem armada (flat) — a ordem PERSISTE ───────────────
+        _hour_ok = (not hour_filter) or (getattr(idx[i], "hour", 0) in allowed_hours)
         if st["position"] == 0 and st["armed"] and _hour_ok:
             d = st["armed_dir"]
-            bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
-            if (d == 1 and bias < 0) or (d == -1 and bias > 0):
-                st["armed"] = False  # viés inverteu -> cancela
-            elif d == 1 and h[i] > st["armed_level"]:
-                entry_price = max(o[i], st["armed_level"])
-                open_position(i, 1, entry_price, st["armed_stop"])
+            if (d == 1 and h[i] > st["armed_level"]) or \
+               (d == -1 and l[i] < st["armed_level"]):
+                entry_price = (max(o[i], st["armed_level"]) if d == 1
+                               else min(o[i], st["armed_level"]))
+                open_position(i, d, entry_price, st["armed_stop"])
                 st["armed"] = False
-            elif d == -1 and l[i] < st["armed_level"]:
-                entry_price = min(o[i], st["armed_level"])
-                open_position(i, -1, entry_price, st["armed_stop"])
-                st["armed"] = False
-            elif use_inside_bar and i >= 1 and _is_inside_bar(h[i], l[i], h[i - 1], l[i - 1]):
-                # não rompeu, mas é inside bar -> move o gatilho E o stop p/ o inside bar
-                lo = max(0, i - stop_lookback + 1)
-                if d == 1:
-                    st["armed_level"] = h[i]
-                    st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
-                else:
-                    st["armed_level"] = l[i]
-                    st["armed_stop"] = float(np.max(h[lo:i + 1])) + tick
-            else:
-                st["armed"] = False  # expira
 
-        # ── 2. GESTÃO DA POSIÇÃO ABERTA (exits a partir da barra seguinte) ──
-        if st["position"] != 0 and i > st["entry_bar"]:
+        # ── 2. SAÍDAS da posição (vale já no candle do fill) ────────────────
+        if st["position"] != 0:
             d = st["position"]
-            stop_price = st["stop"]
+            fill_bar = i == st["entry_bar"]
+            # No candle do fill (entrada stop preenche a caminho do extremo),
+            # o SL intrabar só é alcançável se o candle fechou CONTRA
+            against = (c[i] < o[i]) if d == 1 else (c[i] > o[i])
+            sl_reachable = (not fill_bar) or against
 
-            # Liquidação (perda adversa >= 1/alavancagem). Conservador p/ o trader.
-            liq_price = None
-            if st["leverage"] and st["leverage"] > 1.0:
-                liq_price = (st["entry"] * (1 - 1.0 / st["leverage"]) if d == 1
-                             else st["entry"] * (1 + 1.0 / st["leverage"]))
-            sl_is_liq = False
-            if liq_price is not None:
-                if (d == 1 and liq_price > stop_price) or (d == -1 and liq_price < stop_price):
-                    stop_price = liq_price
-                    sl_is_liq = True
+            # perna TP2: stop estrutural primeiro (conservador), depois alvo
+            if st["size2"] > 0:
+                hit_sl = ((l[i] <= st["stop"]) if d == 1 else (h[i] >= st["stop"]))
+                if hit_sl and sl_reachable:
+                    _leg_exit(i, st["stop"], st["size2"])
+                    st["size2"] = 0.0
+                else:
+                    hit_tp2 = ((h[i] >= st["tp2"]) if d == 1 else (l[i] <= st["tp2"]))
+                    if hit_tp2:
+                        _leg_exit(i, st["tp2"], st["size2"])
+                        st["size2"] = 0.0
+            # perna TP1: só o alvo (sem stop próprio)
+            if st["position"] != 0 and st["size1"] > 0:
+                hit_tp1 = ((h[i] >= st["tp1"]) if d == 1 else (l[i] <= st["tp1"]))
+                if hit_tp1:
+                    _leg_exit(i, st["tp1"], st["size1"])
+                    st["size1"] = 0.0
+            # tudo realizado nos alvos/stop -> fecha o Trade com a última perna
+            if st["position"] != 0 and st["size1"] + st["size2"] <= 0:
+                tr = st["trade"]
+                tr.exit_date = str(idx[i])
+                tr.exit_price = st["tp2"] if tr.partial_exit_price == st["tp1"] else st["tp1"]
+                tr.exit_comment = "Alvo 2" if tr.exit_price == st["tp2"] else "Alvo 1"
+                tr.exit_ts = _ts(i)
+                d0 = st["position"]
+                p_pnl = d0 * (tr.partial_exit_price - st["entry"]) / st["entry"] * 100
+                x_pnl = d0 * (tr.exit_price - st["entry"]) / st["entry"] * 100
+                tr.pnl_pct = (tr.partial_pct_closed * p_pnl
+                              + (1 - tr.partial_pct_closed) * x_pnl) * st["exposure"]
+                trades.append(tr)
+                st["position"] = 0
+                st["trade"] = None
+                st["size1"] = st["size2"] = 0.0
+                st["exposure"] = 1.0
+                st["entry_bar"] = -1
+            # Slow MA Stop: close cruzou a lenta contra -> fecha TUDO no close
+            elif st["position"] != 0:
+                ma_stop = (c[i] < slow[i]) if d == 1 else (c[i] > slow[i])
+                if ma_stop:
+                    _close_all(i, c[i], "Slow MA Stop")
 
-            hit_sl = (l[i] <= stop_price) if d == 1 else (h[i] >= stop_price)
-
-            if hit_sl:
-                close_position(i, stop_price, "Liquidação" if sl_is_liq else "Stop Loss")
-            else:
-                # Parcial (uma vez)
-                if use_parcial and not st["partial_taken"]:
-                    hit_p = (h[i] >= st["partial"]) if d == 1 else (l[i] <= st["partial"])
-                    if hit_p:
-                        take_partial(i, st["partial"])
-                # Alvo
-                if st["position"] != 0:
-                    hit_tp = (h[i] >= st["target"]) if d == 1 else (l[i] <= st["target"])
-                    if hit_tp:
-                        close_position(i, st["target"], "Alvo Atingido")
-
-        # ── 3. NOVO SETUP (flat, sem armado, precisa de barra anterior) ─────
-        if st["position"] == 0 and not st["armed"] and i >= 1:
-            bias = 1 if fast[i] > slow[i] else (-1 if fast[i] < slow[i] else 0)
-            if bias == 1:
-                # Long: preço negociando ABAIXO da rápida (abertura <= rápida) e a
-                # MÁXIMA alcançando a média ou mais (high >= rápida). O fechamento não
-                # importa. A entrada sai no rompimento dessa máxima (na média ou acima).
-                touches_ma = o[i] <= fast[i] and h[i] >= fast[i]
-                pattern = ((use_engulfing and _is_engulfing(1, o[i], c[i], o[i - 1], c[i - 1]))
-                           or (use_pfr and _is_pfr(1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
-                if touches_ma and pattern:
+        # ── 3. NOVO GATILHO (substitui ordem armada; cancela se viés virou) ─
+        if st["position"] == 0:
+            if st["armed"] and ((st["armed_dir"] == 1 and bias < 0)
+                                or (st["armed_dir"] == -1 and bias > 0)):
+                st["armed"] = False
+            if i >= 1 and bias != 0:
+                d = bias
+                # pullback: o candle de gatilho ABRE aquém da rápida (100%
+                # dos gatilhos reais) e o candle ANTERIOR fecha aquém (90%
+                # real vs 49% falso — pullback estabelecido, analyze_trapm4)
+                touches = ((o[i] <= fast[i] and c[i - 1] <= fast[i - 1])
+                           if d == 1 else
+                           (o[i] >= fast[i] and c[i - 1] >= fast[i - 1]))
+                pattern = ((use_engulfing and _is_engulfing(d, o[i], c[i], o[i - 1], c[i - 1]))
+                           or (use_pfr and _is_pfr(d, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
+                if touches and pattern:
                     lo = max(0, i - stop_lookback + 1)
-                    st["armed"] = True
-                    st["armed_dir"] = 1
-                    st["armed_level"] = h[i]
-                    st["armed_stop"] = float(np.min(l[lo:i + 1])) - tick
-            elif bias == -1:
-                # Short (espelho): preço negociando ACIMA da rápida (abertura >= rápida)
-                # e a MÍNIMA alcançando a média ou menos (low <= rápida). O fechamento
-                # não importa. A entrada sai no rompimento dessa mínima (na média ou abaixo).
-                touches_ma = o[i] >= fast[i] and l[i] <= fast[i]
-                pattern = ((use_engulfing and _is_engulfing(-1, o[i], c[i], o[i - 1], c[i - 1]))
-                           or (use_pfr and _is_pfr(-1, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
-                if touches_ma and pattern:
-                    lo = max(0, i - stop_lookback + 1)
-                    st["armed"] = True
-                    st["armed_dir"] = -1
-                    st["armed_level"] = l[i]
-                    st["armed_stop"] = float(np.max(h[lo:i + 1])) + tick
+                    level = h[i] if d == 1 else l[i]
+                    stop = (float(np.min(l[lo:i + 1])) - tick if d == 1
+                            else float(np.max(h[lo:i + 1])) + tick)
+                    risk_pct = abs(level - stop) / level * 100 if level > 0 else 0.0
+                    if min_gain <= 0 or risk_pct >= min_gain:
+                        st["armed"] = True
+                        st["armed_dir"] = d
+                        st["armed_level"] = level
+                        st["armed_stop"] = stop
 
         # ── 4. Equity mark-to-market ────────────────────────────────────────
         if st["position"] != 0 and st["trade"] is not None:
-            unrealized = st["position"] * (c[i] - st["entry"]) / st["entry"]
-            equity_curve.append(st["equity"] * (1 + unrealized * st["position_size"] * st["exposure"]))
+            remaining = st["size1"] + st["size2"]
+            unreal = st["position"] * (c[i] - st["entry"]) / st["entry"]
+            equity_curve.append(st["equity"] * (1 + unreal * remaining * st["exposure"]))
         else:
             equity_curve.append(st["equity"])
 
-    # Fecha posição aberta no fim do período
     if st["position"] != 0 and n > 0:
-        close_position(n - 1, c[-1], "Fim do Período")
-        # corrige a última marcação de equity para o valor realizado
+        _close_all(n - 1, c[-1], "Fim do Período")
         if equity_curve:
             equity_curve[-1] = st["equity"]
 
@@ -615,11 +456,10 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
 
 
 def run(df, params: dict) -> dict:
-    """Executa o backtest MM9 e retorna metrics/equity_curve/trades/drawdown/chart."""
+    """Executa o backtest e retorna metrics/equity_curve/trades/drawdown/chart."""
     initial_capital = float(params.get("initial_capital", 1000.0))
     bt_df, trades, final_equity = _run_backtest_mm9(df, params)
 
-    # ── Métricas (mesmo bloco/contrato de strategies/depaula.py) ───────────
     total_return = (final_equity / initial_capital - 1) * 100
     wins = [t for t in trades if t.pnl_pct > 0]
     losses_t = [t for t in trades if t.pnl_pct <= 0]
@@ -633,7 +473,7 @@ def run(df, params: dict) -> dict:
     eq = bt_df["Equity"].values
     peak = np.maximum.accumulate(eq)
     dd = (eq - peak) / peak * 100
-    max_dd = float(dd.min())
+    max_dd = float(dd.min()) if len(dd) else 0.0
 
     total_days = max((bt_df.index[-1] - bt_df.index[0]).days, 1) if len(bt_df) > 1 else 1
     cagr = ((final_equity / initial_capital) ** (365.25 / total_days) - 1) * 100
@@ -718,31 +558,23 @@ def run(df, params: dict) -> dict:
         dd_episodes = []
         in_dd = False
         ep_start = None
-        ep_peak_idx = None
         for k, val in enumerate(dd):
             if val < 0 and not in_dd:
                 in_dd = True
                 ep_start = k
-                ep_peak_idx = k
-            elif val < 0 and in_dd:
-                if val < dd[ep_peak_idx]:
-                    ep_peak_idx = k
             elif val >= 0 and in_dd:
                 in_dd = False
-                ep_trough = float(dd[ep_start:k].min())
-                ep_len = k - ep_start
                 dd_episodes.append({
                     "start": dates[ep_start] if ep_start < len(bt_df) else None,
                     "end": dates[k - 1] if (k - 1) < len(bt_df) else None,
-                    "trough": _safe(ep_trough),
-                    "length_bars": ep_len,
+                    "trough": _safe(float(dd[ep_start:k].min())),
+                    "length_bars": k - ep_start,
                 })
         if in_dd and ep_start is not None:
-            ep_trough = float(dd[ep_start:].min())
             dd_episodes.append({
                 "start": dates[ep_start],
                 "end": dates[-1],
-                "trough": _safe(ep_trough),
+                "trough": _safe(float(dd[ep_start:].min())),
                 "length_bars": len(dd) - ep_start,
             })
 
@@ -777,7 +609,6 @@ def run(df, params: dict) -> dict:
             for t in trades
         ]
 
-    # ── Séries para os gráficos (candles + médias) ─────────────────────────
     chart = None
     if params.get("_charts"):
         def _col(name):

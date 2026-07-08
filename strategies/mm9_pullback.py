@@ -11,7 +11,9 @@ Regras (validadas em 1 ano de dados Bybit, sem lookahead):
   resample+ffill ingênuo vaza até 45min de futuro), Close>EMA9, e rank de
   volatilidade (ATR14% vs janela de 4 dias) acima do mínimo.
 - Saídas: TP limite (+tp_pct), SL a mercado (-sl_pct), time-stop em
-  max_bars. TP e SL no MESMO candle = LOSS (conservador).
+  max_bars. TP e SL no MESMO candle = LOSS (conservador). TP no candle
+  do FILL só conta se a forma da barra permite (long+verde/short+vermelho):
+  na trajetória intrabar o alvo precisa ser negociado depois do fill.
 - Janela de horário opcional (padrão 19h-00h Brasília): restringe só as
   ENTRADAS; as saídas são ordens que descansam na exchange (24/7).
 
@@ -322,6 +324,14 @@ def run(df: pd.DataFrame, params: dict) -> dict:
         while j < N:
             hit_sl = (L[j] <= sl) if side == 1 else (H[j] >= sl)
             hit_tp = (H[j] > tp) if side == 1 else (L[j] < tp)
+            if j == i and hit_tp:
+                # TP no candle do fill só vale se a trajetória intrabar
+                # (verde O→L→H→C, vermelho O→H→L→C) negocia o alvo DEPOIS
+                # do fill da limite: long exige candle verde, short vermelho.
+                # Na exchange real o alvo nem existe antes do fill — sem esta
+                # regra o backtest conta TPs impossíveis (validado trade a
+                # trade contra o broker emulator do TV em 2026-07-08).
+                hit_tp = (C[j] >= O[j]) if side == 1 else (C[j] < O[j])
             if hit_sl:                      # SL primeiro: mesmo candle = LOSS
                 exit_price, exit_comment = sl, "Stop Loss"
                 break
