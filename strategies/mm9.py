@@ -60,7 +60,7 @@ CONFIG_SCHEMA = [
             {"key": "ma_fast_type", "label": "Tipo Rápida", "type": "select",
              "default": "EMA", "options": ["SMA", "EMA", "HMA", "RMA", "WMA"]},
             {"key": "ma_fast_len", "label": "Período Rápida", "type": "number",
-             "default": 8, "min": 2, "max": 200, "step": 1},
+             "default": 6, "min": 2, "max": 200, "step": 1},
             {"key": "ma_slow_type", "label": "Tipo Lenta", "type": "select",
              "default": "SMA", "options": ["SMA", "EMA", "HMA", "RMA", "WMA"]},
             {"key": "ma_slow_len", "label": "Período Lenta", "type": "number",
@@ -207,7 +207,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
     """Motor barra a barra da spec TrapM. Retorna (bt_df, trades, final_equity)."""
     df = df.copy()
 
-    fast_len = int(params.get("ma_fast_len", 8))
+    fast_len = int(params.get("ma_fast_len", 6))
     slow_len = int(params.get("ma_slow_len", 40))
     df["Fast"] = calc_ma(df["Close"], fast_len, params.get("ma_fast_type", "EMA"))
     df["Slow"] = calc_ma(df["Close"], slow_len, params.get("ma_slow_type", "SMA"))
@@ -227,6 +227,9 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
     tp1_frac = float(params.get("tp1_pct", 30.0)) / 100.0
     tp2_r = float(params.get("tp2_r", 2.0))
     min_gain = float(params.get("min_gain_pct", 0.5))
+    # validade da ordem armada em candles; 999 = persiste até o viés virar
+    # (melhor pareamento com o tester: 195/242 vs 182/242 com validade 2)
+    armed_validity = int(params.get("armed_validity", 999))
     initial_capital = float(params.get("initial_capital", 1000.0))
 
     # Filtro de horário opcional (mantido do contrato antigo)
@@ -260,6 +263,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         "armed_dir": 0,
         "armed_level": 0.0,
         "armed_stop": 0.0,
+        "armed_bar": -1,
     }
     trades = []
     equity_curve = []
@@ -276,7 +280,8 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         pnl = d * (price - st["entry"]) / st["entry"] * 100
         st["equity"] *= (1 + pnl / 100 * frac * st["exposure"])
         tr = st["trade"]
-        if tr.partial_exit_price is None:
+        # Trade inicializa partial_exit_price com 0.0 (não None)
+        if not tr.partial_exit_price:
             tr.partial_exit_price = price
             tr.partial_exit_date = str(idx[i])
             tr.partial_pct_closed = frac
@@ -296,7 +301,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
         tr.exit_ts = _ts(i)
         # pnl total ponderado pelas frações já realizadas
         total = 0.0
-        if tr.partial_exit_price is not None and tr.partial_pct_closed:
+        if tr.partial_exit_price and tr.partial_pct_closed:
             p_pnl = d * (tr.partial_exit_price - st["entry"]) / st["entry"] * 100
             total += tr.partial_pct_closed * p_pnl
         total += remaining * pnl_rest
@@ -350,8 +355,12 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
 
         bias = 1 if c[i] > slow[i] else (-1 if c[i] < slow[i] else 0)
 
-        # ── 1. FILL da ordem armada (flat) — a ordem PERSISTE ───────────────
+        # ── 1. FILL da ordem armada (flat) — validade de `armed_validity`
+        # candles após o gatilho (in_4=2 do TrapM; 93% dos fills em <=2) ────
         _hour_ok = (not hour_filter) or (getattr(idx[i], "hour", 0) in allowed_hours)
+        if st["position"] == 0 and st["armed"] \
+                and i - st["armed_bar"] > armed_validity:
+            st["armed"] = False
         if st["position"] == 0 and st["armed"] and _hour_ok:
             d = st["armed_dir"]
             if (d == 1 and h[i] > st["armed_level"]) or \
@@ -419,11 +428,14 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
             if i >= 1 and bias != 0:
                 d = bias
                 # pullback: o candle de gatilho ABRE aquém da rápida (100%
-                # dos gatilhos reais) e o candle ANTERIOR fecha aquém (90%
-                # real vs 49% falso — pullback estabelecido, analyze_trapm4)
-                touches = ((o[i] <= fast[i] and c[i - 1] <= fast[i - 1])
+                # dos gatilhos reais) e o candle ANTERIOR fecha aquém
+                # (melhor equilíbrio precisão/recall — analyze_trapm4/5)
+                prev_close_filter = bool(params.get("prev_close_filter", True))
+                touches = ((o[i] <= fast[i] and
+                            (not prev_close_filter or c[i - 1] <= fast[i - 1]))
                            if d == 1 else
-                           (o[i] >= fast[i] and c[i - 1] >= fast[i - 1]))
+                           (o[i] >= fast[i] and
+                            (not prev_close_filter or c[i - 1] >= fast[i - 1])))
                 pattern = ((use_engulfing and _is_engulfing(d, o[i], c[i], o[i - 1], c[i - 1]))
                            or (use_pfr and _is_pfr(d, h[i], l[i], h[i - 1], l[i - 1], c[i], c[i - 1])))
                 if touches and pattern:
@@ -437,6 +449,7 @@ def _run_backtest_mm9(df: pd.DataFrame, params: dict):
                         st["armed_dir"] = d
                         st["armed_level"] = level
                         st["armed_stop"] = stop
+                        st["armed_bar"] = i
 
         # ── 4. Equity mark-to-market ────────────────────────────────────────
         if st["position"] != 0 and st["trade"] is not None:
@@ -602,6 +615,7 @@ def run(df, params: dict) -> dict:
                 "partial_pct_closed": t.partial_pct_closed if t.partial_pct_closed else None,
                 "qty": _safe(float(t.qty)),
                 "leverage": _safe(float(t.leverage)),
+                "exposure": _safe(float(t.exposure)),
                 "notional": _safe(float(t.notional)),
                 "entry_ts": t.entry_ts,
                 "exit_ts": t.exit_ts,

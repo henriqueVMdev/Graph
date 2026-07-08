@@ -90,6 +90,9 @@ PATTERNS = {
     "engolfo|prev ext": d_eng_or_ext,
     "close>prev open": d_eng_body_open,
     "candle na direcao": d_any_rev,
+    "candle cruza MA": d_cross_ma,
+    "close cruza MA": d_close_cross,
+    "qualquer cruzamento": d_any_cross,
 }
 
 def base_ok(g, d, prev_close_cond):

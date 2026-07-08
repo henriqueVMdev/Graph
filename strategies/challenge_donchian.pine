@@ -1,0 +1,119 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════
+// Challenge Donchian 48h — assimetria positiva para prop challenge
+//
+// Espelho de strategies/challenge_donchian.py (validação:
+// research/quant_lab4-6.py + quant_forward2.py, 2026-07-08).
+// Aprovação MC (+5%/-10%/-5% diária, 12 perps Bybit, risco 0.4%/trade):
+//   treino 81% | ano completo 74% | pior regime (chop) 50% | ~12 dias.
+//
+// USAR NO GRÁFICO DE 15 MINUTOS.
+//
+// Regras:
+//  - Sinal: Close rompe a máxima/mínima Donchian de 48h (192 candles,
+//    excluindo o atual) na direção da EMA200.
+//  - Entrada: A MERCADO — a ordem é criada no fechamento do sinal e
+//    preenche na ABERTURA do candle seguinte (process_orders_on_close
+//    padrão/false), igual ao Python.
+//  - Stop: 8 x ATR14 (ewm) do candle do sinal (~2-3%: custo taker <0.1R).
+//  - Alvo: 6R (limite). Stop e alvo ancorados no preço médio real do fill.
+//  - Time-stop: 1344 candles (2 semanas). Nota: aqui o close_all preenche
+//    na abertura seguinte; o Python sai no close do candle (diferença de
+//    1 candle, desprezível em posições de dias).
+//  - Sizing: risco fixo (0.4% default) / distância do stop, cap 5x.
+//
+// Custos: commission 0.055% (taker nas DUAS pontas — conservador; o alvo
+// limite real paga maker 0.02%). Slippage do TV em ticks: deixado em 0;
+// a validação Python usou 0.05%/ponta taker. Funding não existe no TV.
+// ═══════════════════════════════════════════════════════════════════════
+strategy("Challenge Donchian 48h [15m]",
+     overlay = true,
+     initial_capital = 100000,
+     currency = currency.USDT,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.055,
+     slippage = 0,
+     pyramiding = 0,
+     calc_on_every_tick = false,
+     process_orders_on_close = false)
+
+// ── Inputs ──────────────────────────────────────────────────────────────
+donN       = input.int(192,  "Janela Donchian (candles)", minval = 24,  group = "Sinal")
+trendLen   = input.int(200,  "EMA de tendência",          minval = 50,  group = "Sinal")
+allowShort = input.bool(true, "Operar short",                           group = "Sinal")
+
+stopAtrX   = input.float(8.0, "Stop (x ATR14)",  minval = 2.0, step = 0.5, group = "Saídas")
+tpR        = input.float(6.0, "Alvo (x risco)",  minval = 1.0, step = 0.5, group = "Saídas")
+maxBars    = input.int(1344,  "Time-stop (candles)", minval = 96,          group = "Saídas")
+
+riskPct    = input.float(0.4, "Risco por trade (%)",   minval = 0.1, step = 0.1, group = "Sizing")
+levCap     = input.float(5.0, "Alavancagem máx (x)",   minval = 1.0, step = 0.5, group = "Sizing")
+
+// ── Indicadores ─────────────────────────────────────────────────────────
+emaTrend = ta.ema(close, trendLen)
+atrE     = ta.ema(ta.tr(true), 14)          // ATR estilo ewm(span=14) do Python
+hh       = ta.highest(high, donN)[1]        // Donchian exclui o candle atual
+ll       = ta.lowest(low, donN)[1]
+
+longSig  = close > hh and close > emaTrend
+shortSig = allowShort and close < ll and close < emaTrend
+
+// ── Sizing: risco fixo / distância do stop, cap de alavancagem ──────────
+calcQty(stopDist) =>
+    riskQty = strategy.equity * (riskPct / 100) / stopDist
+    maxQty  = strategy.equity * levCap / close
+    math.min(riskQty, maxQty)
+
+// distância do stop capturada no candle do SINAL (ATR daquele candle)
+var float stopDist = na
+
+if strategy.position_size == 0
+    if longSig
+        stopDist := stopAtrX * atrE
+        strategy.entry("L", strategy.long, qty = calcQty(stopDist),
+             comment = "Breakout L")
+    else if shortSig
+        stopDist := stopAtrX * atrE
+        strategy.entry("S", strategy.short, qty = calcQty(stopDist),
+             comment = "Breakout S")
+
+// ── Saídas ancoradas no preço médio real do fill ────────────────────────
+if strategy.position_size > 0
+    avg = strategy.position_avg_price
+    strategy.exit("XL", "L", stop = avg - stopDist,
+         limit = avg + tpR * stopDist,
+         comment_profit = "Alvo (6R)", comment_loss = "Stop Loss")
+if strategy.position_size < 0
+    avg = strategy.position_avg_price
+    strategy.exit("XS", "S", stop = avg + stopDist,
+         limit = avg - tpR * stopDist,
+         comment_profit = "Alvo (6R)", comment_loss = "Stop Loss")
+
+// Time-stop
+if strategy.opentrades > 0
+    barsHeld = bar_index - strategy.opentrades.entry_bar_index(strategy.opentrades - 1)
+    if barsHeld >= maxBars
+        strategy.close_all(comment = "Time Stop")
+
+// ── Visual ──────────────────────────────────────────────────────────────
+plot(hh,       "Donchian máx", color = color.new(color.teal, 40), force_overlay = true)
+plot(ll,       "Donchian mín", color = color.new(color.teal, 40), force_overlay = true)
+plot(emaTrend, "EMA200",       color = color.gray,                force_overlay = true)
+
+inPos    = strategy.position_size != 0
+avgPrice = strategy.position_avg_price
+dirPos   = strategy.position_size > 0 ? 1 : -1
+plot(inPos ? avgPrice : na, "Entrada", color = color.white,
+     linewidth = 1, style = plot.style_linebr, force_overlay = true)
+plot(inPos ? avgPrice + dirPos * tpR * stopDist : na, "Alvo",
+     color = color.new(color.green, 0), linewidth = 1,
+     style = plot.style_linebr, force_overlay = true)
+plot(inPos ? avgPrice - dirPos * stopDist : na, "Stop",
+     color = color.new(color.red, 0), linewidth = 1,
+     style = plot.style_linebr, force_overlay = true)
+
+// Aviso de timeframe
+if barstate.islast and timeframe.period != "15"
+    var table warn = table.new(position.top_center, 1, 1)
+    table.cell(warn, 0, 0, "⚠ Use o gráfico de 15 minutos",
+         bgcolor = color.new(color.red, 20), text_color = color.white)
