@@ -134,6 +134,9 @@ async function load() {
     if (data.error) { error.value = data.error; return }
     credit.value = data.credit
     d.value = data
+    // o conteúdo é v-else-if do loader: baixar a flag ANTES do render
+    // para as divs dos gráficos existirem no nextTick
+    loading.value = false
     await render()
   } catch (e) {
     error.value = e.response?.data?.error || e.message

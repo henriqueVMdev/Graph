@@ -14,20 +14,48 @@
 
     <div class="w-px h-6 bg-surface-500 hidden md:block" />
 
-    <!-- Nav links -->
-    <div class="flex items-center gap-0.5 overflow-x-auto">
-      <RouterLink
-        v-for="item in NAV"
-        :key="item.to"
-        :to="item.to"
-        class="nav-link"
-        :class="{ active: route.path === item.to }"
-      >
-        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 shrink-0" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round"
-             stroke-linejoin="round" v-html="item.icon" />
-        <span class="hidden xl:inline">{{ item.label }}</span>
-      </RouterLink>
+    <!-- Nav agrupada: dropdown por área -->
+    <div ref="navEl" class="flex items-center gap-1">
+      <div v-for="g in GROUPS" :key="g.label" class="relative">
+        <button
+          @click="openGroup = openGroup === g.label ? null : g.label"
+          class="nav-link"
+          :class="{ active: groupActive(g) || openGroup === g.label }"
+        >
+          <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 shrink-0" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" v-html="g.icon" />
+          <span class="hidden md:inline">{{ g.label }}</span>
+          <svg viewBox="0 0 24 24" class="w-2.5 h-2.5 shrink-0 transition-transform"
+               :class="{ 'rotate-180': openGroup === g.label }" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+               stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+
+        <Transition name="dd">
+          <div v-if="openGroup === g.label"
+               class="absolute left-0 top-full mt-1.5 min-w-48 rounded-lg border
+                      border-surface-500 bg-surface-800/95 backdrop-blur shadow-xl
+                      py-1.5 z-50">
+            <div class="px-3 pb-1 text-[9px] uppercase tracking-[0.18em] text-gray-600">
+              {{ g.hint }}
+            </div>
+            <RouterLink
+              v-for="item in g.items" :key="item.to" :to="item.to"
+              @click="openGroup = null"
+              class="flex items-center gap-2.5 px-3 py-1.5 text-[12px] transition-colors"
+              :class="route.path === item.to
+                ? 'text-accent-yellow bg-accent-yellow/10'
+                : 'text-gray-400 hover:text-gray-100 hover:bg-surface-600'"
+            >
+              <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 shrink-0" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round" v-html="item.icon" />
+              {{ item.label }}
+            </RouterLink>
+          </div>
+        </Transition>
+      </div>
     </div>
 
     <div class="flex-1" />
@@ -102,40 +130,74 @@ const propStore = usePropChallengeStore()
 const regimeStore = useRegimeStore()
 
 // Ícones estilo feather (conteúdo interno do <svg>)
-const NAV = [
-  { to: '/dashboard', label: 'Parâmetros',
-    icon: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>' },
-  { to: '/backtest', label: 'Backtesting',
-    icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
-  { to: '/grafico', label: 'Gráfico',
-    icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
-  { to: '/optimizer', label: 'Otimizador',
-    icon: '<circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>' },
-  { to: '/prop-challenge', label: 'Prop Challenge',
-    icon: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>' },
-  { to: '/regime', label: 'Regimes',
-    icon: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>' },
-  { to: '/journal', label: 'Diário',
-    icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
-  { to: '/automation', label: 'Automação',
-    icon: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>' },
-  { to: '/monitor', label: 'Monitor',
-    icon: '<circle cx="12" cy="12" r="3"/><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' },
-  { to: '/screener', label: 'Screener',
-    icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
-  { to: '/eqs', label: 'EQS',
-    icon: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>' },
-  { to: '/ea', label: 'Empresa',
-    icon: '<path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="9" y1="12" x2="9" y2="12.01"/><line x1="9" y1="15" x2="9" y2="15.01"/>' },
-  { to: '/rates', label: 'Juros',
-    icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-  { to: '/tech', label: 'Técnica',
-    icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><circle cx="19" cy="5" r="2"/>' },
-  { to: '/cdty', label: 'Commodities',
-    icon: '<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M2 12h20"/><path d="M12 2c2.5 2.7 4 6.2 4 10s-1.5 7.3-4 10c-2.5-2.7-4-6.2-4-10s1.5-7.3 4-10z"/>' },
-  { to: '/news', label: 'Notícias',
-    icon: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="18" y1="14" x2="10" y2="14"/><line x1="18" y1="18" x2="10" y2="18"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/>' },
+const I = {
+  params: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+  backtest: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+  chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  optimizer: '<circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>',
+  prop: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
+  regime: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  journal: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  auto: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
+  monitor: '<circle cx="12" cy="12" r="3"/><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>',
+  screener: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  eqs: '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  company: '<path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="9" y1="12" x2="9" y2="12.01"/><line x1="9" y1="15" x2="9" y2="15.01"/>',
+  rates: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  tech: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><circle cx="19" cy="5" r="2"/>',
+  trade: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+  alt: '<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>',
+  cdty: '<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M2 12h20"/><path d="M12 2c2.5 2.7 4 6.2 4 10s-1.5 7.3-4 10c-2.5-2.7-4-6.2-4-10s1.5-7.3 4-10z"/>',
+  news: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="18" y1="14" x2="10" y2="14"/><line x1="18" y1="18" x2="10" y2="18"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/>',
+}
+
+// Grupos por afinidade: pesquisa de estratégia → dados de mercado →
+// análise fundamental/macro → execução e acompanhamento
+const GROUPS = [
+  { label: 'Estratégia', hint: 'pesquisa & validação', icon: I.backtest,
+    items: [
+      { to: '/dashboard', label: 'Parâmetros', icon: I.params },
+      { to: '/backtest', label: 'Backtesting', icon: I.backtest },
+      { to: '/optimizer', label: 'Otimizador', icon: I.optimizer },
+      { to: '/regime', label: 'Regimes', icon: I.regime },
+      { to: '/prop-challenge', label: 'Prop Challenge', icon: I.prop },
+    ] },
+  { label: 'Mercados', hint: 'tempo real & gráficos', icon: I.monitor,
+    items: [
+      { to: '/monitor', label: 'Monitor', icon: I.monitor },
+      { to: '/screener', label: 'Screener', icon: I.screener },
+      { to: '/grafico', label: 'Gráfico', icon: I.chart },
+      { to: '/tech', label: 'Análise Técnica', icon: I.tech },
+      { to: '/news', label: 'Notícias', icon: I.news },
+    ] },
+  { label: 'Análise', hint: 'fundamental & macro', icon: I.company,
+    items: [
+      { to: '/eqs', label: 'EQS · Screening', icon: I.eqs },
+      { to: '/ea', label: 'Empresa (FA)', icon: I.company },
+      { to: '/rates', label: 'Juros & Crédito', icon: I.rates },
+      { to: '/cdty', label: 'Commodities', icon: I.cdty },
+      { to: '/alt', label: 'Alt Data & On-chain', icon: I.alt },
+    ] },
+  { label: 'Execução', hint: 'ordens & acompanhamento', icon: I.trade,
+    items: [
+      { to: '/trade', label: 'Trading (OMS)', icon: I.trade },
+      { to: '/automation', label: 'Automação', icon: I.auto },
+      { to: '/journal', label: 'Diário', icon: I.journal },
+    ] },
 ]
+
+const openGroup = ref(null)
+const navEl = ref(null)
+
+function groupActive(g) {
+  return g.items.some((i) => i.to === route.path)
+}
+
+function onClickOutside(e) {
+  if (openGroup.value && navEl.value && !navEl.value.contains(e.target)) {
+    openGroup.value = null
+  }
+}
 
 const busyLabel = computed(() => {
   if (regimeStore.isRunning) return 'Detectando regimes...'
@@ -167,8 +229,12 @@ onMounted(() => {
   tick()
   clockTimer = setInterval(tick, 1000)
   terminal.startAlertsPolling()      // badge do sino em qualquer página
+  window.addEventListener('click', onClickOutside)
 })
-onBeforeUnmount(() => clearInterval(clockTimer))
+onBeforeUnmount(() => {
+  clearInterval(clockTimer)
+  window.removeEventListener('click', onClickOutside)
+})
 </script>
 
 <style scoped>
@@ -179,5 +245,16 @@ onBeforeUnmount(() => clearInterval(clockTimer))
 }
 .nav-link.active {
   @apply text-accent-yellow bg-accent-yellow/10;
+}
+
+/* dropdown: fade + leve descida */
+.dd-enter-active,
+.dd-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.dd-enter-from,
+.dd-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

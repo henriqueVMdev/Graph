@@ -74,6 +74,40 @@
           </div>
         </div>
 
+        <!-- Sizing por risco fixo aplicado (alavancagem + custos esperados) -->
+        <div v-if="store.results.risk_sizing?.applied" class="card p-3 border-accent-yellow/30">
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span class="text-gray-300">
+              Risco fixo <span class="text-accent-yellow font-mono">{{ store.results.risk_sizing.risk_pct }}%</span>/trade
+              <span class="text-gray-600">· fees + funding esperados embutidos</span>
+            </span>
+            <div class="flex flex-wrap items-center gap-4 font-mono">
+              <span class="text-gray-400">Alavancagem:
+                <span class="text-accent-yellow">{{ store.results.risk_sizing.avg_leverage }}x</span>
+                <span class="text-gray-600">méd ·</span>
+                <span class="text-gray-200">{{ store.results.risk_sizing.max_leverage }}x</span>
+                <span class="text-gray-600">máx</span>
+                <span v-if="store.results.risk_sizing.pct_capped > 0" class="text-amber-400">
+                  ({{ store.results.risk_sizing.pct_capped }}% no teto)</span>
+              </span>
+              <span class="text-gray-400">PnL/trade:
+                <span :class="store.results.risk_sizing.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_gross_pnl }}%</span>
+                <span class="text-gray-600">→</span>
+                <span :class="store.results.risk_sizing.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_net_pnl }}%</span>
+              </span>
+              <span class="text-gray-400">Drag: fees
+                <span class="text-red-400">-{{ store.results.risk_sizing.avg_fee_drag_pct }}%</span>
+                · funding
+                <span :class="store.results.risk_sizing.avg_funding_drag_pct <= 0 ? 'text-green-400' : 'text-red-400'">-{{ store.results.risk_sizing.avg_funding_drag_pct }}%</span>
+              </span>
+            </div>
+          </div>
+          <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-amber-300">
+            ⚠ {{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
+          </div>
+          <p class="mt-1 text-[10px] text-gray-600">{{ store.results.risk_sizing.note }}</p>
+        </div>
+
         <!-- Custos da corretora aplicados (fees + funding) -->
         <div v-if="store.results.costs?.applied" class="card p-3 border-accent-yellow/30">
           <div class="flex flex-wrap items-center justify-between gap-3 text-xs">

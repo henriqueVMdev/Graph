@@ -2469,11 +2469,84 @@ def api_prop_challenge_simulate():
         if len(pnl_pcts) < 5:
             return jsonify({"error": "Poucos trades validos para simular (minimo 5)"}), 400
 
+        valid_trades = [t for t in trades if t.get("pnl_pct") is not None]
+
+        # ── Sizing por risco fixo (opcional) ──────────────────────────────
+        # Redimensiona cada trade para arriscar `risk_pct` da conta na
+        # distância REAL do stop: alavancagem implícita = risco ÷ stop_dist
+        # (limitada por lev_cap). Fees maker/taker e funding ESPERADO por
+        # período de 8h segurado são descontados por trade já na alavancagem
+        # nova. Substitui o módulo de custos históricos (evita dupla contagem).
+        rs = body.get("risk_sizing") or {}
+        risk_summary = None
+        pool = pnl_pcts
+        if rs.get("enabled"):
+            risk_pct = float(rs.get("risk_pct", 1.0))
+            lev_cap = max(float(rs.get("lev_cap", 10.0)), 0.01)
+            fee_maker = float(rs.get("fee_maker_pct", 0.02))
+            fee_taker = float(rs.get("fee_taker_pct", 0.055))
+            funding_8h = float(rs.get("funding_8h_pct", 0.0032))
+            maker_entry = bool(rs.get("maker_entry", True))
+            resized, levs = [], []
+            capped = skipped = 0
+            fee_drag_sum = funding_sum = 0.0
+            for t in valid_trades:
+                entry = t.get("entry_price")
+                exitp = t.get("exit_price")
+                stop = t.get("stop_price")
+                side = int(t.get("direction") or 1)
+                stop_dist = (abs(entry - stop) / entry * 100
+                             if entry and stop and entry > 0 else None)
+                if not entry or not exitp or not stop_dist or stop_dist <= 0:
+                    # sem stop definido não dá para dimensionar por risco:
+                    # mantém o pnl nativo e sinaliza
+                    skipped += 1
+                    resized.append(float(t["pnl_pct"]))
+                    levs.append(float(t.get("leverage") or 1.0))
+                    continue
+                exp = risk_pct / stop_dist
+                if exp > lev_cap:
+                    exp = lev_cap
+                    capped += 1
+                move = side * (exitp / entry - 1) * 100
+                comment = (t.get("exit_comment") or "").lower()
+                exit_maker = "maker" in comment or "alvo" in comment
+                fees = ((fee_maker if maker_entry else fee_taker)
+                        + (fee_maker if exit_maker else fee_taker)) * exp
+                hold_h = max(((t.get("exit_ts") or 0) - (t.get("entry_ts") or 0))
+                             / 3.6e6, 0.0)
+                # long paga funding médio positivo; short recebe
+                funding = funding_8h * (hold_h / 8.0) * exp * side
+                resized.append(exp * move - fees - funding)
+                levs.append(exp)
+                fee_drag_sum += fees
+                funding_sum += funding
+            pool = resized
+            n = len(resized) or 1
+            risk_summary = {
+                "applied": True, "risk_pct": risk_pct, "lev_cap": lev_cap,
+                "fee_maker_pct": fee_maker, "fee_taker_pct": fee_taker,
+                "funding_8h_pct": funding_8h, "maker_entry": maker_entry,
+                "avg_leverage": round(float(np.mean(levs)), 2),
+                "max_leverage": round(float(np.max(levs)), 2),
+                "pct_capped": round(capped / n * 100, 1),
+                "skipped": skipped,
+                "avg_fee_drag_pct": round(fee_drag_sum / n, 4),
+                "avg_funding_drag_pct": round(funding_sum / n, 4),
+                "avg_gross_pnl": round(float(np.mean(pnl_pcts)), 4),
+                "avg_net_pnl": round(float(np.mean(resized)), 4),
+                "note": ("alavancagem implícita = risco ÷ distância do stop; "
+                         "fees e funding esperados já descontados por trade — "
+                         "o módulo de custos históricos é ignorado neste modo"),
+            }
+
         # Custos reais da corretora (fees + funding) descontados de cada trade.
         # Quando ligado, o Monte Carlo reamostra o pool LÍQUIDO em vez do bruto.
-        cost_ctx, cost_warnings = _build_wfa_cost_ctx(df_data, body, cfg_dict)
+        # (desativado quando o sizing por risco fixo já embute custos esperados)
+        cost_ctx, cost_warnings = ((None, [])
+                                   if risk_summary
+                                   else _build_wfa_cost_ctx(df_data, body, cfg_dict))
         cost_summary = None
-        pool = pnl_pcts
         if cost_ctx is not None:
             net = _net_pnl_pcts(trades, cost_ctx)
             if net["net_pcts"]:
@@ -2506,7 +2579,6 @@ def api_prop_challenge_simulate():
         # destruia, e permite acumular a perda diaria de verdade — antes um
         # unico trade <= -5% reprovava, mas varios trades pequenos somando -5%
         # no mesmo dia passavam despercebidos (irreal p/ estrategia intradiaria).
-        valid_trades = [t for t in trades if t.get("pnl_pct") is not None]
         day_groups = {}
         for pos, (t, p) in enumerate(zip(valid_trades, pool)):
             try:
@@ -2660,6 +2732,7 @@ def api_prop_challenge_simulate():
                 "avg_days_between_trades": round(avg_days_between_trades, 1) if avg_days_between_trades else None,
             },
             "costs": cost_summary,
+            "risk_sizing": risk_summary,
             "phase1": {
                 "target_pct": phase1_target * 100,
                 "max_loss_pct": abs(max_loss) * 100,

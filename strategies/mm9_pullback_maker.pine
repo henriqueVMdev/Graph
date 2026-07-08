@@ -13,25 +13,35 @@
 //   ETH 1.46 | SOL 1.39 | DOGE 1.78 | XRP 0.98 (não operar XRP)
 //
 // Notas de fidelidade vs backtest Python:
-//  - commission_value 0.0375%/ponta é a MÉDIA maker(0.02)/taker(0.055);
-//    o Python usa maker na entrada/TP e taker no SL/time-stop. Ajuste em
-//    Propriedades se quiser outro cenário.
+//  - commission_value 0.025%/ponta ≈ custo real desta estratégia: entrada
+//    sempre maker (0.02) e saída 77% maker no TP / 23% taker no SL
+//    (round-trip ~0.048%). O antigo 0.0375 (média maker/taker cega)
+//    superestimava o custo em ~55% e comia o edge fino do scalp.
+//  - O strategy.exit é registrado JUNTO da entrada (bracket ancorado no
+//    preço da limite): sem isso o candle do fill fica sem TP/SL e o TV
+//    perde as saídas de mesmo candle — na validação Python (1 ano BTC)
+//    são ~15% dos trades e >50% do lucro total.
 //  - TP e SL no mesmo candle: o emulador do TV decide pela forma da barra;
 //    nossa validação contou como LOSS (mais conservadora). O TV pode
-//    reportar resultado levemente melhor.
+//    reportar resultado levemente melhor nesses casos.
+//  - Fill de limite: o TV preenche no TOQUE; o Python exige ATRAVESSAR
+//    (fila do book de maker). O TV segue estruturalmente otimista aqui.
 //  - A janela de horário é avaliada no candle do SETUP; a ordem executa
 //    no candle seguinte (borda de 15min vs o Python, efeito desprezível).
+// process_orders_on_close=true: o time-stop sai no FECHAMENTO da barra
+// (como o C[j] do Python); limites não são afetadas (preenchem intrabar
+// por preço) e a entrada segue não-marketável no candle do setup.
 // ═══════════════════════════════════════════════════════════════════════
 strategy("MM9 Pullback Maker [15m]",
      overlay = true,
      initial_capital = 50000,
      currency = currency.USDT,
      commission_type = strategy.commission.percent,
-     commission_value = 0.0375,
+     commission_value = 0.025,
      slippage = 0,
      pyramiding = 0,
      calc_on_every_tick = false,
-     process_orders_on_close = false)
+     process_orders_on_close = true)
 
 // ── Inputs ──────────────────────────────────────────────────────────────
 tpPct      = input.float(0.5,  "Alvo (%)",             minval = 0.1, step = 0.1,  group = "Saídas")
@@ -86,23 +96,33 @@ calcQty(price) =>
     math.min(riskQty, maxQty)
 
 // ── Entradas: limite na EMA9 do candle atual (= "anterior" na execução).
-// Validade de 1 candle: a cada barra a ordem é substituída ou cancelada. ─
+// Validade de 1 candle: a cada barra a ordem é substituída ou cancelada.
+// O strategy.exit vai JUNTO com a entrada, ancorado no preço da limite:
+// o bracket fica ativo já no candle do fill (TP de mesmo candle conta —
+// no Python isso é ~15% dos trades e mais da metade do lucro). ──────────
 if strategy.position_size == 0
     if longSetup and inSession
         strategy.entry("L", strategy.long, qty = calcQty(e9), limit = e9,
              comment = "Pullback L")
+        strategy.exit("XL", "L", limit = e9 * (1 + tpPct / 100),
+             stop = e9 * (1 - slPct / 100), comment_profit = "Alvo (maker)",
+             comment_loss = "Stop Loss")
     else
         strategy.cancel("L")
     if shortSetup and inSession
         strategy.entry("S", strategy.short, qty = calcQty(e9), limit = e9,
              comment = "Pullback S")
+        strategy.exit("XS", "S", limit = e9 * (1 - tpPct / 100),
+             stop = e9 * (1 + slPct / 100), comment_profit = "Alvo (maker)",
+             comment_loss = "Stop Loss")
     else
         strategy.cancel("S")
 else
     strategy.cancel("L")
     strategy.cancel("S")
 
-// ── Saídas: TP limite / SL stop; time-stop a mercado ────────────────────
+// ── Em posição: reancora o bracket no preço MÉDIO real do fill (se a
+// barra abriu além da limite, o fill foi melhor que e9) ─────────────────
 if strategy.position_size > 0
     avgL = strategy.position_avg_price
     strategy.exit("XL", "L", limit = avgL * (1 + tpPct / 100),
@@ -114,9 +134,12 @@ if strategy.position_size < 0
          stop = avgS * (1 + slPct / 100), comment_profit = "Alvo (maker)",
          comment_loss = "Stop Loss")
 
+// Time-stop: o Python conta o candle do fill como barra 1 e sai no CLOSE
+// da barra maxBars (j - i + 1 >= maxBars). Com process_orders_on_close o
+// close_all executa no fechamento desta barra → gatilho em maxBars - 1.
 if strategy.opentrades > 0
     barsHeld = bar_index - strategy.opentrades.entry_bar_index(strategy.opentrades - 1)
-    if barsHeld >= maxBars
+    if barsHeld >= maxBars - 1
         strategy.close_all(comment = "Time Stop")
 
 // ── Visual ──────────────────────────────────────────────────────────────

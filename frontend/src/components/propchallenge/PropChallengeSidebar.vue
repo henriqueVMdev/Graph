@@ -93,8 +93,62 @@
         </select>
       </div>
 
-      <!-- Custos da corretora (fees + funding) -->
+      <!-- Sizing por risco fixo (alavancagem implícita + custos esperados) -->
       <div class="sidebar-section">
+        <div class="flex items-center justify-between mb-2">
+          <p class="sidebar-section-title mb-0">Risco Fixo por Trade</p>
+          <button
+            @click="store.riskSizing.enabled = !store.riskSizing.enabled"
+            class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+            :class="store.riskSizing.enabled ? 'bg-accent-yellow' : 'bg-surface-500'"
+          >
+            <span
+              class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+              :class="store.riskSizing.enabled ? 'translate-x-4' : 'translate-x-0.5'"
+            />
+          </button>
+        </div>
+
+        <template v-if="store.riskSizing.enabled">
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <label class="text-xs text-gray-400 block">Risco/trade (%)
+              <input v-model.number="store.riskSizing.risk_pct" type="number"
+                     min="0.1" max="10" step="0.25"
+                     class="form-input w-full text-xs mt-1" /></label>
+            <label class="text-xs text-gray-400 block">Alav. máx (x)
+              <input v-model.number="store.riskSizing.lev_cap" type="number"
+                     min="1" max="50" step="0.5"
+                     class="form-input w-full text-xs mt-1" /></label>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <label class="text-xs text-gray-400 block">Fee maker (%)
+              <input v-model.number="store.riskSizing.fee_maker_pct" type="number"
+                     min="0" step="0.005"
+                     class="form-input w-full text-xs mt-1" /></label>
+            <label class="text-xs text-gray-400 block">Fee taker (%)
+              <input v-model.number="store.riskSizing.fee_taker_pct" type="number"
+                     min="0" step="0.005"
+                     class="form-input w-full text-xs mt-1" /></label>
+          </div>
+          <label class="text-xs text-gray-400 block mb-2">Funding esperado (%/8h)
+            <input v-model.number="store.riskSizing.funding_8h_pct" type="number"
+                   step="0.001"
+                   class="form-input w-full text-xs mt-1" /></label>
+          <label class="flex items-center gap-2 cursor-pointer mb-1">
+            <input type="checkbox" v-model="store.riskSizing.maker_entry"
+                   class="w-3.5 h-3.5 accent-accent-yellow" />
+            <span class="text-xs text-gray-300">Entrada maker (limite)</span>
+          </label>
+          <p class="text-[10px] text-gray-600 leading-snug">
+            Alavancagem implícita = risco ÷ distância do stop de cada trade
+            (limitada acima). Fees e funding esperados são descontados por
+            trade — os "Custos da Corretora" abaixo ficam ignorados.
+          </p>
+        </template>
+      </div>
+
+      <!-- Custos da corretora (fees + funding) -->
+      <div class="sidebar-section" :class="{ 'opacity-40 pointer-events-none': store.riskSizing.enabled }">
         <div class="flex items-center justify-between mb-2">
           <p class="sidebar-section-title mb-0">Custos da Corretora</p>
           <button

@@ -241,6 +241,15 @@ async function renderAll() {
 
 watch(() => store.chartData, val => { if (val) renderAll() })
 
+// Abas em v-show: gráfico desenhado escondido sai com largura 0 (Plotly
+// deforma) — re-renderiza o da aba ao entrar nela.
+watch(activeTab, () => nextTick().then(() => {
+  if (!store.chartData || !Plotly) return
+  if (activeTab.value === 0) renderPrice()
+  else if (activeTab.value === 1) renderEquity()
+  else if (activeTab.value === 2) renderFunding()
+}))
+
 onBeforeUnmount(() => {
   purgeChart(priceChart.value)
   purgeChart(equityChart.value)

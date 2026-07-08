@@ -201,6 +201,8 @@ async function load(exp) {
     if (data.error) { error.value = data.error; d.value = null; return }
     d.value = data
     expiry.value = data.expiry
+    // conteúdo é v-else-if do loader: baixar a flag antes do render
+    loading.value = false
     await renderSmile()
   } catch (e) {
     error.value = e.response?.data?.error || e.message
@@ -211,9 +213,11 @@ async function load(exp) {
 }
 
 async function renderSmile() {
-  if (!smileChart.value || !d.value) return
+  if (!d.value) return
   if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  // ref só existe depois do DOM trocar o loader pelo conteúdo
   await nextTick()
+  if (!smileChart.value) return
   const mk = (rows, name, color) => {
     const pts = rows.filter((r) => r.iv != null && r.strike != null)
     return { type: 'scatter', mode: 'lines+markers', name,
