@@ -89,6 +89,14 @@ Premissas do paper: sem slippage e sem funding (o backtest cobrou
 descontar isso na leitura. Só paper — o executor demo/real (Bybit) não
 suporta market/posicional ainda.
 
+Entregáveis do pacote (espelham o research, sinal verificado idêntico em
+BTC/ETH/SOL/DOGE):
+- `strategies/tsmom.py` — backtest `run()` (frontend) + `signal()`
+  ao vivo; regime BTC via `market_data`.
+- `strategies/tsmom.pine` — TradingView (gráfico 1D); regime via
+  `request.security(BTCUSDT, "1D")`.
+- `strategies/daily_ensemble.py` — gêmea de automação já em paper.
+
 ### DePaula no diário (`depaula_opt.py`, 2026-07-09) — REPROVADA
 
 Núcleo do sinal (ângulo de MA + histerese, matemática validada idêntica

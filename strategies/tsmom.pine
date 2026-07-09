@@ -1,0 +1,95 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════
+// TSMOM Ensemble (diário) — momentum + regime BTC + vol targeting
+//
+// Espelho de strategies/tsmom.py (validação: research/daily_opt.py,
+// 2026-07-09, protocolo anti-overfit treino/validação/holdout):
+//   treino <2024:  PF 2.75  sharpe ~2.2  (positivo em TODOS os anos)
+//   validação 24-25 (1 passada):  PF 1.64  sharpe ~1.27
+//
+// TSMOM puro (um lookback) não sobrevive aos custos em 2025-26; o edge só
+// existe com as três peças juntas:
+//  1) ENSEMBLE: voto do retorno de 7/14/21/28 dias (média >= +0.5 long,
+//     <= -0.5 short).
+//  2) REGIME: BTC > SMA200 diária -> só long; abaixo -> só short.
+//  3) VOL TARGET: exposição = min(3.0 / ATR%, 1.5).
+//
+// USAR NO GRÁFICO DIÁRIO (1D). Posicional: entra a mercado e só
+// sai/inverte quando o lado desejado muda (na abertura seguinte, igual ao
+// Python — process_orders_on_close=false).
+//
+// Custos: commission 0.055% (taker nas duas pontas). Slippage 0 (a
+// validação Python usou 0.05%/ponta) e funding não existe no TV — os
+// números NET do research já descontam ambos; leia o resultado do TV como
+// levemente otimista.
+// ═══════════════════════════════════════════════════════════════════════
+strategy("TSMOM Ensemble [1D]",
+     overlay = false,
+     initial_capital = 1000,
+     default_qty_type = strategy.cash,
+     default_qty_value = 0,
+     currency = currency.USDT,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.055,
+     slippage = 0,
+     pyramiding = 0,
+     calc_on_every_tick = false,
+     process_orders_on_close = false)
+
+// ── Inputs ──────────────────────────────────────────────────────────────
+thr        = input.float(0.5, "Limiar do ensemble", minval = 0.25, maxval = 1.0, step = 0.25, group = "Sinal")
+regimeMa   = input.int(200,   "SMA de regime (BTC)", minval = 100, step = 10, group = "Sinal")
+allowShort = input.bool(true, "Operar short (bear)", group = "Sinal")
+targetAtr  = input.float(3.0, "ATR% alvo (vol target)", minval = 1.0, step = 0.5, group = "Sizing")
+wCap       = input.float(1.5, "Exposição máx (x)", minval = 1.0, step = 0.25, group = "Sizing")
+btcSym     = input.symbol("BINANCE:BTCUSDT", "Símbolo de regime", group = "Sinal")
+
+// ── Ensemble de lookbacks (voto do retorno de n dias) ───────────────────
+vote(int n) => close > close[n] ? 1.0 : -1.0
+ensAvg = (vote(7) + vote(14) + vote(21) + vote(28)) / 4.0
+rawSide = ensAvg >= thr ? 1 : (ensAvg <= -thr ? -1 : 0)
+
+// ── Regime de mercado: BTC > SMA200 diária ──────────────────────────────
+btcClose = request.security(btcSym, "1D", close)
+btcSma   = request.security(btcSym, "1D", ta.sma(close, regimeMa))
+bull     = btcClose > btcSma
+
+// ── Sinal posicional final (ensemble filtrado pelo regime) ──────────────
+desired = bull and rawSide > 0 ? 1 :
+     (not bull and rawSide < 0 and allowShort ? -1 : 0)
+
+// ── Vol targeting: exposição = min(target/ATR%, cap) ────────────────────
+atrE   = ta.ema(ta.tr(true), 14)             // ATR estilo ewm(span=14)
+atrPct = atrE / close * 100
+expo   = math.min(targetAtr / atrPct, wCap)
+
+// warm-up equivalente ao Python (len >= 400 barras fechadas)
+warm = bar_index > 400 and not na(btcSma) and atrPct > 0
+
+// ── Execução posicional ─────────────────────────────────────────────────
+qtyCash(float exposure) => strategy.equity * exposure    // cash notional
+
+if warm
+    curSide = strategy.position_size > 0 ? 1 : (strategy.position_size < 0 ? -1 : 0)
+    if desired != curSide
+        if desired == 0
+            strategy.close_all(comment = "Sinal contrário")
+        else
+            strategy.entry(desired == 1 ? "L" : "S",
+                 desired == 1 ? strategy.long : strategy.short,
+                 qty = qtyCash(expo) / close,
+                 comment = desired == 1 ? "TSMOM L" : "TSMOM S")
+
+// ── Visual ──────────────────────────────────────────────────────────────
+plot(ensAvg, "Ensemble", color = color.new(color.blue, 0), linewidth = 2)
+hline(thr,  "long thr",  color = color.new(color.green, 50))
+hline(-thr, "short thr", color = color.new(color.red, 50))
+hline(0, "", color = color.new(color.gray, 70))
+bgcolor(bull ? color.new(color.green, 92) : color.new(color.red, 92),
+     title = "Regime BTC")
+
+// Aviso de timeframe
+if barstate.islast and timeframe.period != "1D"
+    var table warn = table.new(position.top_center, 1, 1)
+    table.cell(warn, 0, 0, "⚠ Use o gráfico DIÁRIO (1D)",
+         bgcolor = color.new(color.red, 20), text_color = color.white)
