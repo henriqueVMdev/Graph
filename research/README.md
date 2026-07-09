@@ -88,3 +88,21 @@ Premissas do paper: sem slippage e sem funding (o backtest cobrou
 0.05%/perna + funding) ⇒ paper é otimista ~0.1%/rodada + funding;
 descontar isso na leitura. Só paper — o executor demo/real (Bybit) não
 suporta market/posicional ainda.
+
+### DePaula no diário (`depaula_opt.py`, 2026-07-09) — REPROVADA
+
+Núcleo do sinal (ângulo de MA + histerese, matemática validada idêntica
+ao `backtesting.py`) rodado no motor honesto (`run_daily`), grid de 576
+combos 100% no treino <2024. O motor original **não serve** para
+aferir edge: executa no close da mesma barra do sinal, sem custos, e
+checa TP/SL contra bandas da MA da própria barra (lookahead); além do
+clamp `max(atr, 0.01)` do mintick que distorce moedas de preço baixo.
+
+Treino: platô largo e consistente em EMA lenta (50-200, lb 5-10,
+th 0.3-1.0, L/S, exit-on-flat) — PF 7-9, 2020-23 todos positivos.
+Pacote pré-comprometido (centro do platô: EMA 100, lb 5, th 0.5, flat,
+L/S) na validação 24-25 (1 passada): **PF 1.18, sharpe ~0.39**
+(2024 PF 1.47, 2025 PF 0.92). O PF de treino era beta dos mega-trends
+2020-21. Veredito: sobrevive aos custos por pouco, mas é **inferior ao
+daily ensemble já em paper (PF 1.64, sharpe 1.27)** — não aprovada
+para deploy. Grid completo em `research/data/depaula_grid.csv`.
