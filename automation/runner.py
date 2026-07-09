@@ -187,6 +187,32 @@ class Runner(threading.Thread):
             }
             pos = store.get_open_position(dep_id)
 
+            # 0) estratégia posicional: ordem de fechamento vale na ABERTURA
+            #    deste candle (sinal virou no fechamento do anterior)
+            if pos:
+                corder = store.get_working_order(dep_id, kind="close")
+                if corder:
+                    if candle["ts"] == corder["valid_candle_ts"]:
+                        res = engine.close_pnl(pos, candle["open"],
+                                               engine.TAKER, equity)
+                        store.update_position(
+                            pos["id"], status="closed",
+                            exit_price=candle["open"],
+                            exit_candle_ts=candle["ts"],
+                            exit_reason="Sinal contrário",
+                            pnl_pct=res["pnl_pct"], pnl_quote=res["pnl_quote"],
+                            fees_quote=res["fees_quote"])
+                        equity = res["new_equity"]
+                        store.update_deployment(dep_id, equity=equity)
+                        store.update_order(corder["id"], status="filled")
+                        store.add_event(dep_id, "position_closed",
+                                        f"Sinal contrário @ {candle['open']:.2f} "
+                                        f"({res['pnl_pct']:+.2f}%)",
+                                        data={"pnl_pct": res["pnl_pct"]})
+                        pos = None
+                    elif candle["ts"] > corder["valid_candle_ts"]:
+                        store.update_order(corder["id"], status="cancelled")
+
             # 1) posição aberta: saída (SL -> TP -> time-stop) ou envelhece
             if pos:
                 exit_ = engine.check_exit(pos, candle)
@@ -211,17 +237,23 @@ class Runner(threading.Thread):
                     store.update_position(pos["id"], bars_held=pos["bars_held"] + 1)
                     pos["bars_held"] += 1
 
-            # 2) flat no início do candle: ordem working faz fill (cross) ou expira
-            else:
+            # 2) flat no início do candle (ou fechado no passo 0 — flip entra
+            #    na MESMA abertura): ordem working faz fill ou expira
+            if pos is None:
                 order = store.get_working_order(dep_id)
                 if order:
                     if candle["ts"] == order["valid_candle_ts"] \
                             and engine.check_entry_fill(order, candle):
-                        p = engine.open_position_from_order(order, equity, candle["ts"])
+                        p = engine.open_position_from_order(
+                            order, equity, candle["ts"],
+                            fill_price=candle["open"]
+                            if order["type"] == "market" else None)
                         pos_id = store.open_position(
                             dep_id, p["side"], p["qty"], p["exposure"],
                             p["entry_price"], p["entry_candle_ts"],
-                            p["tp_price"], p["sl_price"], p["max_bars"])
+                            p["tp_price"], p["sl_price"], p["max_bars"],
+                            entry_fee_rate=p["entry_fee_rate"],
+                            exit_on_flip=p["exit_on_flip"])
                         store.update_order(order["id"], status="filled")
                         store.add_event(dep_id, "order_filled",
                                         f"Entrada {'long' if p['side'] == 1 else 'short'} "
@@ -258,7 +290,7 @@ class Runner(threading.Thread):
                 dep_id, candle["ts"],
                 engine.mark_to_market(pos, equity, candle["close"]))
 
-            # 4) flat ao fim do candle: pedir novo sinal p/ o PRÓXIMO candle
+            # 4) fim do candle: pedir novo sinal p/ o PRÓXIMO candle
             if pos is None:
                 stale = store.get_working_order(dep_id)
                 if stale:                       # ordem antiga nunca avaliada
@@ -268,19 +300,46 @@ class Runner(threading.Thread):
                     sig = signals.get_signal(dep["strategy_file"], df_hist,
                                              dep["params"])
                     if sig:
-                        store.create_order(
-                            dep_id, "entry", sig["side"], sig["type"],
-                            float(sig["price"]), None,
-                            candle["ts"] + tfm,
-                            tp_pct=sig["tp_pct"], sl_pct=sig["sl_pct"],
-                            max_bars=sig["max_bars"], exposure=sig["exposure"])
+                        self._place_entry(dep_id, sig, candle["ts"] + tfm)
+            elif pos.get("exit_on_flip"):
+                # posicional: reavalia o lado desejado a cada candle fechado;
+                # ordens do candle anterior são canceladas e recriadas
+                for kind in ("close", "entry"):
+                    o = store.get_working_order(dep_id, kind=kind)
+                    if o:
+                        store.update_order(o["id"], status="cancelled")
+                df_hist = df_closed.iloc[:k + 1]
+                if len(df_hist) >= 400:
+                    sig = signals.get_signal(dep["strategy_file"], df_hist,
+                                             dep["params"])
+                    desired = sig["side"] if sig else 0
+                    if desired != pos["side"]:
+                        store.create_order(dep_id, "close", -pos["side"],
+                                           "market", None, None,
+                                           candle["ts"] + tfm)
                         store.add_event(
                             dep_id, "order_placed",
-                            f"Limite {'long' if sig['side'] == 1 else 'short'} "
-                            f"@ {sig['price']:.2f} (válida 1 candle)")
+                            "Sinal virou — fechamento na próxima abertura")
+                        if sig:
+                            self._place_entry(dep_id, sig, candle["ts"] + tfm)
 
             store.update_deployment(dep_id, last_candle_ts=candle["ts"],
                                     last_tick_at=int(time.time() * 1000))
+
+    @staticmethod
+    def _place_entry(dep_id, sig, valid_ts):
+        store.create_order(
+            dep_id, "entry", sig["side"], sig["type"],
+            float(sig["price"]) if sig["price"] is not None else None, None,
+            valid_ts,
+            tp_pct=sig["tp_pct"], sl_pct=sig["sl_pct"],
+            max_bars=sig["max_bars"], exposure=sig["exposure"],
+            raw={"exit_on_flip": True} if sig.get("exit_on_flip") else None)
+        lado = "long" if sig["side"] == 1 else "short"
+        msg = (f"Limite {lado} @ {sig['price']:.2f} (válida 1 candle)"
+               if sig["type"] == "limit"
+               else f"Mercado {lado} na próxima abertura")
+        store.add_event(dep_id, "order_placed", msg)
 
     # ── status ───────────────────────────────────────────────────────────
     def status(self) -> dict:

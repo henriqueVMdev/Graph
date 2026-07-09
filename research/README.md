@@ -75,3 +75,16 @@ morreu num ano bear), então o número 2026 é **descritivo, não
 aprovação** — o filtro de regime foi motivado por 2022 (treino), mas há
 risco de contaminação indireta. Status: **candidata promissora,
 aprovação final só com forward/paper trading em dados novos.**
+
+### Forward/paper (2026-07-09)
+
+Pacote em paper via `strategies/daily_ensemble.py` + automação estendida
+(ordem `market` com fill na abertura seguinte + `exit_on_flip`
+posicional; paridade runner≡sinal do research coberta em
+`automation/tests/test_parity_daily.py`). 13 deployments paper 1d
+Binance criados por `research/deploy_daily.py` ("DailyEns *").
+
+Premissas do paper: sem slippage e sem funding (o backtest cobrou
+0.05%/perna + funding) ⇒ paper é otimista ~0.1%/rodada + funding;
+descontar isso na leitura. Só paper — o executor demo/real (Bybit) não
+suporta market/posicional ainda.

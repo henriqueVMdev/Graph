@@ -31,17 +31,23 @@ except Exception:                      # fallback: tabela 2026 da Bybit
 
 
 def check_entry_fill(order: dict, candle: dict) -> bool:
-    """Ordem limite 'cross': o candle atravessou o preço da limite?"""
+    """Limite 'cross': o candle atravessou o preço? Market: sempre preenche
+    no candle em que vale (na abertura)."""
     if candle["ts"] != order["valid_candle_ts"]:
         return False
+    if order["type"] == "market":
+        return True
     if order["side"] == 1:
         return candle["low"] < order["price"]
     return candle["high"] > order["price"]
 
 
-def open_position_from_order(order: dict, equity: float, candle_ts: int) -> dict:
-    """Monta a posição a partir da ordem preenchida (sizing do backtest)."""
-    entry = float(order["price"])
+def open_position_from_order(order: dict, equity: float, candle_ts: int,
+                             fill_price: float | None = None) -> dict:
+    """Monta a posição a partir da ordem preenchida (sizing do backtest).
+    fill_price: preço de fill p/ ordens market (abertura do candle);
+    limit usa o preço da ordem. tp/sl/max_bars None = sem essa saída."""
+    entry = float(fill_price if fill_price is not None else order["price"])
     side = int(order["side"])
     exposure = float(order["exposure"])
     qty = exposure * equity / entry if entry > 0 else 0.0
@@ -51,10 +57,14 @@ def open_position_from_order(order: dict, equity: float, candle_ts: int) -> dict
         "exposure": exposure,
         "entry_price": entry,
         "entry_candle_ts": candle_ts,
-        "tp_price": entry * (1 + float(order["tp_pct"]) / 100 * side),
-        "sl_price": entry * (1 - float(order["sl_pct"]) / 100 * side),
-        "max_bars": int(order["max_bars"]),
+        "tp_price": entry * (1 + float(order["tp_pct"]) / 100 * side)
+                    if order["tp_pct"] is not None else None,
+        "sl_price": entry * (1 - float(order["sl_pct"]) / 100 * side)
+                    if order["sl_pct"] is not None else None,
+        "max_bars": int(order["max_bars"]) if order["max_bars"] is not None else None,
         "bars_held": 0,
+        "entry_fee_rate": TAKER if order["type"] == "market" else MAKER,
+        "exit_on_flip": 1 if (order.get("raw") or {}).get("exit_on_flip") else 0,
     }
 
 
@@ -67,8 +77,10 @@ def check_exit(pos: dict, candle: dict) -> dict | None:
     """
     side = pos["side"]
     sl, tp = pos["sl_price"], pos["tp_price"]
-    hit_sl = (candle["low"] <= sl) if side == 1 else (candle["high"] >= sl)
-    hit_tp = (candle["high"] > tp) if side == 1 else (candle["low"] < tp)
+    hit_sl = sl is not None and (
+        (candle["low"] <= sl) if side == 1 else (candle["high"] >= sl))
+    hit_tp = tp is not None and (
+        (candle["high"] > tp) if side == 1 else (candle["low"] < tp))
     if hit_tp and candle["ts"] == pos["entry_candle_ts"]:
         # TP no candle do fill segue a forma da barra: o alvo precisa ser
         # negociado DEPOIS do fill na trajetória intrabar (long exige candle
@@ -79,7 +91,7 @@ def check_exit(pos: dict, candle: dict) -> dict | None:
         return {"exit_price": sl, "reason": "Stop Loss", "exit_fee_rate": TAKER}
     if hit_tp:
         return {"exit_price": tp, "reason": "Alvo (maker)", "exit_fee_rate": MAKER}
-    if pos["bars_held"] + 1 >= pos["max_bars"]:
+    if pos["max_bars"] is not None and pos["bars_held"] + 1 >= pos["max_bars"]:
         return {"exit_price": candle["close"], "reason": "Time Stop",
                 "exit_fee_rate": TAKER}
     return None
@@ -94,7 +106,8 @@ def close_pnl(pos: dict, exit_price: float, exit_fee_rate: float,
     """
     side, exposure = pos["side"], pos["exposure"]
     gross_pct = side * (exit_price / pos["entry_price"] - 1) * 100 * exposure
-    fees_pct = ((MAKER + exit_fee_rate) * 100 * exposure) if with_fees else 0.0
+    entry_fee = pos.get("entry_fee_rate") or MAKER
+    fees_pct = ((entry_fee + exit_fee_rate) * 100 * exposure) if with_fees else 0.0
     pnl_pct = gross_pct - fees_pct
     pnl_quote = equity * pnl_pct / 100
     fees_quote = equity * fees_pct / 100

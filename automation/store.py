@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS positions (
   entry_price REAL NOT NULL,
   entry_candle_ts INTEGER NOT NULL,
   tp_price REAL, sl_price REAL, max_bars INTEGER,
+  entry_fee_rate REAL,
+  exit_on_flip INTEGER NOT NULL DEFAULT 0,
   bars_held INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL,               -- 'open' | 'closed'
   exit_price REAL, exit_candle_ts INTEGER, exit_reason TEXT,
@@ -101,6 +103,12 @@ def init_db() -> None:
     with _conn() as con:
         con.executescript(_DDL)
         _migrate_real_mode(con)
+        for col in ("entry_fee_rate REAL",
+                    "exit_on_flip INTEGER NOT NULL DEFAULT 0"):
+            try:
+                con.execute(f"ALTER TABLE positions ADD COLUMN {col}")
+            except sqlite3.OperationalError:      # coluna já existe
+                pass
 
 
 def _migrate_real_mode(con) -> None:
@@ -234,15 +242,16 @@ def update_order(order_id, **fields) -> None:
 # ── Positions ────────────────────────────────────────────────────────────
 
 def open_position(dep_id, side, qty, exposure, entry_price, entry_candle_ts,
-                  tp_price, sl_price, max_bars) -> int:
+                  tp_price, sl_price, max_bars, entry_fee_rate=None,
+                  exit_on_flip=0) -> int:
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO positions (deployment_id, side, qty, exposure,
                  entry_price, entry_candle_ts, tp_price, sl_price, max_bars,
-                 bars_held, status)
-               VALUES (?,?,?,?,?,?,?,?,?,0,'open')""",
+                 entry_fee_rate, exit_on_flip, bars_held, status)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,0,'open')""",
             (dep_id, side, qty, exposure, entry_price, entry_candle_ts,
-             tp_price, sl_price, max_bars))
+             tp_price, sl_price, max_bars, entry_fee_rate, int(exit_on_flip)))
         return cur.lastrowid
 
 

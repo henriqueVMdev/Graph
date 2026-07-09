@@ -3,8 +3,16 @@ Carregamento de estratégias para automação e validação do contrato signal()
 
 Uma estratégia é automatizável quando o módulo expõe:
     signal(df_candles_fechados, params) -> None | dict
-com o dict contendo: side (1|-1), type ('limit'), price, valid_bars,
-tp_pct, sl_pct, max_bars, fill_rule ('cross'), exposure.
+com o dict contendo: side (1|-1), type ('limit'|'market'), price, valid_bars,
+tp_pct, sl_pct, max_bars, fill_rule ('cross'|'open'), exposure.
+
+- type='limit'/fill_rule='cross': limite que precisa ser atravessada.
+- type='market'/fill_rule='open': fill na ABERTURA do próximo candle
+  (fee taker); price deve ser None. tp_pct/sl_pct/max_bars podem ser
+  None (sem TP/SL/time-stop).
+- exit_on_flip (opcional, bool): estratégia POSICIONAL — enquanto a
+  posição está aberta o runner reavalia signal() a cada candle fechado e
+  fecha (na abertura seguinte, taker) quando o lado desejado muda.
 """
 
 from __future__ import annotations
@@ -57,6 +65,15 @@ def get_signal(strategy_file: str, df, params) -> dict | None:
     missing = _REQUIRED_KEYS - set(sig)
     if missing:
         raise ValueError(f"signal() de '{strategy_file}' sem chaves: {missing}")
-    if sig["type"] != "limit" or sig["fill_rule"] != "cross":
-        raise ValueError(f"signal() de '{strategy_file}': só 'limit'/'cross' suportado")
+    if sig["type"] == "limit":
+        if sig["fill_rule"] != "cross" or sig["price"] is None:
+            raise ValueError(f"signal() de '{strategy_file}': limit exige "
+                             "fill_rule='cross' e price")
+    elif sig["type"] == "market":
+        if sig["fill_rule"] != "open" or sig["price"] is not None:
+            raise ValueError(f"signal() de '{strategy_file}': market exige "
+                             "fill_rule='open' e price=None")
+    else:
+        raise ValueError(f"signal() de '{strategy_file}': type '{sig['type']}' "
+                         "não suportado")
     return sig
