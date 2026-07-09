@@ -53,3 +53,25 @@ arbitrado. Sem estratégia diária aprovada.
 nele é overfitting de seleção. Nova pesquisa no diário exige esperar
 dados novos (2026 H2+) ou mudar de classe de sinal (ex.: carry de
 funding, cross-sectional) com o mesmo protocolo treino/val/holdout.
+
+### Otimizações estruturais (`daily_opt.py`, 2026-07-08)
+
+Protocolo anti-overfit: desenvolvimento 100% no treino; só regras
+uniformes da literatura (nada tunado por símbolo); teste de platô nos
+vizinhos; validação 2024-25 usada **uma vez** num pacote pré-comprometido.
+
+Pacote: **ensemble TSMOM (7/14/21/28, maioria) + regime BTC>SMA200
+(bull=só long, bear=só short) + vol targeting por trade (3%/ATR%, cap
+1.5x)**. Platô limpo (MA150-250 e thr 0.25-0.5 ≈ iguais).
+
+| janela            | resultado |
+|-------------------|-----------|
+| treino <2024      | PF 2.75, sh~2.2, **positivo em todos os anos incl. 2022** (+179 vs −865 do 21d LO) |
+| validação 24-25 (1 passada) | PF 1.64, sh~1.27, +1.0%/trade (2024 +730, 2025 −31) |
+| 2026 (descritivo) | PF 2.09, +231% (n=165) — regime permitiu shorts no bear |
+
+Ressalva honesta: o 2026 já tinha sido visto (sabíamos que long-only
+morreu num ano bear), então o número 2026 é **descritivo, não
+aprovação** — o filtro de regime foi motivado por 2022 (treino), mas há
+risco de contaminação indireta. Status: **candidata promissora,
+aprovação final só com forward/paper trading em dados novos.**
