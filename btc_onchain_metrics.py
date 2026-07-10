@@ -7,6 +7,7 @@ be connected without code changes through the ``CRYPTOQUANT_*_URL`` variables.
 from __future__ import annotations
 
 import os
+import json
 import time
 import math
 import threading
@@ -34,6 +35,64 @@ def _glassnode(path: str, days=730):
                              "api_key": key}, headers=_UA, timeout=30)
     r.raise_for_status()
     return _series(r.json())
+
+
+# bitcoin-data.com: métricas on-chain BTC gratuitas, sem chave (fallback do Glassnode)
+# Limite: 10 req/hora → cache em disco de 12h (métricas diárias) e stale em falha.
+_BD_METRICS = {
+    "nupl": ("nupl", "nupl"),
+    "sth_realized_price": ("sth-realized-price", "sthRealizedPrice"),
+    "lth_realized_price": ("lth-realized-price", "lthRealizedPrice"),
+    "sth_mvrv": ("sth-mvrv", "sthMvrv"),
+    "sth_sopr": ("sth-sopr", "sthSopr"),
+}
+_BD_LOCK = threading.Lock()
+_BD_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "data", "bitcoin_data_cache.json")
+
+
+def _bd_cache_load():
+    try:
+        with open(_BD_CACHE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _bitcoin_data(endpoint: str, value_key: str, days=730, ttl_s=12 * 3600):
+    from datetime import date, timedelta
+    with _BD_LOCK:
+        cache = _bd_cache_load()
+        hit = cache.get(endpoint)
+        if hit and time.time() - hit["fetched_at"] < ttl_s:
+            return hit["series"]
+        try:
+            params = {"startday": (date.today() - timedelta(days=days)).isoformat(),
+                      "endday": date.today().isoformat()}
+            r = requests.get(f"https://bitcoin-data.com/v1/{endpoint}", params=params,
+                             headers={**_UA, "Accept": "application/json"}, timeout=30)
+            r.raise_for_status()
+            pts = [(int(row["unixTs"]) * 1000, float(row[value_key])) for row in r.json()
+                   if row.get(value_key) is not None]
+            series = {"ts": [p[0] for p in pts], "values": [p[1] for p in pts]}
+            cache[endpoint] = {"fetched_at": time.time(), "series": series}
+            with open(_BD_CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(cache, f)
+            time.sleep(1)
+            return series
+        except Exception:
+            if hit:
+                return hit["series"]  # dado de ontem > gráfico vazio
+            raise
+
+
+def _glassnode_or_free(key: str, path: str):
+    s = _glassnode(path)
+    if s:
+        return {**s, "source": "Glassnode"}
+    endpoint, value_key = _BD_METRICS[key]
+    s = _bitcoin_data(endpoint, value_key)
+    return {**s, "source": "bitcoin-data.com"} if s and s["ts"] else None
 
 
 def _configured_cq(metric_id: str):
@@ -239,7 +298,7 @@ def _build_payload():
         jobs[pool.submit(_pi_cycle)] = ("pi_cycle", "public")
         jobs[pool.submit(_open_interest)] = ("open_interest", "public")
         for key, (path, source) in specs.items():
-            jobs[pool.submit(_glassnode, path)] = (key, source)
+            jobs[pool.submit(_glassnode_or_free, key, path)] = (key, source)
         for key in cq:
             jobs[pool.submit(_configured_cq, key)] = (key, "CryptoQuant")
         for future in as_completed(jobs):
@@ -249,7 +308,7 @@ def _build_payload():
                 if key in ("pi_cycle", "open_interest"):
                     out[key] = value
                 elif value:
-                    out["series"][key] = {**value, "source": source}
+                    out["series"][key] = {"source": source, **value}
                 else:
                     label = cq.get(key, key.replace("_", " ").title())
                     out["unavailable"].append({"id": key, "label": label,
@@ -263,3 +322,10 @@ def _build_payload():
     else:
         out["sth_sopr_mvrv_indicator"] = None
     return out
+
+
+if __name__ == "__main__":
+    for key, (endpoint, value_key) in _BD_METRICS.items():
+        s = _bitcoin_data(endpoint, value_key, days=30)
+        assert len(s["ts"]) > 10 and s["ts"] == sorted(s["ts"]), (key, s)
+        print(f"{key}: {len(s['ts'])} pontos, último = {s['values'][-1]}")
