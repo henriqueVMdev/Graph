@@ -936,6 +936,14 @@ def intelligence_ranking():
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 400
 
+@terminal_bp.get("/intelligence/tracking")
+def intelligence_tracking():
+    try:
+        import intelligence_data
+        return jsonify(intelligence_data.tracking())
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 400
+
 @terminal_bp.get("/calendar")
 def market_calendar():
     try:

@@ -397,6 +397,7 @@ export function getIntelligence(symbol='BTC') {
   return api.get('/terminal/intelligence', { params:{symbol}, timeout:180000 })
 }
 export const getIntelligenceRanking=()=>api.get('/terminal/intelligence/ranking',{timeout:60000})
+export const getIntelligenceTracking=()=>api.get('/terminal/intelligence/tracking',{timeout:120000})
 export const getMarketCalendar=(symbols='')=>api.get('/terminal/calendar',{params:{symbols},timeout:120000})
 export const getLiquidity=()=>api.get('/terminal/liquidity',{timeout:120000})
 export const runPortfolioLab=(symbols,years=3)=>api.post('/terminal/portfolio-lab',{symbols,years},{timeout:180000})

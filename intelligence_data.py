@@ -18,10 +18,15 @@ Fontes cruzadas por classe:
   regiões produtoras
 """
 from __future__ import annotations
+import json
+import os
+import sqlite3
 import threading
 import time
 
 _CACHE = {}
+_TRACK_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "data", "intelligence_signals.db")
 
 # universo do ranking: cada classe demonstra os fatores que só ela tem
 UNIVERSE = [
@@ -63,12 +68,34 @@ def ranking(ttl=900):
                 "ts": int(_RANK["ts"] * 1000) if _RANK["ts"] else None}
 
 
+def _track_signal(sym, sig):
+    """Grava o 1º sinal do dia (UTC) por símbolo — auditoria forward sem
+    reescrita: o que foi emitido fica registrado como foi emitido."""
+    try:
+        if sig.get("price") is None:
+            return
+        from datetime import datetime, timezone
+        day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        with sqlite3.connect(_TRACK_DB) as c:
+            c.execute("""CREATE TABLE IF NOT EXISTS signals(
+                symbol TEXT NOT NULL, date TEXT NOT NULL, label TEXT,
+                score REAL, confidence REAL, price REAL, reasons TEXT,
+                ts INTEGER, PRIMARY KEY(symbol, date))""")
+            c.execute("INSERT OR IGNORE INTO signals VALUES(?,?,?,?,?,?,?,?)",
+                      (sym, day, sig["label"], sig["score"], sig["confidence"],
+                       sig["price"], json.dumps(sig["reasons"], ensure_ascii=False),
+                       int(time.time() * 1000)))
+    except Exception:
+        pass  # tracking nunca derruba o ranking
+
+
 def _build_ranking():
     def one(item):
         sym, klass = item
         try:
             r = analyze(sym)
             sig = r["signal"]
+            _track_signal(sym, sig)
             row = {"symbol": sym, "class": klass, "label": sig["label"],
                    "score": sig["score"], "confidence": sig["confidence"],
                    "coverage_pct": sig["coverage_pct"], "price": sig["price"],
@@ -120,6 +147,88 @@ def analyze(symbol="BTC"):
     out = _full(symbol, sym)
     _CACHE[sym] = (time.time(), out)
     return out
+
+
+_TRACK_CACHE = None
+
+
+def tracking(ttl=3600):
+    """Auto-auditoria forward: sinais gravados × retorno realizado 7/30d."""
+    global _TRACK_CACHE
+    if _TRACK_CACHE and time.time() - _TRACK_CACHE[0] < ttl:
+        return _TRACK_CACHE[1]
+    out = _tracking()
+    _TRACK_CACHE = (time.time(), out)
+    return out
+
+
+def _tracking():
+    import pandas as pd
+    import yfinance as yf
+    from onchain_data import _CG_IDS
+    rows = []
+    if os.path.exists(_TRACK_DB):
+        with sqlite3.connect(_TRACK_DB) as c:
+            c.row_factory = sqlite3.Row
+            try:
+                rows = [dict(r) for r in c.execute(
+                    "SELECT symbol,date,label,score,confidence,price,ts "
+                    "FROM signals ORDER BY date, symbol")]
+            except sqlite3.OperationalError:
+                rows = []
+    method = ("1 sinal/símbolo/dia (o 1º emitido, nunca reescrito); retorno = "
+              "fechamento no 1º pregão ≥ D+7/D+30 sobre o preço no momento do "
+              "sinal; favorável: COMPRA sobe, VENDA cai")
+    if not rows:
+        return {"signals": [], "summary": {}, "method": method,
+                "note": "gravação iniciada — os primeiros retornos maturam em 7 dias",
+                "ts": int(time.time() * 1000)}
+
+    closes = {}
+    for sym in {r["symbol"] for r in rows}:
+        if sym in _CG_IDS:
+            yf_sym = f"{sym}-USD"
+        else:
+            try:
+                import tradfi_data
+                yf_sym = tradfi_data.resolve(sym)
+            except Exception:
+                yf_sym = sym
+        try:
+            h = yf.Ticker(yf_sym).history(period="1y", interval="1d",
+                                          auto_adjust=True)["Close"].dropna()
+            h.index = pd.to_datetime(h.index, utc=True).tz_convert(None).normalize()
+            closes[sym] = h
+        except Exception:
+            pass
+
+    for r in rows:
+        s = closes.get(r["symbol"])
+        for d in (7, 30):
+            r[f"fwd_{d}d_pct"] = None
+            if s is None or not r["price"]:
+                continue
+            target = pd.Timestamp(r["date"]) + pd.Timedelta(days=d)
+            fut = s[s.index >= target]
+            if len(fut):    # só matura quando o pregão D+N existe
+                r[f"fwd_{d}d_pct"] = round((float(fut.iloc[0]) / r["price"] - 1) * 100, 2)
+
+    summary = {}
+    for label in ("COMPRA", "VENDA", "NEUTRO"):
+        sub = [r for r in rows if r["label"] == label]
+        entry = {"signals": len(sub)}
+        for d in (7, 30):
+            m = [r[f"fwd_{d}d_pct"] for r in sub if r[f"fwd_{d}d_pct"] is not None]
+            entry[f"matured_{d}d"] = len(m)
+            entry[f"avg_fwd_{d}d_pct"] = round(sum(m) / len(m), 2) if m else None
+            if m and label in ("COMPRA", "VENDA"):
+                fav = [x > 0 for x in m] if label == "COMPRA" else [x < 0 for x in m]
+                entry[f"favorable_{d}d_pct"] = round(sum(fav) / len(fav) * 100, 1)
+            else:
+                entry[f"favorable_{d}d_pct"] = None
+        summary[label] = entry
+    return {"signals": rows[-120:][::-1], "summary": summary, "method": method,
+            "ts": int(time.time() * 1000)}
 
 
 def _fwd_stats(close, mask, days=21):

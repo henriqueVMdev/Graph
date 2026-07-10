@@ -18,6 +18,31 @@
   <p v-if="!(rank?.rows||[]).length" class="text-xs text-gray-600 py-4 text-center">construindo ranking pela primeira vez…</p>
   <p class="text-[10px] text-gray-600 mt-2">score = soma dos votos dos fatores · clique numa linha para a análise completa · universo: cripto, commodities CFTC, índices, FX e ações-tema</p>
  </div>
+ <div class="card p-4 overflow-x-auto" v-if="track"><div class="title">Auto-auditoria forward — o que os sinais gravados renderam de verdade</div>
+  <table class="w-full text-xs font-mono"><thead><tr class="text-gray-600 text-left"><th class="py-1">Sinal</th><th class="text-right">Gravados</th><th class="text-right">Maduros 7d</th><th class="text-right">Ret. médio 7d</th><th class="text-right">Acerto 7d</th><th class="text-right">Maduros 30d</th><th class="text-right">Ret. médio 30d</th><th class="text-right">Acerto 30d</th></tr></thead>
+   <tbody><tr v-for="(v,k) in track.summary" :key="k" class="border-t border-surface-600">
+    <td class="py-1.5 font-semibold" :class="k==='COMPRA'?'text-green-400':k==='VENDA'?'text-red-400':'text-gray-400'">{{k}}</td>
+    <td class="text-right text-gray-300">{{v.signals}}</td>
+    <td class="text-right text-gray-500">{{v.matured_7d}}</td>
+    <td class="text-right" :class="pctClass(v.avg_fwd_7d_pct)">{{pct(v.avg_fwd_7d_pct)}}</td>
+    <td class="text-right text-gray-300">{{v.favorable_7d_pct!=null?v.favorable_7d_pct+'%':'—'}}</td>
+    <td class="text-right text-gray-500">{{v.matured_30d}}</td>
+    <td class="text-right" :class="pctClass(v.avg_fwd_30d_pct)">{{pct(v.avg_fwd_30d_pct)}}</td>
+    <td class="text-right text-gray-300">{{v.favorable_30d_pct!=null?v.favorable_30d_pct+'%':'—'}}</td>
+   </tr></tbody></table>
+  <p v-if="track.note" class="text-xs text-gray-500 py-2">{{track.note}}</p>
+  <details v-if="(track.signals||[]).length" class="mt-2"><summary class="text-[10px] text-gray-500 cursor-pointer uppercase">últimos sinais gravados ({{track.signals.length}})</summary>
+   <table class="w-full text-[11px] font-mono mt-2"><thead><tr class="text-gray-600 text-left"><th>Data</th><th>Ativo</th><th>Sinal</th><th class="text-right">Score</th><th class="text-right">Preço no sinal</th><th class="text-right">7d depois</th><th class="text-right">30d depois</th></tr></thead>
+    <tbody><tr v-for="s in track.signals" :key="s.symbol+s.date" class="border-t border-surface-600/40">
+     <td class="py-1 text-gray-500">{{s.date}}</td><td class="text-gray-200">{{s.symbol}}</td>
+     <td :class="s.label==='COMPRA'?'text-green-400':s.label==='VENDA'?'text-red-400':'text-gray-500'">{{s.label}}</td>
+     <td class="text-right text-gray-400">{{s.score!=null?(s.score>0?'+':'')+s.score.toFixed(1):'—'}}</td>
+     <td class="text-right text-gray-400">{{s.price?.toLocaleString('pt-BR',{maximumFractionDigits:2})}}</td>
+     <td class="text-right" :class="pctClass(s.fwd_7d_pct)">{{pct(s.fwd_7d_pct)}}</td>
+     <td class="text-right" :class="pctClass(s.fwd_30d_pct)">{{pct(s.fwd_30d_pct)}}</td>
+    </tr></tbody></table></details>
+  <p class="text-[10px] text-gray-600 mt-2">{{track.method}}</p>
+ </div>
  <template v-if="d&&!loading"><div class="grid grid-cols-2 md:grid-cols-5 gap-2">
   <div class="metric-card"><span class="metric-label">Sinal</span><span class="metric-value" :class="signalClass">{{d.signal.label}}</span></div>
   <div class="metric-card"><span class="metric-label">Score</span><span class="metric-value text-gray-100">{{d.signal.score.toFixed(2)}}</span></div>
@@ -31,7 +56,8 @@
  <div class="card p-4"><div class="title">Saúde das fontes</div><div v-for="h in d.health" :key="h.source" class="flex justify-between py-1 border-t border-surface-600 text-xs"><span class="text-gray-300">{{h.source}}</span><span :class="h.status==='ok'?'text-green-400':'text-amber-400'">{{h.status}} <small>{{h.detail}}</small></span></div></div>
  <div class="card p-4" v-if="liq"><div class="title">Liquidez e risco sistêmico · FRED</div><div class="grid grid-cols-2 md:grid-cols-3 gap-2"><div v-for="s in liq.series" :key="s.id" class="rounded bg-surface-600/30 p-2"><div class="text-[9px] text-gray-500 uppercase">{{s.label}}</div><div class="text-sm font-mono text-gray-200">{{s.value?.toLocaleString('pt-BR')??'—'}}</div><div class="text-[9px]" :class="(s.change_30??0)>=0?'text-green-500':'text-red-400'">Δ30 obs {{s.change_30?.toFixed(2)??s.status}}</div></div></div></div>
  </template></div></template>
-<script setup>import{ref,computed,onMounted,onUnmounted}from'vue';import{getIntelligence,getIntelligenceRanking,getLiquidity}from'@/api/client.js';const symbol=ref('BTC'),d=ref(null),liq=ref(null),rank=ref(null),loading=ref(false),error=ref(null);let pollTimer=null;const signalClass=computed(()=>d.value?.signal.label==='COMPRA'?'text-green-400':d.value?.signal.label==='VENDA'?'text-red-400':'text-gray-300');const pct=v=>v==null?'—':`${v>=0?'+':''}${Number(v).toFixed(2)}%`,money=v=>v==null?'—':`$${Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2})}`;async function load(){loading.value=true;error.value=null;try{[d.value,liq.value]=await Promise.all([getIntelligence(symbol.value).then(r=>r.data),getLiquidity().then(r=>r.data)])}catch(e){error.value=e.response?.data?.error||e.message}finally{loading.value=false}}
+<script setup>import{ref,computed,onMounted,onUnmounted}from'vue';import{getIntelligence,getIntelligenceRanking,getIntelligenceTracking,getLiquidity}from'@/api/client.js';const symbol=ref('BTC'),d=ref(null),liq=ref(null),rank=ref(null),track=ref(null),loading=ref(false),error=ref(null);let pollTimer=null;const signalClass=computed(()=>d.value?.signal.label==='COMPRA'?'text-green-400':d.value?.signal.label==='VENDA'?'text-red-400':'text-gray-300');const pct=v=>v==null?'—':`${v>=0?'+':''}${Number(v).toFixed(2)}%`,money=v=>v==null?'—':`$${Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2})}`,pctClass=v=>v==null?'text-gray-500':v>0?'text-green-400':v<0?'text-red-400':'text-gray-400';async function load(){loading.value=true;error.value=null;try{[d.value,liq.value]=await Promise.all([getIntelligence(symbol.value).then(r=>r.data),getLiquidity().then(r=>r.data)])}catch(e){error.value=e.response?.data?.error||e.message}finally{loading.value=false}}
 async function pollRank(){try{rank.value=(await getIntelligenceRanking()).data;if(rank.value?.building){pollTimer=setTimeout(pollRank,4000)}}catch{pollTimer=setTimeout(pollRank,8000)}}
-onMounted(()=>{load();pollRank()});onUnmounted(()=>clearTimeout(pollTimer))</script>
+async function loadTrack(){try{track.value=(await getIntelligenceTracking()).data}catch{/* fica oculto */}}
+onMounted(()=>{load();pollRank();loadTrack()});onUnmounted(()=>clearTimeout(pollTimer))</script>
 <style scoped>.title{@apply text-[10px] text-gray-500 uppercase font-semibold mb-2}</style>
