@@ -1,6 +1,7 @@
 <template>
   <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
-    <h1 class="text-base font-semibold text-gray-100">Alertas de Preço e Funding</h1>
+    <h1 class="text-base font-semibold text-gray-100">Alertas de Preço, Funding e Sinais</h1>
+    <p class="text-[10px] text-gray-600 -mt-3">além dos alertas manuais, o vigia automático monitora o universo da Central de Inteligência a cada 15 min: mudanças de sinal (ex.: NEUTRO → COMPRA) e divergências novas aparecem em Disparados</p>
 
     <!-- criar -->
     <div class="card p-4">
@@ -79,7 +80,7 @@
           <tr v-for="a in triggered" :key="a.id" class="border-b border-surface-600/50">
             <td class="py-1.5 font-bold text-accent-yellow">{{ a.symbol }}</td>
             <td class="py-1.5 text-gray-400">{{ terminal.kindLabel(a.kind) }} {{ a.level }}</td>
-            <td class="py-1.5 text-gray-300">disparou em {{ a.trigger_value }}</td>
+            <td class="py-1.5 text-gray-300">{{ a.trigger_value != null ? 'disparou em ' + a.trigger_value : a.note }}</td>
             <td class="py-1.5 text-gray-600">{{ tsFmt(a.triggered_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"

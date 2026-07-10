@@ -775,13 +775,31 @@ def _signal_alert_watcher():
     while True:
         time.sleep(60)
         try:
+            import intelligence_data
+            # mantém o ranking quente (rebuild a cada 15 min) e vira "vigia":
+            # transições de sinal e divergências novas viram alertas disparados
+            intelligence_data.ranking()
+            events = intelligence_data.pop_events()
+            if events:
+                now = int(time.time() * 1000)
+                rows = [{"id": uuid.uuid4().hex[:10], "symbol": e["symbol"],
+                         "market": "signal", "exchange": None, "kind": e["kind"],
+                         "level": None, "note": e["detail"], "active": False,
+                         "created_at": now, "triggered_at": now,
+                         "trigger_value": None} for e in events]
+                with _alerts_lock:
+                    cur = _alerts_load() + rows
+                    # ponytail: só os 200 eventos de sinal mais recentes ficam
+                    auto = [a for a in cur if a["kind"] in ("signal_change", "divergence_new")]
+                    drop = {a["id"] for a in sorted(auto, key=lambda a: a["triggered_at"])[:-200]}
+                    _alerts_save([a for a in cur if a["id"] not in drop])
+
             with _alerts_lock:
                 alerts = _alerts_load()
             active = [a for a in alerts if a.get("active")
                       and a["kind"].startswith("signal_score")]
             if not active:
                 continue
-            import intelligence_data
             scores = {}
             for symbol in {a["symbol"] for a in active}:
                 try:

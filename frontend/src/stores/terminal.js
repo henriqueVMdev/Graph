@@ -152,7 +152,8 @@ export const useTerminalStore = defineStore('terminal', () => {
         if (a.triggered_at && !prevTriggered.has(a.id)
             && !seenTriggered.value.has(a.id) && alertsTimerHasRun) {
           pushToast(`Alerta ${a.symbol}`,
-            `${kindLabel(a.kind)} ${a.level} — valor ${a.trigger_value}`)
+            a.level == null ? `${kindLabel(a.kind)}: ${a.note}`
+              : `${kindLabel(a.kind)} ${a.level} — valor ${a.trigger_value}`)
         }
       }
       alertsTimerHasRun = true
@@ -190,6 +191,7 @@ export const useTerminalStore = defineStore('terminal', () => {
       price_above: 'preço acima de', price_below: 'preço abaixo de',
       funding_above: 'funding acima de', funding_below: 'funding abaixo de',
       signal_score_above: 'score multifator acima de', signal_score_below: 'score multifator abaixo de',
+      signal_change: 'mudança de sinal', divergence_new: 'divergência nova',
     }[kind] || kind
   }
 

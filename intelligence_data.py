@@ -38,6 +38,15 @@ UNIVERSE = [
 
 _RANK = {"rows": {}, "ts": 0.0, "building": False, "done": 0}
 _RANK_LOCK = threading.Lock()
+_EVENTS = []  # mudanças de sinal/divergências novas entre builds do ranking
+
+
+def pop_events():
+    """Consome os eventos acumulados (usado pelo watcher de alertas)."""
+    global _EVENTS
+    with _RANK_LOCK:
+        events, _EVENTS = _EVENTS, []
+        return events
 
 
 def ranking(ttl=900):
@@ -72,11 +81,24 @@ def _build_ranking():
             _RANK["rows"][sym] = row
             _RANK["done"] += 1
 
+    with _RANK_LOCK:
+        old = dict(_RANK["rows"])  # baseline do build anterior (vazio no 1º)
     try:
         from concurrent.futures import ThreadPoolExecutor
         # ponytail: pool pequeno para não estourar rate limit do CoinGecko/Bybit
         with ThreadPoolExecutor(max_workers=3) as pool:
             list(pool.map(one, UNIVERSE))
+        with _RANK_LOCK:
+            for sym, new in _RANK["rows"].items():
+                prev = old.get(sym)
+                if not prev or new.get("score") is None or prev.get("score") is None:
+                    continue  # sem baseline (1º build/erro) não há transição a alertar
+                if new["label"] != prev["label"]:
+                    _EVENTS.append({"symbol": sym, "kind": "signal_change",
+                                    "detail": f"{prev['label']} → {new['label']} "
+                                              f"(score {prev['score']:+.1f} → {new['score']:+.1f})"})
+                for d in set(new.get("divergences") or []) - set(prev.get("divergences") or []):
+                    _EVENTS.append({"symbol": sym, "kind": "divergence_new", "detail": d})
     finally:
         with _RANK_LOCK:
             _RANK["ts"] = time.time()
