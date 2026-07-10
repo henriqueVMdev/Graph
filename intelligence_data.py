@@ -231,6 +231,30 @@ def _tracking():
             "ts": int(time.time() * 1000)}
 
 
+_DRIVERS_CACHE = None
+
+
+def _driver_closes():
+    """Fechamentos 6m dos drivers macro (SPX, DXY, WTI, BTC) — cache 1h."""
+    global _DRIVERS_CACHE
+    if _DRIVERS_CACHE and time.time() - _DRIVERS_CACHE[0] < 3600:
+        return _DRIVERS_CACHE[1]
+    import pandas as pd
+    import yfinance as yf
+    out = {}
+    for name, t in (("SPX", "^GSPC"), ("DXY", "DX-Y.NYB"),
+                    ("petróleo WTI", "CL=F"), ("BTC", "BTC-USD")):
+        try:
+            h = yf.Ticker(t).history(period="6mo", interval="1d",
+                                     auto_adjust=True)["Close"].dropna()
+            h.index = pd.to_datetime(h.index, utc=True).tz_convert(None).normalize()
+            out[name] = h
+        except Exception:
+            pass
+    _DRIVERS_CACHE = (time.time(), out)
+    return out
+
+
 def _fwd_stats(close, mask, days=21):
     """Retorno médio e taxa de acerto N dias à frente quando a condição valeu."""
     fwd = (close.shift(-days) / close - 1).where(mask).dropna()
@@ -521,6 +545,83 @@ def _full(raw, sym):
         except Exception as e:
             source("SEC EDGAR (insiders)", "error", e)
 
+        # opções: put/call OI (contrário nos extremos) + IV vs vol realizada
+        try:
+            import markets_data
+            ch = markets_data.option_chain(sym)
+            if not ch.get("error") and ch.get("dte", 0) < 7:
+                # vencimento 0DTE distorce IV e OI — usa o 1º com >=7 dias
+                from datetime import date as _date
+                today_d = _date.today()
+                exp = next((e for e in ch["expiries"]
+                            if (_date.fromisoformat(e) - today_d).days >= 7), None)
+                if exp:
+                    ch = markets_data.option_chain(sym, exp)
+            if not ch.get("error"):
+                put_oi = sum(r.get("oi") or 0 for r in ch["puts"])
+                call_oi = sum(r.get("oi") or 0 for r in ch["calls"])
+                if call_oi:
+                    pcr = put_oi / call_oi
+                    vote(1 if pcr >= 1.5 else -1 if pcr <= 0.5 else 0,
+                         f"Opções: put/call OI {pcr:.2f} no venc. {ch['expiry']}"
+                         + (" — pessimismo lotado (contrário altista)" if pcr >= 1.5
+                            else " — otimismo lotado (contrário baixista)" if pcr <= 0.5 else ""))
+                iv, hv = ch.get("atm_iv"), ch.get("hist_vol30")
+                # Yahoo às vezes devolve IV ~0 (dado velho) — só vota se plausível
+                if iv and hv and hv > 0 and iv >= 5:
+                    vote(1 if iv / hv >= 1.5 else 0,
+                         f"IV ATM {iv:.0f}% vs realizada 30d {hv:.0f}% ({iv / hv:.1f}x)"
+                         + (" — medo pago caro (contrário)" if iv / hv >= 1.5 else ""))
+                # movimento implícito pelo PREÇO do straddle ATM (robusto a IV ruim)
+                spot = ch.get("spot")
+                if spot:
+                    def _atm_px(side):
+                        rows_ = [r for r in side if r.get("strike") and
+                                 (r.get("last") or (r.get("bid") and r.get("ask")))]
+                        if not rows_:
+                            return None
+                        r = min(rows_, key=lambda r: abs(r["strike"] - spot))
+                        if abs(r["strike"] - spot) / spot > 0.05:
+                            return None
+                        return (r["bid"] + r["ask"]) / 2 if r.get("bid") and r.get("ask") else r["last"]
+                    c_px, p_px = _atm_px(ch["calls"]), _atm_px(ch["puts"])
+                    if c_px and p_px:
+                        insights.append(f"o straddle ATM implica ±{(c_px + p_px) / spot * 100:.1f}% "
+                                        f"até {ch['expiry']} ({ch['dte']}d)")
+                source("Opções (Yahoo)", "ok")
+            else:
+                source("Opções (Yahoo)", "partial", ch["error"])
+        except Exception as e:
+            source("Opções (Yahoo)", "error", e)
+
+        # short interest: extremo = combustível de squeeze (contrário altista)
+        try:
+            info = yf.Ticker(yf_sym).info or {}
+            spf = info.get("shortPercentOfFloat")
+            if spf is not None:
+                spf_pct = spf * 100 if spf <= 1 else spf
+                sr = info.get("shortRatio")
+                vote(1 if spf_pct >= 15 else 0,
+                     f"Short interest: {spf_pct:.1f}% do float"
+                     + (f" · {sr:.1f} dias para cobrir" if sr else "")
+                     + (" — short lotado (combustível de squeeze)" if spf_pct >= 15 else ""))
+                source("Short interest (Yahoo)", "ok")
+        except Exception as e:
+            source("Short interest (Yahoo)", "error", e)
+
+    # earnings próximos: evento de vol — insight, não voto
+    if not crypto and "=" not in yf_sym and "^" not in yf_sym:
+        try:
+            cal = yf.Ticker(yf_sym).calendar or {}
+            dates = cal.get("Earnings Date") or []
+            today = pd.Timestamp.now().date()
+            nxt = next((d for d in sorted(dates) if d >= today), None)
+            if nxt and (nxt - today).days <= 21:
+                insights.append(f"earnings em {(nxt - today).days} dias ({nxt}) — "
+                                "evento de vol: sinais técnico e sazonal valem menos até lá")
+        except Exception:
+            pass  # calendário é opcional; sem earnings não é erro de fonte
+
     if sym in _AIRLINES:
         try:
             import altdata
@@ -588,6 +689,30 @@ def _full(raw, sym):
             source("NOAA ENSO + met.no", "ok")
         except Exception as e:
             source("NOAA ENSO + met.no", "error", e)
+
+    # ── drivers: com quem o ativo anda (correlação 60d) — educativo ─────
+    if close is not None:
+        try:
+            c2 = close.copy()
+            c2.index = pd.to_datetime(c2.index, utc=True).tz_convert(None).normalize()
+            rets = c2.pct_change()
+            skip = {"BTC": "BTC", "CL=F": "petróleo WTI", "^GSPC": "SPX"}.get(sym)
+            hits = []
+            for name, s in _driver_closes().items():
+                if name == skip:
+                    continue
+                pair = pd.concat([rets, s.pct_change()], axis=1,
+                                 join="inner").dropna().tail(60)
+                if len(pair) < 40:
+                    continue
+                cv = float(pair.iloc[:, 0].corr(pair.iloc[:, 1]))
+                if abs(cv) >= 0.5:
+                    hits.append(f"{'junto com' if cv > 0 else 'contra'} {name} ({cv:+.2f})")
+            insights.append("drivers 60d: move " + "; ".join(hits) if hits else
+                            "drivers 60d: sem correlação dominante (|corr| < 0.5 "
+                            "com SPX/DXY/WTI/BTC) — movimento é idiossincrático")
+        except Exception:
+            pass  # insight opcional
 
     # ── consolidação ─────────────────────────────────────────────────────
     if not factors:
