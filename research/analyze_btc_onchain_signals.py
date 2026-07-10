@@ -93,6 +93,19 @@ def score_history(df: pd.DataFrame, buy_threshold=1.5, sell_threshold=-1.5) -> p
         add("Retail 30D", out.retail_demand_30d < lo, out.retail_demand_30d > hi, .5,
             out.retail_demand_30d.notna() & lo.notna() & hi.notna())
 
+    # ── técnica sobre o mesmo histórico de preço (cruza on-chain × técnica) ──
+    # Peso subordinado (tilt): técnica segue tendência e on-chain é contrário;
+    # com peso igual eles se cancelam exatamente nos topos/fundos que o modelo
+    # existe para pegar. RSI é contrário e pode pesar mais.
+    from technical_data import _sma, _rsi
+    sma200 = _sma(out.price, 200)
+    add("Tendência SMA200", out.price > sma200, out.price < sma200, 0.25,
+        sma200.notna())
+    mom30 = out.price.pct_change(30, fill_method=None)
+    add("Momentum 30d", mom30 > 0.10, mom30 < -0.10, 0.25, mom30.notna())
+    rsi = _rsi(out.price)
+    add("RSI(14)", rsi < 30, rsi > 70, 0.5, rsi.notna())
+
     # Pi Cycle: extreme discount is bullish; top-line proximity/crossover bearish.
     pi_top_ratio = out.price / out.pi_350dma_x2
     price_to_350dma = out.price / (out.pi_350dma_x2 / 2.0)

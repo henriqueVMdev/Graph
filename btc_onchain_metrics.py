@@ -91,7 +91,8 @@ def _glassnode_or_free(key: str, path: str):
     if s:
         return {**s, "source": "Glassnode"}
     endpoint, value_key = _BD_METRICS[key]
-    s = _bitcoin_data(endpoint, value_key)
+    # 10 anos: 1 requisição igual, e o backtest causal precisa de história longa
+    s = _bitcoin_data(endpoint, value_key, days=3650)
     return {**s, "source": "bitcoin-data.com"} if s and s["ts"] else None
 
 
@@ -132,7 +133,7 @@ def _configured_cq(metric_id: str):
 def _pi_cycle():
     # Binance public daily candles; fetch backwards because each page is capped at 1,000.
     rows, end = [], None
-    for _ in range(2):
+    for _ in range(3):
         params = {"symbol": "BTCUSDT", "interval": "1d", "limit": 1000}
         if end is not None:
             params["endTime"] = end
@@ -148,7 +149,7 @@ def _pi_cycle():
     vals = [x[1] for x in rows]
     def ma(i, n):
         return sum(vals[i - n + 1:i + 1]) / n if i + 1 >= n else None
-    start = max(0, len(rows) - 1460)
+    start = max(0, len(rows) - 2920)
     return {"ts": [x[0] for x in rows[start:]], "price": vals[start:],
             "dma111": [ma(i, 111) for i in range(start, len(rows))],
             "dma350x2": [(ma(i, 350) * 2 if ma(i, 350) is not None else None)

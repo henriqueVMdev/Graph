@@ -1,15 +1,33 @@
-"""Decision layer combining on-chain signals, divergences and source health.
+"""Decision layer: cruza TODAS as fontes que o app coleta para um ativo.
 
-BTC usa o modelo on-chain profundo (research/analyze_btc_onchain_signals).
-Demais ativos cruzam as fontes que o app já coleta: técnica (yfinance),
-sazonalidade, e — para cripto — funding/OI de perps e perfil CoinGecko.
-Cada fator vota -1/0/+1; o cruzamento entre fatores gera as divergências e a
-validação usa o histórico do próprio ativo (forward returns), não opinião.
+Fatores votam -1/0/+1 (BTC on-chain vota ±2 por agregar 7+ métricas com
+backtest causal). O rótulo vem da soma; a confiança é a concordância entre os
+fatores; a cobertura é a fração de fontes que respondeu. Divergências nascem
+do cruzamento entre fatores; a validação usa retornos futuros reais do
+próprio ativo ou o backtest do research — nunca opinião.
+
+Fontes cruzadas por classe:
+- todos: técnica (yfinance), sazonalidade, liquidez Fed (FRED), regime de
+  risco (HY spread + VIX)
+- cripto: on-chain BTC (research), funding perp Bybit, TVL DeFiLlama,
+  Fear & Greed, amplitude de funding (todos os perps), top traders Binance,
+  atividade dev CoinGecko
+- ações EUA: filings de insiders SEC; aéreas: tráfego TSA; frete/armadores:
+  GSCPI NY Fed
+- commodities: posicionamento CFTC (COT); agrícolas: ENSO + clima nas
+  regiões produtoras
 """
 from __future__ import annotations
 import time
 
 _CACHE = {}
+
+_AIRLINES = {"AAL", "DAL", "UAL", "LUV", "ALK", "JBLU", "BKNG", "ABNB",
+             "MAR", "HLT", "EXPE", "RCL", "CCL", "NCLH"}
+_SHIPPING = {"ZIM", "MAERSK-B.CO", "HLAG.DE", "FRO", "STNG", "BDRY", "GOGL",
+             "SBLK", "DAC", "GSL"}
+_AGRI = {"KC=F": "café", "CC=F": "cacau", "SB=F": "açúcar", "ZC=F": "milho",
+         "ZS=F": "soja", "ZW=F": "trigo", "CT=F": "algodão"}
 
 
 def analyze(symbol="BTC"):
@@ -17,7 +35,7 @@ def analyze(symbol="BTC"):
     hit = _CACHE.get(sym)
     if hit and time.time() - hit[0] < 900:
         return hit[1]
-    out = _btc() if sym == "BTC" else _generic(symbol, sym)
+    out = _full(symbol, sym)
     _CACHE[sym] = (time.time(), out)
     return out
 
@@ -33,13 +51,14 @@ def _fwd_stats(close, mask, days=21):
             "return_90d_pct": None}
 
 
-def _generic(raw, sym):
+def _full(raw, sym):
     import pandas as pd
     import yfinance as yf
     from technical_data import _sma, _rsi
     from onchain_data import _CG_IDS
 
     crypto = sym in _CG_IDS or "-USD" in (raw or "").upper()
+    is_btc = sym == "BTC"
     if crypto:
         yf_sym = f"{sym}-USD"
     else:
@@ -50,24 +69,87 @@ def _generic(raw, sym):
             yf_sym = sym
 
     factors, reasons, divergences, health = [], [], [], []
-    validation = {}
+    validation, insights = {}, []
     close = price = ret30 = None
     trend_up = None
+    date = None
+    liquidity = {"open_interest_usd": None, "pi_top_distance_pct": None}
 
-    # ── fator 1-3: técnica (tendência, momentum, RSI) ────────────────────
+    def source(name, status, detail=None):
+        health.append({"source": name, "status": status,
+                       **({"detail": str(detail)[:80]} if detail else {})})
+
+    def vote(v, reason):
+        factors.append(v)
+        reasons.append(reason)
+
+    # ── BTC: modelo on-chain do research (já cruza on-chain × técnica) ──
+    if is_btc:
+        try:
+            from btc_onchain_metrics import payload
+            from research.analyze_btc_onchain_signals import (
+                build_frame, score_history, summarize)
+            data = payload()
+            frame = score_history(build_frame(data))
+            summary = summarize(frame)
+            ready = frame[frame.model_ready]
+            if ready.empty:
+                raise ValueError("métricas sem histórico comum suficiente")
+            last = ready.iloc[-1]
+            price = float(last.price)
+            date = str(ready.index[-1].date())
+            vote({"COMPRA": 2, "VENDA": -2}.get(last.signal, 0),
+                 f"Modelo on-chain+técnica (backtest causal): {last.signal} "
+                 f"score {float(last.score):+.2f} — {last.reasons}")
+            for k, v in summary["historical"].items():
+                validation[f"On-chain: {k}"] = {
+                    "samples": v["events"], "valid_30d": v["valid_30d"],
+                    "return_30d_pct": v["avg_forward_30d_pct"],
+                    "win_rate_30d_pct": v["favorable_30d_pct"],
+                    "return_90d_pct": v["avg_forward_90d_pct"]}
+            p = frame.price
+            for col, lbl, mode in (("nupl", "NUPL", "abs"),
+                                   ("sth_mvrv", "STH-MVRV", "one"),
+                                   ("sth_sopr", "STH-SOPR", "one")):
+                if col not in frame or frame[col].dropna().empty:
+                    continue
+                pchg = p.pct_change(30, fill_method=None).iloc[-1]
+                mchg = (frame[col].diff(30) if mode == "abs"
+                        else (frame[col] - 1).diff(30)).iloc[-1]
+                thr = .05 if mode == "abs" else .03
+                if pchg > 0.05 and mchg < -thr:
+                    divergences.append({"severity": "warning",
+                                        "title": f"Preço ↑ / {lbl} deteriorando",
+                                        "detail": f"30d: preço {pchg*100:.1f}%, métrica {mchg:+.3f}"})
+                if pchg < -0.05 and mchg > thr:
+                    divergences.append({"severity": "opportunity",
+                                        "title": f"Preço ↓ / {lbl} melhorando",
+                                        "detail": f"30d: preço {pchg*100:.1f}%, métrica {mchg:+.3f}"})
+            ret30 = float(p.pct_change(30, fill_method=None).iloc[-1] * 100)
+            trend_up = bool(last.price > frame.price.rolling(200).mean().iloc[-1])
+            liquidity["open_interest_usd"] = (data.get("open_interest") or {}).get("total_usd")
+            liquidity["pi_top_distance_pct"] = float(
+                (last.price / frame.pi_350dma_x2.iloc[-1] - 1) * 100)
+            n_series = len(data.get("series") or {})
+            source("On-chain BTC (bitcoin-data/Glassnode + Binance)", "ok",
+                   f"{n_series} séries; {len(data.get('unavailable') or [])} indisponíveis")
+        except Exception as e:
+            source("On-chain BTC", "error", e)
+
+    # ── técnica (yfinance) — para BTC o research já vota; aqui só contexto ──
     try:
         h = yf.Ticker(yf_sym).history(period="5y", interval="1d", auto_adjust=True)
-        close = h["Close"].dropna()
-        if len(close) < 220:
-            raise ValueError(f"histórico insuficiente ({len(close)} pregões)")
-        health.append({"source": f"Yahoo Finance ({yf_sym})", "status": "ok"})
+        yclose = h["Close"].dropna()
+        if len(yclose) < 220:
+            raise ValueError(f"histórico insuficiente ({len(yclose)} pregões)")
+        close = yclose
+        source(f"Yahoo Finance ({yf_sym})", "ok")
     except Exception as e:
-        close = None
-        health.append({"source": f"Yahoo Finance ({yf_sym})", "status": "error",
-                       "detail": str(e)[:80]})
+        source(f"Yahoo Finance ({yf_sym})", "error", e)
 
-    if close is not None:
+    if close is not None and not is_btc:
         price = float(close.iloc[-1])
+        date = str(close.index[-1].date())
         sma200 = _sma(close, 200)
         rsi_series = _rsi(close)
         rsi = float(rsi_series.iloc[-1])
@@ -75,20 +157,17 @@ def _generic(raw, sym):
         above = close > sma200
         trend_up = bool(above.iloc[-1])
 
-        factors.append(1 if trend_up else -1)
-        reasons.append(f"Tendência: preço {'acima' if trend_up else 'abaixo'} da SMA200 "
-                       f"({(price / float(sma200.iloc[-1]) - 1) * 100:+.1f}%)")
-        valid = sma200.notna()
-        s = _fwd_stats(close, (above if trend_up else ~above) & valid)
+        vote(1 if trend_up else -1,
+             f"Tendência: preço {'acima' if trend_up else 'abaixo'} da SMA200 "
+             f"({(price / float(sma200.iloc[-1]) - 1) * 100:+.1f}%)")
+        s = _fwd_stats(close, (above if trend_up else ~above) & sma200.notna())
         if s:
             validation["Tendência atual (fwd 30d)"] = s
 
-        factors.append(1 if ret30 > 5 else -1 if ret30 < -5 else 0)
-        reasons.append(f"Momentum 30d: {ret30:+.1f}%")
-
-        factors.append(1 if rsi < 30 else -1 if rsi > 70 else 0)
-        reasons.append(f"RSI(14): {rsi:.0f}"
-                       + (" — sobrevendido" if rsi < 30 else " — sobrecomprado" if rsi > 70 else ""))
+        vote(1 if ret30 > 5 else -1 if ret30 < -5 else 0, f"Momentum 30d: {ret30:+.1f}%")
+        vote(1 if rsi < 30 else -1 if rsi > 70 else 0,
+             f"RSI(14): {rsi:.0f}"
+             + (" — sobrevendido" if rsi < 30 else " — sobrecomprado" if rsi > 70 else ""))
         if rsi > 70 or rsi < 30:
             s = _fwd_stats(close, rsi_series > 70 if rsi > 70 else rsi_series < 30)
             if s:
@@ -102,7 +181,7 @@ def _generic(raw, sym):
                                 "title": "Queda forte com RSI sobrevendido",
                                 "detail": f"30d {ret30:+.1f}%, RSI {rsi:.0f}"})
 
-    # ── fator 4: sazonalidade do mês corrente ────────────────────────────
+    # ── sazonalidade do mês corrente ─────────────────────────────────────
     try:
         import seasonality_data
         sea = seasonality_data.analyze(yf_sym)
@@ -110,10 +189,10 @@ def _generic(raw, sym):
         m = next(x for x in sea["monthly_stats"] if x["month"] == month)
         if m["avg_pct"] is not None and m["samples"] >= 5:
             win = m["win_rate_pct"] or 50
-            factors.append(1 if m["avg_pct"] > 0 and win >= 55
-                           else -1 if m["avg_pct"] < 0 and win <= 45 else 0)
-            reasons.append(f"Sazonalidade do mês: média {m['avg_pct']:+.2f}%, "
-                           f"acerto {win:.0f}% em {m['samples']} anos")
+            vote(1 if m["avg_pct"] > 0 and win >= 55
+                 else -1 if m["avg_pct"] < 0 and win <= 45 else 0,
+                 f"Sazonalidade do mês: média {m['avg_pct']:+.2f}%, "
+                 f"acerto {win:.0f}% em {m['samples']} anos")
             validation["Sazonalidade (mês atual)"] = {
                 "samples": m["samples"], "valid_30d": m["samples"],
                 "return_30d_pct": m["avg_pct"], "win_rate_30d_pct": win,
@@ -126,131 +205,222 @@ def _generic(raw, sym):
                 divergences.append({"severity": "opportunity",
                                     "title": "Tendência de baixa em mês historicamente forte",
                                     "detail": f"acerto histórico de {win:.0f}% no mês {month}"})
-        health.append({"source": sea["source"] + " (sazonalidade)", "status": "ok"})
+        source("Sazonalidade (Yahoo)", "ok")
     except Exception as e:
-        health.append({"source": "Sazonalidade", "status": "error", "detail": str(e)[:80]})
+        source("Sazonalidade", "error", e)
 
-    # ── fator 5 (cripto): funding contrário + atividade dev ─────────────
-    oi_usd = None
+    # ── macro: liquidez Fed + regime de risco (vale para qualquer ativo) ──
+    try:
+        import liquidity_data
+        liq = {r["id"]: r for r in liquidity_data.snapshot()["series"]
+               if r.get("status") == "ok"}
+        if all(k in liq for k in ("fed_balance_sheet", "reverse_repo", "treasury_account")):
+            # net liquidity em USD bi: WALCL(mi) - RRP(bi) - TGA(mi)
+            d30 = (liq["fed_balance_sheet"]["change_30"] / 1000
+                   - liq["reverse_repo"]["change_30"]
+                   - liq["treasury_account"]["change_30"] / 1000)
+            vote(1 if d30 > 25 else -1 if d30 < -25 else 0,
+                 f"Liquidez líquida Fed (WALCL−RRP−TGA): {d30:+,.0f} USD bi em 30 obs")
+        hy, vix = liq.get("high_yield_spread"), liq.get("vix")
+        if hy and vix:
+            risk = (1 if hy["change_30"] < -0.10 else -1 if hy["change_30"] > 0.30 else 0) \
+                 + (1 if vix["value"] < 14 else -1 if vix["value"] > 25 else 0)
+            vote(1 if risk > 0 else -1 if risk < 0 else 0,
+                 f"Regime de risco: HY spread {hy['value']:.2f}% ({hy['change_30']:+.2f} em 30 obs), "
+                 f"VIX {vix['value']:.1f}")
+            if trend_up is True and risk < 0:
+                divergences.append({"severity": "warning",
+                                    "title": "Alta do ativo contra aperto macro",
+                                    "detail": f"HY spread {hy['change_30']:+.2f}, VIX {vix['value']:.1f}"})
+        source("FRED (liquidez/risco)", "ok")
+    except Exception as e:
+        source("FRED (liquidez/risco)", "error", e)
+
+    # ── cripto: funding, TVL, Fear & Greed, amplitude, top traders, dev ──
     if crypto:
         try:
             import onchain_data
             c = onchain_data.coin(sym)
             d = c.get("deriv") or {}
             f = d.get("funding_pct")
-            oi_usd = d.get("oi_usd")
+            if liquidity["open_interest_usd"] is None:
+                liquidity["open_interest_usd"] = d.get("oi_usd")
             if f is not None:
-                factors.append(1 if f < 0 else -1 if f >= 0.03 else 0)
-                reasons.append(f"Funding perp Bybit: {f:+.4f}%/8h"
-                               + (" — shorts pagando (contrário altista)" if f < 0
-                                  else " — longs lotados (contrário baixista)" if f >= 0.03 else ""))
+                vote(1 if f < 0 else -1 if f >= 0.03 else 0,
+                     f"Funding perp Bybit: {f:+.4f}%/8h"
+                     + (" — shorts pagando (contrário altista)" if f < 0
+                        else " — longs lotados (contrário baixista)" if f >= 0.03 else ""))
                 if ret30 is not None:
                     if f >= 0.03 and ret30 > 10:
                         divergences.append({"severity": "warning",
                                             "title": "Alta sustentada por alavancagem comprada cara",
-                                            "detail": f"funding {f:+.4f}%/8h com preço {ret30:+.1f}% em 30d"})
+                                            "detail": f"funding {f:+.4f}%/8h, preço {ret30:+.1f}% em 30d"})
                     if f < 0 and ret30 < -10:
                         divergences.append({"severity": "opportunity",
                                             "title": "Queda com shorts pagando funding",
-                                            "detail": f"funding {f:+.4f}%/8h com preço {ret30:+.1f}% em 30d"})
+                                            "detail": f"funding {f:+.4f}%/8h, preço {ret30:+.1f}% em 30d"})
+            tvl = c.get("tvl") or {}
+            if tvl.get("chg_30d_pct") is not None:
+                t30 = tvl["chg_30d_pct"]
+                vote(1 if t30 > 10 else -1 if t30 < -10 else 0,
+                     f"TVL da chain {tvl.get('chain')}: {t30:+.1f}% em 30d (DeFiLlama)")
+                if ret30 is not None and ret30 > 5 and t30 < -10:
+                    divergences.append({"severity": "warning",
+                                        "title": "Preço subindo com TVL da chain encolhendo",
+                                        "detail": f"preço {ret30:+.1f}% vs TVL {t30:+.1f}% em 30d"})
             dev = (c.get("profile") or {}).get("dev") or {}
             if dev.get("commits_4w") == 0:
                 divergences.append({"severity": "warning",
                                     "title": "Atividade de desenvolvimento zerada (4 semanas)",
                                     "detail": "CoinGecko developer data — projeto pode estar abandonado"})
             errs = c.get("errors") or []
-            health.append({"source": "CoinGecko/Bybit (cripto)",
-                           "status": "ok" if not errs else "partial",
-                           "detail": "; ".join(errs)[:80]})
+            source("CoinGecko/Bybit (cripto)", "ok" if not errs else "partial",
+                   "; ".join(errs) if errs else None)
         except Exception as e:
-            health.append({"source": "CoinGecko/Bybit (cripto)", "status": "error",
-                           "detail": str(e)[:80]})
+            source("CoinGecko/Bybit (cripto)", "error", e)
 
-    # ── score = soma dos votos; confiança = concordância entre fatores ──
+        try:
+            from onchain_data import _get
+            fng = _get("https://api.alternative.me/fng/?limit=1")["data"][0]
+            v = int(fng["value"])
+            vote(1 if v <= 25 else -1 if v >= 75 else 0,
+                 f"Fear & Greed: {v} ({fng.get('value_classification')}) — leitura contrária")
+            source("Fear & Greed (alternative.me)", "ok")
+        except Exception as e:
+            source("Fear & Greed", "error", e)
+
+        try:
+            import altdata
+            cm = altdata.crypto_micro()
+            pp = cm.get("pct_positive")
+            if pp is not None:
+                vote(1 if pp <= 40 else -1 if pp >= 80 else 0,
+                     f"Amplitude de funding: {pp:.0f}% dos {cm['n_perps']} perps positivos"
+                     + (" — mercado inteiro alavancado comprado" if pp >= 80 else ""))
+            source("Bybit (amplitude de funding)", "ok")
+        except Exception as e:
+            source("Bybit (amplitude de funding)", "error", e)
+
+        try:
+            import insider_data
+            sm = insider_data.smart_money(sym)
+            feed = next((x for x in sm["feeds"] if x.get("kind") == "smart_money_proxy"), None)
+            if feed and feed.get("latest"):
+                ratio = feed["latest"]["ratio"]
+                vote(1 if ratio >= 1.5 else -1 if ratio <= 0.7 else 0,
+                     f"Top traders Binance (proxy): long/short {ratio:.2f}")
+                source("Binance top traders", "ok")
+        except Exception as e:
+            source("Binance top traders", "error", e)
+
+    # ── ações EUA: insiders SEC; aéreas: TSA; frete: GSCPI ───────────────
+    is_us_stock = not crypto and "." not in sym and "=" not in sym and "^" not in sym
+    if is_us_stock:
+        try:
+            import insider_data
+            sm = insider_data.smart_money(sym)
+            sec = next((x for x in sm["feeds"] if x.get("source") == "SEC EDGAR"), None)
+            if sec:
+                cutoff = (pd.Timestamp.now() - pd.Timedelta(days=30)).strftime("%Y-%m-%d")
+                recent = [x for x in sec["filings"] if x["date"] >= cutoff]
+                # filings não dizem compra/venda sem parsear cada doc — insight, não voto
+                insights.append(f"{len(recent)} filings de insiders (Forms 3/4/5) nos "
+                                f"últimos 30d — detalhe na aba Insiders")
+                source("SEC EDGAR (insiders)", "ok")
+        except Exception as e:
+            source("SEC EDGAR (insiders)", "error", e)
+
+    if sym in _AIRLINES:
+        try:
+            import altdata
+            tsa = altdata.traffic()
+            mom = tsa.get("mom_pct")
+            if mom is not None:
+                vote(1 if mom >= 2 else -1 if mom <= -2 else 0,
+                     f"Tráfego aéreo TSA: {mom:+.1f}% vs mês anterior (média 7d)")
+            source("TSA (tráfego aéreo)", "ok")
+        except Exception as e:
+            source("TSA (tráfego aéreo)", "error", e)
+
+    if sym in _SHIPPING:
+        try:
+            import altdata
+            gs = altdata.gscpi_series()
+            last_gs = gs["values"][-1]
+            yoy = last_gs - gs["values"][-13] if len(gs["values"]) >= 13 else None
+            if yoy is not None:
+                vote(1 if yoy > 0.3 else -1 if yoy < -0.3 else 0,
+                     f"GSCPI (pressão de supply chain): {last_gs:+.2f} ({yoy:+.2f} vs 1 ano) — "
+                     "pressão subindo tende a sustentar fretes")
+            source("NY Fed GSCPI", "ok")
+        except Exception as e:
+            source("NY Fed GSCPI", "error", e)
+
+    # ── commodities: COT (CFTC); agrícolas: ENSO + clima ────────────────
+    if not crypto and yf_sym.endswith("=F"):
+        try:
+            import insider_data
+            sm = insider_data.smart_money(yf_sym)
+            cot = next((x for x in sm["feeds"] if x.get("kind") == "positioning"), None)
+            if cot and cot.get("latest"):
+                pctl = cot["latest"].get("net_percentile_2y")
+                if pctl is not None:
+                    vote(1 if pctl <= 10 else -1 if pctl >= 90 else 0,
+                         f"COT (CFTC): net especulativo no percentil {pctl:.0f}% de 2 anos"
+                         + (" — posicionamento lotado (contrário)" if pctl >= 90 or pctl <= 10 else ""))
+                    if pctl >= 90 and trend_up is True:
+                        divergences.append({"severity": "warning",
+                                            "title": "Alta com especuladores lotados (COT)",
+                                            "detail": f"net não-comercial no percentil {pctl:.0f}%"})
+            source("CFTC COT", "ok" if cot else "partial")
+        except Exception as e:
+            source("CFTC COT", "error", e)
+
+    crop = _AGRI.get(yf_sym)
+    if crop:
+        try:
+            import altdata
+            cli = altdata.climate()
+            enso = cli["enso"]
+            alerts = [f"{r['region']}: {', '.join(r['flags'])}"
+                      for r in ((cli.get("regions") or {}).get("rows") or [])
+                      if r.get("flags") and crop in (r.get("crops") or "").lower()]
+            active = enso["status"] != "Neutro"
+            vote(1 if (active or alerts) else 0,
+                 f"Clima: ENSO {enso['status']} (anomalia {enso['anom']:+.1f}°C)"
+                 + (f"; alertas em regiões de {crop}: {'; '.join(alerts)}" if alerts
+                    else " — risco de oferta" if active else " — sem sinal dominante"))
+            if alerts:
+                divergences.append({"severity": "opportunity",
+                                    "title": f"Estresse climático em região produtora de {crop}",
+                                    "detail": "; ".join(alerts)[:140]})
+            source("NOAA ENSO + met.no", "ok")
+        except Exception as e:
+            source("NOAA ENSO + met.no", "error", e)
+
+    # ── consolidação ─────────────────────────────────────────────────────
     if not factors:
         raise ValueError(f"nenhuma fonte disponível para {sym}")
     score = sum(factors)
     n = len(factors)
-    expected = 5 if crypto else 4
     label = "COMPRA" if score >= 2 else "VENDA" if score <= -2 else "NEUTRO"
+    ok_sources = sum(1 for h in health if h["status"] == "ok")
+    reasons += insights
     return {"symbol": sym,
             "signal": {"label": label, "score": float(score),
                        "confidence": round(abs(score) / n * 100, 1),
                        "confidence_basis": "concordância entre os fatores disponíveis",
-                       "coverage_pct": round(n / expected * 100, 1),
-                       "reasons": reasons, "price": price,
-                       "date": str(close.index[-1].date()) if close is not None else None},
+                       "coverage_pct": round(ok_sources / len(health) * 100, 1),
+                       "reasons": reasons, "price": price, "date": date},
             "validation": validation, "divergences": divergences, "health": health,
-            "liquidity": {"open_interest_usd": oi_usd, "pi_top_distance_pct": None},
-            "ts": int(time.time() * 1000)}
-
-
-def _btc():
-    from btc_onchain_metrics import payload
-    from research.analyze_btc_onchain_signals import build_frame, score_history, summarize
-    data = payload()
-    frame = score_history(build_frame(data))
-    summary = summarize(frame)
-    ready_frame = frame[frame.model_ready]
-    if ready_frame.empty:
-        raise ValueError('métricas sem histórico comum suficiente')
-    last = ready_frame.iloc[-1]
-    available = list((data.get("series") or {}).keys())
-    reasons = [x.strip() for x in str(last.reasons).split(';') if x.strip()]
-    divergences = []
-    price = frame.price
-    specs = (("nupl", "NUPL", "absolute"), ("sth_mvrv", "STH-MVRV", "from_one"),
-             ("sth_sopr", "STH-SOPR", "from_one"), ("exchange_whale_ratio", "Whale Ratio", "relative"),
-             ("estimated_leverage_ratio", "Leverage", "relative"))
-    for col, label, mode in specs:
-        if col not in frame or frame[col].dropna().empty:
-            continue
-        pchg = price.pct_change(30, fill_method=None).iloc[-1]
-        series = frame[col]
-        if mode == "absolute":
-            mchg = series.diff(30).iloc[-1]; threshold = .05; display = f"{mchg:+.3f}"
-        elif mode == "from_one":
-            mchg = (series - 1).diff(30).iloc[-1]; threshold = .03; display = f"{mchg:+.3f} vs 1"
-        else:
-            mchg = series.pct_change(30, fill_method=None).iloc[-1]; threshold = .05; display = f"{mchg * 100:+.1f}%"
-        if pchg > 0.05 and mchg < -threshold:
-            divergences.append({"severity": "warning", "title": f"Preço ↑ / {label} deteriorando",
-                                "detail": f"30d: preço {pchg * 100:.1f}%, métrica {display}"})
-        if pchg < -0.05 and mchg > threshold:
-            divergences.append({"severity": "opportunity", "title": f"Preço ↓ / {label} melhorando",
-                                "detail": f"30d: preço {pchg * 100:.1f}%, métrica {display}"})
-    unavailable = data.get("unavailable") or []
-    health = [{"source": "Binance/Bybit/OKX Open Interest", "status": "ok" if data.get("open_interest") else "error"},
-              {"source": "Binance Pi Cycle", "status": "ok" if data.get("pi_cycle") else "error"},
-              {"source": "Glassnode/CryptoQuant", "status": "ok" if available else "missing_credentials",
-               "detail": f"{len(available)} séries ativas; {len(unavailable)} indisponíveis"}]
-    hist = summary["historical"]
-    validation = {k: {"samples": v["events"], "valid_30d": v["valid_30d"],
-                      "return_30d_pct": v["avg_forward_30d_pct"],
-                      "win_rate_30d_pct": v["favorable_30d_pct"],
-                      "return_90d_pct": v["avg_forward_90d_pct"]} for k, v in hist.items()}
-    current_stats = hist.get(last.signal) or {}
-    n = current_stats.get("valid_30d", 0); rate = current_stats.get("favorable_30d_pct")
-    # Shrink small samples toward 50%; this is historical calibration, not a forecast probability.
-    confidence = (round(50 + (rate - 50) * n / (n + 20), 1)
-                  if last.signal in ("COMPRA", "VENDA") and rate is not None and n else 0)
-    scoring_ids = {"nupl", "sth_mvrv", "sth_sopr", "exchange_whale_ratio",
-                   "estimated_leverage_ratio", "retail_demand_30d"}
-    coverage = round((1 + len(scoring_ids & set(available))) / 7 * 100, 1)
-    return {"symbol": "BTC", "signal": {"label": last.signal, "score": float(last.score),
-            "confidence": confidence, "confidence_basis": "30d favorable rate, shrunk toward 50%",
-            "coverage_pct": coverage, "reasons": reasons, "date": str(ready_frame.index[-1].date()), "price": float(last.price)},
-            "validation": validation, "divergences": divergences, "health": health,
-            "liquidity": {"open_interest_usd": (data.get("open_interest") or {}).get("total_usd"),
-                          "pi_top_distance_pct": float((last.price / frame.pi_350dma_x2.iloc[-1] - 1) * 100)},
-            "unavailable": unavailable, "ts": int(time.time() * 1000)}
+            "liquidity": liquidity, "ts": int(time.time() * 1000)}
 
 
 if __name__ == "__main__":
-    for s in ("PETR4.SA", "ETH", "GC=F"):
+    for s in ("BTC", "ETH", "PETR4.SA", "AAL", "KC=F", "ZIM"):
         r = analyze(s)
         sig = r["signal"]
-        assert sig["label"] in ("COMPRA", "VENDA", "NEUTRO") and len(sig["reasons"]) >= 2, r
-        print(f"{s}: {sig['label']} score={sig['score']} conf={sig['confidence']}% "
-              f"cobertura={sig['coverage_pct']}% | {len(r['divergences'])} divergências | "
-              f"{len(r['validation'])} validações")
+        assert sig["label"] in ("COMPRA", "VENDA", "NEUTRO") and len(sig["reasons"]) >= 3, r
+        print(f"{s}: {sig['label']} score={sig['score']:+.1f} conf={sig['confidence']}% "
+              f"cobertura={sig['coverage_pct']}% | fatores={len(sig['reasons'])} "
+              f"divergências={len(r['divergences'])} validações={len(r['validation'])}")
