@@ -154,7 +154,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="r in cli.regions.rows" :key="r.region" class="border-t border-surface-600/30">
+              <tr v-for="r in cli.regions.rows" :key="r.region" :title="r.impact"
+                  class="border-t border-surface-600/30">
                 <td class="py-1.5 text-gray-200">{{ r.region }}</td>
                 <td class="text-gray-500">{{ r.crops }}</td>
                 <td class="text-right text-gray-300">{{ r.precip_7d_mm }} mm</td>

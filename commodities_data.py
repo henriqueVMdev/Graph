@@ -200,8 +200,20 @@ def _metno_region(name, lat, lon, crops):
         flags.append("chuva excessiva")
     if tmax is not None and tmax >= 35:
         flags.append("calor extremo")
+    # explicação didática: condição climática → efeito na safra → efeito no preço
+    impact_map = {
+        "seca": ("sem chuva a planta sofre e a colheita encolhe — oferta menor "
+                 "com a mesma demanda: preço tende a SUBIR"),
+        "chuva excessiva": ("chuva demais atrasa plantio/colheita e apodrece o que "
+                            "está no campo — oferta menor e de pior qualidade: "
+                            "preço tende a SUBIR"),
+        "calor extremo": ("calor ≥35°C estressa a planta e queima a floração (fase "
+                          "que vira fruto/grão) — safra futura menor: preço tende a SUBIR"),
+    }
+    impact = ("; ".join(impact_map[f] for f in flags) if flags else
+              "clima dentro do normal — safra sem estresse, sem pressão de preço vinda desta região")
     return {"region": name, "crops": crops, "precip_7d_mm": round(precip, 1),
-            "tmax_7d": tmax, "flags": flags}
+            "tmax_7d": tmax, "flags": flags, "impact": impact}
 
 
 def weather() -> dict:

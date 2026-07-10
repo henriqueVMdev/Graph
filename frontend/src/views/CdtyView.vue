@@ -113,6 +113,9 @@
         <p class="text-[10px] text-gray-600 font-mono">
           {{ wx.source }} · impacto potencial em safra por região · flags: seca &lt;5mm/7d · chuva &gt;80mm/7d · calor ≥35°C
         </p>
+        <p class="text-[10px] text-gray-600">
+          leitura simplificada de oferta × demanda — não considera o calendário da safra (ex.: seca durante a colheita pode até ajudar; o dano real é na floração/enchimento do grão)
+        </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div v-for="r in wx.rows" :key="r.region" class="card p-4">
             <div class="text-sm font-semibold text-gray-200">{{ r.region }}</div>
@@ -133,6 +136,8 @@
               <span v-if="!r.flags.length" class="text-[9px] font-mono px-1.5 py-0.5 rounded
                     bg-surface-600/60 text-gray-500 uppercase">normal</span>
             </div>
+            <p v-if="r.impact" class="mt-2 text-[10px] leading-relaxed"
+               :class="r.flags.length ? 'text-amber-200/70' : 'text-gray-600'">{{ r.impact }}</p>
           </div>
         </div>
       </template>
