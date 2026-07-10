@@ -18,9 +18,69 @@ Fontes cruzadas por classe:
   regiões produtoras
 """
 from __future__ import annotations
+import threading
 import time
 
 _CACHE = {}
+
+# universo do ranking: cada classe demonstra os fatores que só ela tem
+UNIVERSE = [
+    ("BTC", "cripto"), ("ETH", "cripto"), ("SOL", "cripto"),
+    ("XRP", "cripto"), ("BNB", "cripto"), ("DOGE", "cripto"),
+    ("GC=F", "commodity"), ("SI=F", "commodity"), ("CL=F", "commodity"),
+    ("NG=F", "commodity"), ("HG=F", "commodity"), ("ZC=F", "commodity"),
+    ("ZW=F", "commodity"), ("ZS=F", "commodity"), ("KC=F", "commodity"),
+    ("SB=F", "commodity"), ("CC=F", "commodity"), ("CT=F", "commodity"),
+    ("^GSPC", "índice"), ("^IXIC", "índice"), ("^BVSP", "índice"),
+    ("EURUSD=X", "fx"), ("BRL=X", "fx"),
+    ("AAL", "ação"), ("ZIM", "ação"),
+]
+
+_RANK = {"rows": {}, "ts": 0.0, "building": False, "done": 0}
+_RANK_LOCK = threading.Lock()
+
+
+def ranking(ttl=900):
+    """Snapshot ranqueado do universo; constrói em background quando vence."""
+    with _RANK_LOCK:
+        if time.time() - _RANK["ts"] > ttl and not _RANK["building"]:
+            _RANK["building"] = True
+            _RANK["done"] = 0
+            threading.Thread(target=_build_ranking, daemon=True).start()
+        rows = sorted(_RANK["rows"].values(),
+                      key=lambda r: (r.get("score") is None, -(r.get("score") or 0)))
+        return {"rows": rows, "building": _RANK["building"],
+                "done": _RANK["done"], "total": len(UNIVERSE),
+                "ts": int(_RANK["ts"] * 1000) if _RANK["ts"] else None}
+
+
+def _build_ranking():
+    def one(item):
+        sym, klass = item
+        try:
+            r = analyze(sym)
+            sig = r["signal"]
+            row = {"symbol": sym, "class": klass, "label": sig["label"],
+                   "score": sig["score"], "confidence": sig["confidence"],
+                   "coverage_pct": sig["coverage_pct"], "price": sig["price"],
+                   "n_factors": len(sig["reasons"]),
+                   "divergences": [d["title"] for d in r["divergences"]]}
+        except Exception as e:
+            row = {"symbol": sym, "class": klass, "label": "ERRO",
+                   "score": None, "error": str(e)[:80]}
+        with _RANK_LOCK:
+            _RANK["rows"][sym] = row
+            _RANK["done"] += 1
+
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        # ponytail: pool pequeno para não estourar rate limit do CoinGecko/Bybit
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(one, UNIVERSE))
+    finally:
+        with _RANK_LOCK:
+            _RANK["ts"] = time.time()
+            _RANK["building"] = False
 
 _AIRLINES = {"AAL", "DAL", "UAL", "LUV", "ALK", "JBLU", "BKNG", "ABNB",
              "MAR", "HLT", "EXPE", "RCL", "CCL", "NCLH"}
