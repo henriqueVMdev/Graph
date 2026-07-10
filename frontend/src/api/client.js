@@ -390,4 +390,14 @@ export function getNews(cat = 'all', q = '') {
   return api.get('/terminal/news', { params: { cat, q }, timeout: 60000 })
 }
 
+export function getSeasonality(symbol) {
+  return api.get('/terminal/seasonality', { params: { symbol }, timeout: 180000 })
+}
+export function getIntelligence(symbol='BTC') {
+  return api.get('/terminal/intelligence', { params:{symbol}, timeout:180000 })
+}
+export const getMarketCalendar=(symbols='')=>api.get('/terminal/calendar',{params:{symbols},timeout:120000})
+export const getLiquidity=()=>api.get('/terminal/liquidity',{timeout:120000})
+export const runPortfolioLab=(symbols,years=3)=>api.post('/terminal/portfolio-lab',{symbols,years},{timeout:180000})
+
 export default api

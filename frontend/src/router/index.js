@@ -69,6 +69,10 @@ const routes = [
   { path: '/des', name: 'des', component: () => import('@/views/DesView.vue') },
   { path: '/alerts', name: 'alerts', component: () => import('@/views/AlertsView.vue') },
   { path: '/news', name: 'news', component: () => import('@/views/NewsView.vue') },
+  { path: '/seasonality', name: 'seasonality', component: () => import('@/views/SeasonalityView.vue') },
+  { path: '/intelligence', name: 'intelligence', component: () => import('@/views/IntelligenceView.vue') },
+  { path: '/calendar', name: 'calendar', component: () => import('@/views/MarketCalendarView.vue') },
+  { path: '/portfolio-lab', name: 'portfolio-lab', component: () => import('@/views/PortfolioLabView.vue') },
 ]
 
 export default createRouter({

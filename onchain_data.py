@@ -244,12 +244,15 @@ def _overview() -> dict:
             "https://api.alternative.me/fng/?limit=90"))
         f_cg = pool.submit(safe, "coingecko", lambda: _get(
             "https://api.coingecko.com/api/v3/global", timeout=20))
+        f_advanced = pool.submit(safe, "btc_metrics", lambda:
+            __import__("btc_onchain_metrics").payload())
 
         hashrate, addresses, txs = f_hash.result(), f_addr.result(), f_txs.result()
         fees, diff = f_fees.result(), f_diff.result()
         chair = f_chair.result()
         chains, stables = f_chains.result(), f_stab.result()
         fng, cg = f_fng.result(), f_cg.result()
+        advanced = f_advanced.result()
 
     # ── BTC: rede ────────────────────────────────────────────────────────
     btc = {"hashrate": hashrate, "addresses": addresses, "txs": txs,
@@ -332,4 +335,6 @@ def _overview() -> dict:
             "active_cryptos": d.get("active_cryptocurrencies"),
         }
     out["sentiment"] = sent
+    out["btc_metrics"] = advanced or {
+        "series": {}, "unavailable": [], "error": "métricas BTC indisponíveis"}
     return out

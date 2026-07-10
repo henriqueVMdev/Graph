@@ -27,6 +27,8 @@
             <option value="price_below">Preço abaixo de</option>
             <option v-if="form.market === 'crypto'" value="funding_above">Funding acima de</option>
             <option v-if="form.market === 'crypto'" value="funding_below">Funding abaixo de</option>
+            <option value="signal_score_above">Score multifator acima de</option>
+            <option value="signal_score_below">Score multifator abaixo de</option>
           </select>
         </label>
         <label class="text-xs text-gray-500 block">

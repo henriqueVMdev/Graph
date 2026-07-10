@@ -252,6 +252,10 @@ def analyze(symbol: str) -> dict:
         # pares do setor
         out["peers"] = _safe(lambda: _peers(yf_sym, info.get("sector"),
                                             out["mcap"]), [])
+        out["smart_money"] = _safe(
+            lambda: __import__("insider_data").smart_money(
+                yf_sym, info.get("country"), info.get("quoteType")),
+            {"feeds": [], "sources": [], "errors": ["fontes indisponíveis"]})
         return out
 
     return _cached(("ea", yf_sym), 900, fetch)

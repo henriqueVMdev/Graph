@@ -618,7 +618,8 @@ def eqs_funds():
 
 _ALERTS_FILE = Path(__file__).parent / "alerts_data.json"
 _alerts_lock = threading.Lock()
-_ALERT_KINDS = ("price_above", "price_below", "funding_above", "funding_below")
+_ALERT_KINDS = ("price_above", "price_below", "funding_above", "funding_below",
+                "signal_score_above", "signal_score_below")
 
 
 def _alerts_load() -> list:
@@ -698,6 +699,8 @@ def _ensure_watcher():
             return
         threading.Thread(target=_alert_watcher, daemon=True,
                          name="terminal-alert-watcher").start()
+        threading.Thread(target=_signal_alert_watcher, daemon=True,
+                         name="terminal-signal-alert-watcher").start()
         _watcher_started = True
 
 
@@ -707,7 +710,8 @@ def _alert_watcher():
         try:
             with _alerts_lock:
                 alerts = _alerts_load()
-            active = [a for a in alerts if a.get("active")]
+            active = [a for a in alerts if a.get("active")
+                      and not a["kind"].startswith("signal_score")]
             if not active:
                 continue
             # agrupa por exchange; 1 fetch de tickers+funding por exchange
@@ -764,6 +768,43 @@ def _alert_watcher():
                     _alerts_save(out)
         except Exception:
             pass  # ciclo seguinte tenta de novo
+
+
+def _signal_alert_watcher():
+    """Slow multifactor checks are isolated so price/funding alerts stay fast."""
+    while True:
+        time.sleep(60)
+        try:
+            with _alerts_lock:
+                alerts = _alerts_load()
+            active = [a for a in alerts if a.get("active")
+                      and a["kind"].startswith("signal_score")]
+            if not active:
+                continue
+            import intelligence_data
+            scores = {}
+            for symbol in {a["symbol"] for a in active}:
+                try:
+                    scores[symbol] = intelligence_data.analyze(symbol)["signal"]["score"]
+                except Exception:
+                    pass
+            changed = False
+            for a in active:
+                value = scores.get(a["symbol"])
+                if value is None:
+                    continue
+                hit = value >= a["level"] if a["kind"].endswith("above") else value <= a["level"]
+                if hit:
+                    a.update(active=False, triggered_at=int(time.time()*1000),
+                             trigger_value=value)
+                    changed = True
+            if changed:
+                with _alerts_lock:
+                    current = _alerts_load()
+                    updates = {a["id"]: a for a in alerts}
+                    _alerts_save([updates.get(a["id"], a) for a in current])
+        except Exception:
+            pass
 
 
 # ── /news — RSS agregado ─────────────────────────────────────────────────
@@ -852,3 +893,42 @@ def news():
         return jsonify({"items": items[:100], "failed_sources": data["failed_sources"]})
     except Exception as e:
         return jsonify({"error": str(e)[:300]}), 500
+
+@terminal_bp.get("/seasonality")
+def seasonality():
+    try:
+        import seasonality_data
+        return jsonify(seasonality_data.analyze(request.args.get("symbol", "")))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 400
+
+@terminal_bp.get("/intelligence")
+def intelligence():
+    try:
+        import intelligence_data
+        return jsonify(intelligence_data.analyze(request.args.get("symbol", "BTC")))
+    except Exception as e:
+        return jsonify({"error": str(e)[:300]}), 400
+
+@terminal_bp.get("/calendar")
+def market_calendar():
+    try:
+        import calendar_data
+        symbols=[x for x in request.args.get("symbols","").upper().split(",") if x]
+        return jsonify(calendar_data.events(symbols))
+    except Exception as e:return jsonify({"error":str(e)[:300]}),400
+
+@terminal_bp.get("/liquidity")
+def liquidity():
+    try:
+        import liquidity_data
+        return jsonify(liquidity_data.snapshot())
+    except Exception as e:return jsonify({"error":str(e)[:300]}),400
+
+@terminal_bp.post("/portfolio-lab")
+def portfolio_lab_route():
+    try:
+        import portfolio_lab
+        body=request.get_json(force=True) or {}
+        return jsonify(portfolio_lab.analyze(body.get("symbols") or [],body.get("years",3)))
+    except Exception as e:return jsonify({"error":str(e)[:300]}),400

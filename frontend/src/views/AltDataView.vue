@@ -407,6 +407,54 @@
         </template>
       </div>
 
+      <!-- métricas BTC avançadas -->
+      <div class="card p-4 space-y-4" v-if="oc.btc_metrics">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-[10px] text-accent-yellow uppercase font-semibold">BTC · On-chain avançado</div>
+            <div class="text-[10px] text-gray-600">Cada valor identifica sua fonte; métricas proprietárias não são estimadas.</div>
+          </div>
+          <div class="text-right font-mono">
+            <div class="text-[9px] text-gray-500 uppercase">Open Interest agregado</div>
+            <div class="text-sm text-gray-100">{{ fmtB(oc.btc_metrics.open_interest?.total_usd) }}</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div v-for="m in advancedMetricCards" :key="m.id" class="rounded-lg bg-surface-600/30 p-3">
+            <div class="text-[9px] text-gray-500 uppercase leading-tight">{{ m.label }}</div>
+            <div class="text-base font-bold font-mono text-gray-100">{{ m.value }}</div>
+            <div class="text-[9px] text-gray-600">{{ m.source }}</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <div class="text-[10px] text-gray-500 uppercase mb-1">Pi Cycle Top · BTC, 111DMA e 2×350DMA</div>
+            <div ref="piCycleChart" class="h-64" />
+          </div>
+          <div>
+            <div class="text-[10px] text-gray-500 uppercase mb-1">Realized Price · STH vs LTH</div>
+            <div ref="holderPriceChart" class="h-64" />
+          </div>
+        </div>
+        <div v-if="oc.btc_metrics.sth_sopr_mvrv_indicator">
+          <div class="flex flex-wrap justify-between gap-2 mb-1">
+            <div class="text-[10px] text-gray-500 uppercase">STH MVRV & 2× STH SOPR · break-even = 1</div>
+            <div class="text-[10px] font-mono text-gray-400">
+              MVRV {{ oc.btc_metrics.sth_sopr_mvrv_indicator.latest?.sth_mvrv?.toFixed(3) }} ·
+              SOPR {{ oc.btc_metrics.sth_sopr_mvrv_indicator.latest?.sth_sopr?.toFixed(3) }}
+            </div>
+          </div>
+          <div ref="sthSoprMvrvChart" class="h-72" />
+          <div class="text-[9px] text-gray-600">{{ oc.btc_metrics.sth_sopr_mvrv_indicator.formula }}</div>
+        </div>
+        <details v-if="oc.btc_metrics.unavailable?.length" class="text-[10px] text-amber-400/80">
+          <summary class="cursor-pointer">{{ oc.btc_metrics.unavailable.length }} métricas aguardando provedor/credencial</summary>
+          <div v-for="u in oc.btc_metrics.unavailable" :key="u.id" class="mt-1">
+            {{ u.label }} — {{ u.reason }}
+          </div>
+        </details>
+      </div>
+
       <!-- cards de topo -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div class="card p-3">
@@ -570,12 +618,34 @@ const tsaChart = ref(null)
 const fngChart = ref(null)
 const hashChart = ref(null)
 const addrChart = ref(null)
+const piCycleChart = ref(null)
+const holderPriceChart = ref(null)
+const sthSoprMvrvChart = ref(null)
 const indRefs = {}
 
 const sectorList = computed(() => sec.value?.sectors
   || { varejo: 'Varejo (EUA)', semis: 'Semicondutores', autos: 'Automóveis', energia: 'Energia (integradas)' })
 const totalOi = computed(() =>
   (cm.value?.majors || []).reduce((s, m) => s + (m.oi_usd || 0), 0))
+const advancedMetricCards = computed(() => {
+  const series = oc.value?.btc_metrics?.series || {}
+  const defs = [
+    ['exchange_whale_ratio', 'Exchange Whale Ratio'],
+    ['estimated_leverage_ratio', 'Estimated Leverage Ratio'],
+    ['nupl', 'NUPL'],
+    ['retail_demand_30d', 'Retail Demand · Δ30D'],
+    ['sth_realized_price', 'STH Realized Price'],
+    ['lth_realized_price', 'LTH Realized Price'],
+    ['whale_realized_price', 'Whales Realized Price'],
+    ['whale_last_active', 'Whale Last Active'],
+  ]
+  return defs.map(([id, label]) => {
+    const s = series[id]
+    const v = s?.values?.at(-1)
+    const money = id.includes('price')
+    return { id, label, value: v == null ? '—' : money ? '$' + fmt(v) : Number(v).toFixed(3), source: s?.source || 'não configurado' }
+  })
+})
 
 function setIndRef(el, id) {
   if (el) indRefs[id] = el
@@ -732,6 +802,37 @@ async function drawOnchain() {
       x: ad.ts.map((t) => new Date(t)), y: ad.values,
       line: { color: '#69db7c', width: 1.5 },
     }], LAYOUT(224), CFG)
+  }
+  const pi = oc.value?.btc_metrics?.pi_cycle
+  if (piCycleChart.value && pi) {
+    const x = pi.ts.map((t) => new Date(t))
+    P.newPlot(piCycleChart.value, [
+      { type: 'scatter', mode: 'lines', x, y: pi.price, name: 'BTC', line: { color: '#888', width: 1 } },
+      { type: 'scatter', mode: 'lines', x, y: pi.dma111, name: '111DMA', line: { color: '#f5c518', width: 1.5 } },
+      { type: 'scatter', mode: 'lines', x, y: pi.dma350x2, name: '2×350DMA', line: { color: '#ef4444', width: 1.5 } },
+    ], { ...LAYOUT(256), showlegend: true, legend: { orientation: 'h', y: 1.12 }, yaxis: { type: 'log', gridcolor: '#1e1e1e' } }, CFG)
+  }
+  const sth = oc.value?.btc_metrics?.series?.sth_realized_price
+  const lth = oc.value?.btc_metrics?.series?.lth_realized_price
+  if (holderPriceChart.value && (sth || lth)) {
+    const traces = []
+    if (sth) traces.push({ type: 'scatter', mode: 'lines', x: sth.ts.map((t) => new Date(t)), y: sth.values, name: 'STH', line: { color: '#f5c518', width: 1.5 } })
+    if (lth) traces.push({ type: 'scatter', mode: 'lines', x: lth.ts.map((t) => new Date(t)), y: lth.values, name: 'LTH', line: { color: '#4dabf7', width: 1.5 } })
+    P.newPlot(holderPriceChart.value, traces, { ...LAYOUT(256), showlegend: true, legend: { orientation: 'h', y: 1.12 } }, CFG)
+  }
+  const sm = oc.value?.btc_metrics?.sth_sopr_mvrv_indicator
+  if (sthSoprMvrvChart.value && sm) {
+    const x = sm.ts.map((t) => new Date(t))
+    P.newPlot(sthSoprMvrvChart.value, [
+      { type: 'scatter', mode: 'lines', x, y: sm.mvrv_positive, name: 'MVRV-STH (+)', line: { color: '#38d996', width: 1.3 } },
+      { type: 'scatter', mode: 'lines', x, y: sm.mvrv_negative, name: 'MVRV-STH (−)', line: { color: '#f74870', width: 1.3 } },
+      { type: 'scatter', mode: 'lines', x, y: sm.sopr2_positive, name: '2× STH-SOPR (+)', line: { color: '#4dabf7', width: 1.1 } },
+      { type: 'scatter', mode: 'lines', x, y: sm.sopr2_negative, name: '2× STH-SOPR (−)', line: { color: '#f59f00', width: 1.1 } },
+    ], {
+      ...LAYOUT(288), showlegend: true, legend: { orientation: 'h', y: 1.1 },
+      shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 1, y1: 1,
+        line: { color: '#aaa', width: 1, dash: 'dot' } }],
+    }, CFG)
   }
 }
 

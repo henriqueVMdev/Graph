@@ -247,6 +247,65 @@
             </tbody>
           </table>
         </div>
+
+        <div class="card p-4 space-y-3" v-if="d.smart_money">
+          <div>
+            <div class="text-sm font-semibold text-gray-200"><span class="text-accent-yellow">◆</span> Insiders & Smart Money · múltiplos mercados</div>
+            <div class="text-[10px] text-gray-600">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
+          </div>
+          <div v-if="d.smart_money.errors?.length" class="text-[10px] text-amber-400">{{ d.smart_money.errors.join(' · ') }}</div>
+          <div v-for="feed in d.smart_money.feeds || []" :key="feed.source" class="rounded-lg bg-surface-600/30 p-3">
+            <div class="flex justify-between gap-2 mb-2">
+              <div>
+                <div class="text-xs font-semibold text-gray-200">{{ feed.source }}</div>
+                <div v-if="feed.note" class="text-[9px] text-amber-400/80">{{ feed.note }}</div>
+              </div>
+              <a :href="feed.url" target="_blank" rel="noopener" class="text-[10px] text-accent-yellow hover:underline">fonte oficial ↗</a>
+            </div>
+            <div v-if="feed.latest" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
+              <div v-if="feed.latest.net != null"><span class="text-gray-500">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmtVol(feed.latest.net) }}</div></div>
+              <div v-if="feed.latest.net_percentile_2y != null"><span class="text-gray-500">Percentil 2 anos</span><div class="text-gray-200">{{ feed.latest.net_percentile_2y }}%</div></div>
+              <div v-if="feed.latest.ratio != null"><span class="text-gray-500">Long/Short top traders</span><div class="text-gray-200">{{ feed.latest.ratio.toFixed(2) }}</div></div>
+              <div v-if="feed.latest.long_pct != null"><span class="text-gray-500">Long / Short</span><div><span class="text-green-400">{{ feed.latest.long_pct.toFixed(1) }}%</span> / <span class="text-red-400">{{ feed.latest.short_pct.toFixed(1) }}%</span></div></div>
+              <div v-if="feed.latest.date"><span class="text-gray-500">Referência</span><div class="text-gray-300">{{ feed.latest.date }}</div></div>
+            </div>
+            <table v-if="feed.filings?.length" class="w-full text-[11px] font-mono">
+              <tbody><tr v-for="f in feed.filings" :key="f.url" class="border-t border-surface-500/40">
+                <td class="py-1 text-accent-yellow">Form {{ f.form }}</td><td class="text-gray-500">{{ f.date }}</td>
+                <td class="text-gray-300">{{ f.description || 'Insider ownership filing' }}</td>
+                <td class="text-right"><a :href="f.url" target="_blank" rel="noopener" class="text-gray-400 hover:text-accent-yellow">abrir ↗</a></td>
+              </tr></tbody>
+            </table>
+            <div v-if="feed.famous_wallets?.length" class="mt-3 overflow-x-auto">
+              <div class="text-[10px] text-gray-500 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
+              <table class="w-full text-[10px] font-mono">
+                <thead><tr class="text-gray-600 border-b border-surface-500">
+                  <th class="py-1 text-left">Rótulo</th><th class="text-left">Endereço</th>
+                  <th class="text-right">Saldo BTC</th><th class="text-right">Recebido</th>
+                  <th class="text-right">Txs</th><th class="text-right">Última atividade</th>
+                </tr></thead>
+                <tbody><tr v-for="w in feed.famous_wallets" :key="w.address" class="border-b border-surface-600/40">
+                  <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[8px]" :class="w.confidence === 'verified' ? 'text-green-500' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
+                  <td><a :href="w.explorer_url" target="_blank" rel="noopener" class="text-accent-yellow hover:underline">{{ shortAddress(w.address) }} ↗</a></td>
+                  <td class="text-right text-gray-200">{{ w.balance_btc != null ? w.balance_btc.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—' }}</td>
+                  <td class="text-right text-gray-400">{{ w.received_btc != null ? w.received_btc.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—' }}</td>
+                  <td class="text-right text-gray-400">{{ w.tx_count?.toLocaleString('pt-BR') ?? '—' }}</td>
+                  <td class="text-right text-gray-500">{{ fmtDateTs(w.last_activity_ts) }}</td>
+                </tr></tbody>
+              </table>
+              <div class="text-[9px] text-amber-400/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
+            </div>
+          </div>
+          <details class="text-[10px]">
+            <summary class="cursor-pointer text-gray-400">Diretório de fontes por mercado ({{ d.smart_money.sources?.length || 0 }})</summary>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
+              <a v-for="s in d.smart_money.sources || []" :key="s.market + s.source" :href="s.url" target="_blank" rel="noopener"
+                 class="rounded bg-surface-600/30 p-2 text-gray-400 hover:text-accent-yellow">
+                <span class="text-gray-600">{{ s.market }} · </span>{{ s.source }} ↗
+              </a>
+            </div>
+          </details>
+        </div>
       </template>
 
       <!-- ══ DIVIDENDOS ══ -->
@@ -485,6 +544,12 @@ function toOmon() {
 
 function isSale(text) {
   return /sale|sold/i.test(text || '')
+}
+function shortAddress(v) {
+  return v ? v.slice(0, 7) + '…' + v.slice(-6) : '—'
+}
+function fmtDateTs(v) {
+  return v ? new Date(v).toLocaleDateString('pt-BR') : '—'
 }
 function pctOf(v) {
   if (v == null) return '—'

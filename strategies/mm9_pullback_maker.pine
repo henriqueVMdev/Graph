@@ -87,7 +87,7 @@ slopeUp = e1h > e1h[4]
 
 // ── Janela de horário (entradas apenas) ─────────────────────────────────
 inSession = not useSession or not na(time(timeframe.period, sess, tzName))
-
+1
 // ── Setup (avaliado no candle fechado; ordem executa no seguinte) ───────
 longSetup  = e50 > e200 and close > e200 and (not use1h or slopeUp)      and close > e9 and volOk
 shortSetup = allowShort and e50 < e200 and close < e200 and (not use1h or not slopeUp) and close < e9 and volOk

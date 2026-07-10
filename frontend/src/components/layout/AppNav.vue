@@ -149,6 +149,7 @@ const I = {
   alt: '<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>',
   cdty: '<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M2 12h20"/><path d="M12 2c2.5 2.7 4 6.2 4 10s-1.5 7.3-4 10c-2.5-2.7-4-6.2-4-10s1.5-7.3 4-10z"/>',
   news: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="18" y1="14" x2="10" y2="14"/><line x1="18" y1="18" x2="10" y2="18"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/>',
+  seasonal: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/><path d="M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>',
 }
 
 // Grupos por afinidade: pesquisa de estratégia → dados de mercado →
@@ -169,6 +170,10 @@ const GROUPS = [
       { to: '/grafico', label: 'Gráfico', icon: I.chart },
       { to: '/tech', label: 'Análise Técnica', icon: I.tech },
       { to: '/news', label: 'Notícias', icon: I.news },
+      { to: '/seasonality', label: 'Sazonalidade', icon: I.seasonal },
+      { to: '/intelligence', label: 'Central de Sinais', icon: I.regime },
+      { to: '/calendar', label: 'Calendário de Eventos', icon: I.journal },
+      { to: '/portfolio-lab', label: 'Portfolio Lab', icon: I.optimizer },
     ] },
   { label: 'Análise', hint: 'fundamental & macro', icon: I.company,
     items: [

@@ -13,6 +13,8 @@ frontend/dist/
 
 # Data
 data/1
+data/btc_onchain_signals.csv
+data/btc_onchain_signals.summary.json
 
 # Trade journal (dados pessoais do usuário)
 journal_data.json

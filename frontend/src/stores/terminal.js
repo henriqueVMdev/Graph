@@ -189,6 +189,7 @@ export const useTerminalStore = defineStore('terminal', () => {
     return {
       price_above: 'preço acima de', price_below: 'preço abaixo de',
       funding_above: 'funding acima de', funding_below: 'funding abaixo de',
+      signal_score_above: 'score multifator acima de', signal_score_below: 'score multifator abaixo de',
     }[kind] || kind
   }
 
