@@ -3094,6 +3094,14 @@ app.register_blueprint(automation_bp)
 from terminal_api import terminal_bp  # noqa: E402
 app.register_blueprint(terminal_bp)
 
+# ─── Agentes de IA (padrões do AgentHUB: loop nativo + gateways opcionais) ─
+from agents_api import agents_bp  # noqa: E402
+app.register_blueprint(agents_bp)
+
+# ─── HFT on-chain (memecoins, paper) ───────────────────────────────────────
+from hft_engine import hft_bp  # noqa: E402
+app.register_blueprint(hft_bp)
+
 
 def _start_automation_runner():
     """Religa o runner se havia deployments rodando quando o server caiu.

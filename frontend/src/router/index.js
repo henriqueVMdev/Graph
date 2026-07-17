@@ -59,6 +59,8 @@ const routes = [
     name: 'automation',
     component: AutomationView,
   },
+  { path: '/agentes', name: 'agentes', component: () => import('@/views/AgentsView.vue') },
+  { path: '/hft', name: 'hft', component: () => import('@/views/HftView.vue') },
   // ── Terminal (Bloomberg-like) — lazy-loaded ──
   { path: '/monitor', name: 'monitor', component: () => import('@/views/MonitorView.vue') },
   { path: '/screener', name: 'screener', component: () => import('@/views/ScreenerView.vue') },

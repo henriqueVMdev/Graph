@@ -1,0 +1,165 @@
+{
+ "config": {
+  "chain": "robinhood",
+  "mode": "paper",
+  "scan_interval_s": 60,
+  "tick_interval_s": 3,
+  "min_liquidity_usd": 50000,
+  "min_pool_age_h": 2,
+  "min_buy_ratio": 0.62,
+  "min_vol_accel": 1.5,
+  "take_profit_pct": 12.0,
+  "stop_loss_pct": 6.0,
+  "max_hold_min": 45,
+  "position_usd": 100.0,
+  "max_positions": 3,
+  "daily_loss_stop_usd": 150.0,
+  "fee_pct": 0.3
+ },
+ "running": false,
+ "capital": 1000.0,
+ "initial_capital": 1000.0,
+ "positions": {},
+ "watchlist": {
+  "0x020bfc650a365f8bb26819deaabf3e21291018b4": {
+   "symbol": "CASHCAT",
+   "pool": "0xa70fc67c9f69da90b63a0e4c05d229954574e313",
+   "liq": 2160121.9133,
+   "added_at": 1784254685.5922408
+  },
+  "0x45242320dbb855eea8fd36804c6487e10e97fcf9": {
+   "symbol": "TENDIES",
+   "pool": "0x237609918f330add285b8bc5f8f2922283d1c4c5",
+   "liq": 593005.6288,
+   "added_at": 1784254685.5922883
+  },
+  "0x407470f85e0b342a52aae2f191e135cef2947777": {
+   "symbol": "MIZUKARA",
+   "pool": "0xaeca58d7971eac1909b512b5de0129791883a906",
+   "liq": 65458.8343,
+   "added_at": 1784254685.5923288
+  },
+  "0x17bb0c898254406b1ea2e8e99b0c263e26c9e4a4": {
+   "symbol": "DIH",
+   "pool": "0x21c37681013d088789c6aed0c0a665cc7b7c1bfb",
+   "liq": 99807.6998,
+   "added_at": 1784254685.5923657
+  },
+  "0x8ff92566f2e81bdd68edfaa8cde73942a723796b": {
+   "symbol": "VEX",
+   "pool": "0x817f16f5d8da83d1b089b082c0172af3923618da",
+   "liq": 380407.3226,
+   "added_at": 1784254685.5924006
+  },
+  "0x39dbed3a2bd333467115de45665cc57f813c4571": {
+   "symbol": "PONS",
+   "pool": "0x10cc6bd38112cac182db90b6a71d8bb5939526ba",
+   "liq": 373547.3296,
+   "added_at": 1784254685.592433
+  },
+  "0x56910d4409f3a0c78c64dd8d0545ff0705389870": {
+   "symbol": "Index",
+   "pool": "0x00dd2df2f17d431cf3a0938f06c9cf9abc5e9643b6cc466ca3f71f3af246edf3",
+   "liq": 1752642.0123,
+   "added_at": 1784254685.5924792
+  },
+  "0x01637b14b7378b99de75a64d50656d98488d9a4d": {
+   "symbol": "MARIAN",
+   "pool": "0xfe331fd29b54bce09d52988fa691e3b18b0a4081",
+   "liq": 246228.2111,
+   "added_at": 1784254685.5925124
+  },
+  "0xbf72347bacefe747eaf48b8a66e38babad3020a0": {
+   "symbol": "STONKS",
+   "pool": "0xfc6dc4a73a34d2739fb164b72e322de6c09fe1a0",
+   "liq": 99256.8603,
+   "added_at": 1784254685.5925431
+  },
+  "0xc79d46d716b33b463b3a6574d6ee26009abf4e9a": {
+   "symbol": "BYCOCKET",
+   "pool": "0x499f3ac0dadbbb72aa8e6c34435071cbf2705fe7",
+   "liq": 110962.3818,
+   "added_at": 1784254685.5925732
+  },
+  "0xf444f3c77c77a33f7c8d8fcab8a1e88afb843da5": {
+   "symbol": "SQUEEZE",
+   "pool": "0x3b054359e248009e797afbcfa975fa4cf5147d503421af53f179be1abf63d46f",
+   "liq": 419801.3142,
+   "added_at": 1784254685.5926032
+  },
+  "0x0339f5459fc690ac85f1782e15782a151b4a9e1b": {
+   "symbol": "WALLET",
+   "pool": "0x9501a20bedb8bea0798fe5d4c411f5e270965d49",
+   "liq": 447777.8045,
+   "added_at": 1784254685.5926344
+  },
+  "0xd7321801caae694090694ff55a9323139f043b88": {
+   "symbol": "JUGGERNAUT",
+   "pool": "0x588b0785f50063260003b7790c42f1ef74902746",
+   "liq": 226576.6044,
+   "added_at": 1784254685.5926638
+  },
+  "0xf314aedeaadcb02f33a13eae471fe06d13aa7777": {
+   "symbol": "401k",
+   "pool": "0xf63642f78784a3d862f0f175fef40a53a80baa6d",
+   "liq": 111510.485,
+   "added_at": 1784254685.5926936
+  },
+  "0x1b27ff6e68a2fd6490543b17c996c109e64eb432": {
+   "symbol": "NOCK",
+   "pool": "0xf362ec5a624c8c573299625206c498bff94301db",
+   "liq": 93390.1053,
+   "added_at": 1784254685.5927236
+  },
+  "0xf4c450c1570c2dbda91de1ed2e39995a15028c97": {
+   "symbol": "HODL",
+   "pool": "0xdd839007f5a548c57a0acaa64642be8bf10f2a33",
+   "liq": 89723.8752,
+   "added_at": 1784254685.5927534
+  },
+  "0x3450598e419abb5609f60e4b2fda127ff0897777": {
+   "symbol": "FLETCH",
+   "pool": "0x9d389cada8459db4f6e2425b68f06f6f7026d10c",
+   "liq": 79727.6583,
+   "added_at": 1784254685.5927827
+  },
+  "0x7e86381a763f0ecca2bdf27c54eac403ddd48123": {
+   "symbol": "GME",
+   "pool": "0x90c8c09dd4a6bf3b0a2dcf179c72a2c8c6e09fee",
+   "liq": 118688.0446,
+   "added_at": 1784254685.5928125
+  },
+  "0xf8bc08092c06db6148114dcf82af881f1085f92b": {
+   "symbol": "WOOD",
+   "pool": "0xbf3bb81de6285b8310a028d1c2cd38f9419d54c1",
+   "liq": 487982.9451,
+   "added_at": 1784254685.5928428
+  }
+ },
+ "trades": [],
+ "events": [
+  {
+   "ts": 1784254685.262982,
+   "kind": "state",
+   "text": "Motor HFT ligado (paper)"
+  },
+  {
+   "ts": 1784254685.5928624,
+   "kind": "scan",
+   "text": "19 candidatos novos na watchlist (19 total)"
+  },
+  {
+   "ts": 1784254710.3439934,
+   "kind": "config",
+   "text": "Config alterada: {'min_pool_age_h': 2}"
+  },
+  {
+   "ts": 1784254718.397483,
+   "kind": "state",
+   "text": "Motor HFT desligado (posições fechadas)"
+  }
+ ],
+ "day": "2026-07-16",
+ "day_pnl": 0.0,
+ "halted": false
+}

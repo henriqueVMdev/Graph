@@ -188,6 +188,8 @@ const GROUPS = [
     items: [
       { to: '/trade', label: 'Trading (OMS)', icon: I.trade },
       { to: '/automation', label: 'Automação', icon: I.auto },
+      { to: '/agentes', label: 'Agentes IA', icon: I.auto },
+      { to: '/hft', label: 'HFT On-chain', icon: I.auto },
       { to: '/journal', label: 'Diário', icon: I.journal },
     ] },
 ]

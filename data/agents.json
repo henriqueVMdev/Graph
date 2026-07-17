@@ -1,0 +1,32 @@
+{
+  "next_id": 2,
+  "agents": [
+    {
+      "name": "Caçador de Hype",
+      "system_prompt": "analista degen",
+      "model": "anthropic/claude-sonnet-5",
+      "temperature": 0.7,
+      "agent_type": "native",
+      "base_url": "",
+      "enabled_tools": [
+        "degen_tokens",
+        "degen_hype",
+        "social_search"
+      ],
+      "id": 1
+    }
+  ],
+  "skills": [
+    {
+      "id": 1,
+      "name": "Critério de rugpull",
+      "description": "como avaliar risco",
+      "content": "Considere rugpull provável se: liquidez < $50k, pool com < 24h, boosts pagos sem posts orgânicos.",
+      "version": 1,
+      "status": "ACTIVE"
+    }
+  ],
+  "proposals": [],
+  "next_skill_id": 2,
+  "next_proposal_id": 1
+}
