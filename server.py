@@ -3107,6 +3107,367 @@ def _start_automation_runner():
     _astore.init_db()
     if _astore.list_deployments(status="running"):
         _ensure()
+# ═══════════════════════════════════════════════════════════════════════════
+# DEGEN — memecoins on-chain (GeckoTerminal)
+# ═══════════════════════════════════════════════════════════════════════════
+
+import time as _time
+import requests as _requests
+
+DEGEN_CHAINS = {
+    "robinhood": "Robinhood Chain",
+    "solana": "Solana",
+    "base": "Base",
+    "eth": "Ethereum",
+    "bsc": "BNB Chain",
+}
+
+_degen_cache = {}
+_degen_lock = threading.Lock()
+DEGEN_CACHE_TTL = 60  # segundos
+
+
+def _degen_parse_pools(payload):
+    """Converte resposta da GeckoTerminal (pools + included tokens) em lista simples."""
+    included = {
+        item["id"]: item["attributes"]
+        for item in payload.get("included", [])
+        if item.get("type") == "token"
+    }
+    tokens = []
+    for pool in payload.get("data", []):
+        a = pool.get("attributes", {})
+        rel = pool.get("relationships", {})
+        base_id = rel.get("base_token", {}).get("data", {}).get("id", "")
+        base = included.get(base_id, {})
+        txns = a.get("transactions", {}).get("h24", {}) or {}
+
+        def _f(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        pc = a.get("price_change_percentage", {}) or {}
+        tokens.append({
+            "pool_name": a.get("name"),
+            "pool_address": a.get("address"),
+            "symbol": base.get("symbol"),
+            "name": base.get("name"),
+            "token_address": base.get("address"),
+            "image_url": base.get("image_url"),
+            "price_usd": _f(a.get("base_token_price_usd")),
+            "change_m5": _f(pc.get("m5")),
+            "change_h1": _f(pc.get("h1")),
+            "change_h6": _f(pc.get("h6")),
+            "change_h24": _f(pc.get("h24")),
+            "volume_h24": _f(a.get("volume_usd", {}).get("h24")),
+            "fdv_usd": _f(a.get("fdv_usd")),
+            "market_cap_usd": _f(a.get("market_cap_usd")),
+            "liquidity_usd": _f(a.get("reserve_in_usd")),
+            "buys_h24": txns.get("buys"),
+            "sells_h24": txns.get("sells"),
+            "created_at": a.get("pool_created_at"),
+        })
+    return tokens
+
+
+@app.route("/api/degen/chains", methods=["GET"])
+def degen_chains():
+    return jsonify({"chains": DEGEN_CHAINS})
+
+
+@app.route("/api/degen/tokens", methods=["GET"])
+def degen_tokens():
+    chain = request.args.get("chain", "robinhood")
+    kind = request.args.get("kind", "trending")  # trending | new
+    if chain not in DEGEN_CHAINS:
+        return jsonify({"error": f"Chain inválida: {chain}"}), 400
+    if kind not in ("trending", "new"):
+        return jsonify({"error": f"Tipo inválido: {kind}"}), 400
+
+    cache_key = (chain, kind)
+    now = _time.time()
+    with _degen_lock:
+        cached = _degen_cache.get(cache_key)
+        if cached and now - cached[0] < DEGEN_CACHE_TTL:
+            return jsonify(cached[1])
+
+    endpoint = "trending_pools" if kind == "trending" else "new_pools"
+    url = f"https://api.geckoterminal.com/api/v2/networks/{chain}/{endpoint}"
+    try:
+        resp = _requests.get(
+            url,
+            params={"include": "base_token", "page": 1},
+            headers={"Accept": "application/json"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        tokens = _degen_parse_pools(resp.json())
+    except Exception as e:
+        return jsonify({"error": f"Falha ao consultar GeckoTerminal: {e}"}), 502
+
+    result = {
+        "chain": chain,
+        "chain_label": DEGEN_CHAINS[chain],
+        "kind": kind,
+        "updated_at": now,
+        "tokens": tokens,
+    }
+    with _degen_lock:
+        _degen_cache[cache_key] = (now, result)
+    return jsonify(result)
+
+
+# ─── Degen: Hype Radar (Twitter/X + on-chain) ────────────────────────────────
+
+import os as _os
+import re as _re
+from dotenv import load_dotenv as _load_dotenv
+_load_dotenv(Path(__file__).parent / ".env")
+
+DEGEN_DEX_SLUGS = {"eth": "ethereum"}  # GeckoTerminal slug -> DexScreener slug
+NITTER_INSTANCES = [
+    "https://nitter.net",
+    "https://nitter.privacyredirect.com",
+    "https://xcancel.com",
+]
+_hype_cache = {}
+HYPE_CACHE_TTL = 180
+
+
+def _hype_twitter_apiio(query):
+    """Busca tweets via twitterapi.io (requer TWITTERAPI_IO_KEY no .env)."""
+    key = _os.getenv("TWITTERAPI_IO_KEY")
+    if not key:
+        return None
+    try:
+        resp = _requests.get(
+            "https://api.twitterapi.io/twitter/tweet/advanced_search",
+            params={"query": query, "queryType": "Latest"},
+            headers={"x-api-key": key},
+            timeout=20,
+        )
+        resp.raise_for_status()
+        out = []
+        for tw in resp.json().get("tweets", [])[:30]:
+            out.append({
+                "text": tw.get("text", ""),
+                "user": tw.get("author", {}).get("userName"),
+                "followers": tw.get("author", {}).get("followers"),
+                "likes": tw.get("likeCount", 0),
+                "retweets": tw.get("retweetCount", 0),
+                "replies": tw.get("replyCount", 0),
+                "views": tw.get("viewCount"),
+                "created_at": tw.get("createdAt"),
+                "url": tw.get("url"),
+            })
+        return out
+    except Exception:
+        return None
+
+
+def _hype_twitter_nitter(query):
+    """Best-effort: raspa busca de tweets em instâncias Nitter públicas."""
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    for base in NITTER_INSTANCES:
+        try:
+            resp = _requests.get(
+                f"{base}/search", params={"f": "tweets", "q": query},
+                headers=headers, timeout=10,
+            )
+            if resp.status_code != 200 or "timeline-item" not in resp.text:
+                continue
+            html = resp.text
+            items = html.split('class="timeline-item')[1:21]
+            tweets = []
+            for it in items:
+                m_text = _re.search(r'class="tweet-content[^"]*"[^>]*>(.*?)</div>', it, _re.S)
+                m_user = _re.search(r'class="username"[^>]*>@?([\w]+)', it)
+                m_date = _re.search(r'class="tweet-date"><a[^>]*title="([^"]+)"', it)
+                stats = _re.findall(r'class="tweet-stat"[^>]*>.*?</span>\s*([\d,\.]*)', it, _re.S)
+                text = _re.sub(r"<[^>]+>", "", m_text.group(1)).strip() if m_text else ""
+                if not text:
+                    continue
+                nums = [int(s.replace(",", "")) for s in stats if s.strip().isdigit()]
+                tweets.append({
+                    "text": text,
+                    "user": m_user.group(1) if m_user else None,
+                    "followers": None,
+                    "likes": nums[-1] if nums else 0,
+                    "retweets": nums[-2] if len(nums) > 1 else 0,
+                    "replies": nums[0] if nums else 0,
+                    "views": None,
+                    "created_at": m_date.group(1) if m_date else None,
+                    "url": None,
+                })
+            if tweets:
+                return tweets
+        except Exception:
+            continue
+    return None
+
+
+def _hype_social_bluesky(query):
+    """Busca posts no Bluesky (grátis, sem key). api.bsky.app funciona nesta rede."""
+    try:
+        resp = _requests.get(
+            "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts",
+            params={"q": query, "sort": "latest", "limit": 25},
+            headers={"Accept": "application/json"},
+            timeout=12,
+        )
+        resp.raise_for_status()
+        out = []
+        for p in resp.json().get("posts", []):
+            rec = p.get("record", {})
+            handle = p.get("author", {}).get("handle", "")
+            rkey = p.get("uri", "").rsplit("/", 1)[-1]
+            out.append({
+                "text": rec.get("text", ""),
+                "user": handle,
+                "followers": None,
+                "likes": p.get("likeCount", 0),
+                "retweets": p.get("repostCount", 0),
+                "replies": p.get("replyCount", 0),
+                "views": None,
+                "created_at": (rec.get("createdAt") or "")[:16].replace("T", " "),
+                "url": f"https://bsky.app/profile/{handle}/post/{rkey}" if handle and rkey else None,
+            })
+        return out if out else None
+    except Exception:
+        return None
+
+
+def _hype_dexscreener(chain, token_address):
+    """Puxa pares, socials e boosts do DexScreener para o token."""
+    slug = DEGEN_DEX_SLUGS.get(chain, chain)
+    try:
+        resp = _requests.get(
+            f"https://api.dexscreener.com/tokens/v1/{slug}/{token_address}",
+            timeout=15,
+        )
+        resp.raise_for_status()
+        pairs = resp.json()
+        if not pairs:
+            return None
+        # Par mais líquido representa o token
+        best = max(pairs, key=lambda p: (p.get("liquidity") or {}).get("usd") or 0)
+        info = best.get("info") or {}
+        return {
+            "socials": info.get("socials") or [],
+            "websites": info.get("websites") or [],
+            "boosts": (best.get("boosts") or {}).get("active", 0),
+            "txns": best.get("txns") or {},
+            "volume": best.get("volume") or {},
+            "liquidity": (best.get("liquidity") or {}).get("usd"),
+            "market_cap": best.get("marketCap"),
+            "price_change": best.get("priceChange") or {},
+            "pair_created_at": best.get("pairCreatedAt"),
+            "url": best.get("url"),
+        }
+    except Exception:
+        return None
+
+
+def _hype_score(dex, tweets):
+    """Score 0-100: pressão compradora, turnover, aceleração e sinal social."""
+    breakdown = {}
+
+    txns = (dex or {}).get("txns", {})
+    h24 = txns.get("h24", {}) or {}
+    buys, sells = h24.get("buys") or 0, h24.get("sells") or 0
+    total = buys + sells
+    buy_ratio = buys / total if total else 0.5
+    # 50/50 = neutro; >65% compras = forte
+    breakdown["pressao_compradora"] = round(max(0.0, min(1.0, (buy_ratio - 0.35) / 0.35)) * 25, 1)
+
+    vol = (dex or {}).get("volume", {})
+    vol24 = vol.get("h24") or 0
+    liq = (dex or {}).get("liquidity") or 0
+    turnover = vol24 / liq if liq else 0
+    # turnover 5x+ da liquidez em 24h = degen total
+    breakdown["turnover"] = round(min(1.0, turnover / 5.0) * 25, 1)
+
+    vol6 = vol.get("h6") or 0
+    accel = (vol6 * 4 / vol24) if vol24 else 0
+    # >1 = últimas 6h acima do ritmo das 24h
+    breakdown["aceleracao"] = round(max(0.0, min(1.0, (accel - 0.5) / 1.5)) * 25, 1)
+
+    social = 0.0
+    if tweets is not None:
+        n = len(tweets)
+        eng = sum((t["likes"] or 0) + (t["retweets"] or 0) * 2 for t in tweets)
+        social = min(1.0, n / 20) * 0.6 + min(1.0, eng / 2000) * 0.4
+    else:
+        socials = (dex or {}).get("socials", [])
+        kinds = {s.get("type") or s.get("label", "").lower() for s in socials}
+        social += 0.25 if any("twitter" in str(k).lower() or "x" == str(k).lower() for k in kinds) else 0
+        social += 0.15 if any("telegram" in str(k).lower() for k in kinds) else 0
+        social += 0.10 if (dex or {}).get("websites") else 0
+        social += min(0.5, ((dex or {}).get("boosts") or 0) / 20)
+    breakdown["social"] = round(min(1.0, social) * 25, 1)
+
+    score = round(sum(breakdown.values()))
+    if score >= 75:
+        label = "HYPE REAL"
+    elif score >= 55:
+        label = "Aquecendo"
+    elif score >= 35:
+        label = "Morno"
+    else:
+        label = "Morto"
+    return score, label, breakdown
+
+
+@app.route("/api/degen/hype", methods=["GET"])
+def degen_hype():
+    chain = request.args.get("chain", "robinhood")
+    token = request.args.get("token", "")
+    symbol = request.args.get("symbol", "")
+    if not token or chain not in DEGEN_CHAINS:
+        return jsonify({"error": "Parâmetros: chain + token (address) obrigatórios"}), 400
+
+    cache_key = (chain, token)
+    now = _time.time()
+    with _degen_lock:
+        cached = _hype_cache.get(cache_key)
+        if cached and now - cached[0] < HYPE_CACHE_TTL:
+            return jsonify(cached[1])
+
+    dex = _hype_dexscreener(chain, token)
+
+    # Handle do X anunciado pelo próprio token (se houver) entra na query
+    query = f"${symbol}" if symbol else token
+    tweets = _hype_twitter_apiio(query)
+    twitter_source = "twitterapi.io" if tweets is not None else None
+    if tweets is None:
+        tweets = _hype_social_bluesky(query)
+        twitter_source = "bluesky" if tweets is not None else None
+    if tweets is None:
+        tweets = _hype_twitter_nitter(query)
+        twitter_source = "nitter" if tweets is not None else "unavailable"
+
+    score, label, breakdown = _hype_score(dex, tweets)
+
+    result = {
+        "chain": chain,
+        "token": token,
+        "symbol": symbol,
+        "score": score,
+        "label": label,
+        "breakdown": breakdown,
+        "twitter_source": twitter_source,
+        "tweets": tweets or [],
+        "socials": (dex or {}).get("socials", []),
+        "websites": (dex or {}).get("websites", []),
+        "boosts": (dex or {}).get("boosts", 0),
+        "dexscreener_url": (dex or {}).get("url"),
+        "updated_at": now,
+    }
+    with _degen_lock:
+        _hype_cache[cache_key] = (now, result)
+    return jsonify(result)
 
 
 if __name__ == "__main__":

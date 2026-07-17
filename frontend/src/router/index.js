@@ -7,6 +7,7 @@ import RegimeView from '@/views/RegimeView.vue'
 import JournalView from '@/views/JournalView.vue'
 import ChartView from '@/views/ChartView.vue'
 import AutomationView from '@/views/AutomationView.vue'
+import DegenView from '@/views/DegenView.vue'
 
 const routes = [
   {
@@ -42,6 +43,11 @@ const routes = [
     path: '/regime',
     name: 'regime',
     component: RegimeView,
+  },
+  {
+    path: '/degenerado',
+    name: 'degenerado',
+    component: DegenView,
   },
   {
     path: '/journal',

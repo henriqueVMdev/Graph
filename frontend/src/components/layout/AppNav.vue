@@ -182,6 +182,7 @@ const GROUPS = [
       { to: '/rates', label: 'Juros & Crédito', icon: I.rates },
       { to: '/cdty', label: 'Commodities', icon: I.cdty },
       { to: '/alt', label: 'Alt Data & On-chain', icon: I.alt },
+      { to: '/degenerado', label: 'Degenerado', icon: I.alt },
     ] },
   { label: 'Execução', hint: 'ordens & acompanhamento', icon: I.trade,
     items: [

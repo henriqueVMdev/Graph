@@ -186,6 +186,20 @@ export function syncJournal(payload = {}) {
   return api.post('/journal/sync', payload, { timeout: 120000 })
 }
 
+// ─── Degen (memecoins on-chain) API ──────────────────────────────────────────
+
+export function getDegenChains() {
+  return api.get('/degen/chains')
+}
+
+export function getDegenTokens(chain, kind = 'trending') {
+  return api.get('/degen/tokens', { params: { chain, kind } })
+}
+
+export function getDegenHype(chain, token, symbol) {
+  return api.get('/degen/hype', { params: { chain, token, symbol }, timeout: 60000 })
+}
+
 // Prop Challenge API
 export function runPropChallenge(payload) {
   return api.post('/prop-challenge/simulate', payload, { timeout: 300000 })
