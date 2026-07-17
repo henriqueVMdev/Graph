@@ -3236,6 +3236,18 @@ _hype_cache = {}
 HYPE_CACHE_TTL = 180
 
 
+import x_scraper as _x_scraper
+_x_lock = threading.Lock()  # um navegador por vez
+
+
+def _hype_twitter_playwright(query):
+    """Busca real no X via navegador logado (x_scraper.py). Lento (~10s)."""
+    if not _x_scraper.has_session():
+        return None
+    with _x_lock:
+        return _x_scraper.search(query)
+
+
 def _hype_twitter_apiio(query):
     """Busca tweets via twitterapi.io (requer TWITTERAPI_IO_KEY no .env)."""
     key = _os.getenv("TWITTERAPI_IO_KEY")
@@ -3439,8 +3451,11 @@ def degen_hype():
 
     # Handle do X anunciado pelo próprio token (se houver) entra na query
     query = f"${symbol}" if symbol else token
-    tweets = _hype_twitter_apiio(query)
-    twitter_source = "twitterapi.io" if tweets is not None else None
+    tweets = _hype_twitter_playwright(query)
+    twitter_source = "x" if tweets is not None else None
+    if tweets is None:
+        tweets = _hype_twitter_apiio(query)
+        twitter_source = "twitterapi.io" if tweets is not None else None
     if tweets is None:
         tweets = _hype_social_bluesky(query)
         twitter_source = "bluesky" if tweets is not None else None

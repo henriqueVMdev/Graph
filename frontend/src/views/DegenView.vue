@@ -253,6 +253,7 @@ onUnmounted(() => store.stopAutoRefresh())
 
 const twitterSourceLabel = computed(() => {
   const s = store.hype?.twitter_source
+  if (s === 'x') return 'busca real no X'
   if (s === 'twitterapi.io') return 'busca real via twitterapi.io'
   if (s === 'nitter') return 'via Nitter'
   if (s === 'bluesky') return 'via Bluesky'
