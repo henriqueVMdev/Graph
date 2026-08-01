@@ -1,5 +1,81 @@
 <template>
   <div>
+    <div v-if="showControls" class="mb-5 rounded-lg border border-surface-600 bg-surface-800/60 p-4">
+      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div>
+          <label class="text-xs text-gray-400 flex items-center justify-between mb-2">
+            <span>Janelas WFA</span>
+            <span class="text-accent-yellow font-semibold">{{ store.wfaConfig.n_windows }}</span>
+          </label>
+          <input v-model.number="store.wfaConfig.n_windows" type="range" min="5" max="20" step="1"
+            class="w-full h-1.5 accent-yellow-400" />
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400 flex items-center justify-between mb-2">
+            <span>% In-Sample</span>
+            <span class="text-accent-yellow font-semibold">{{ Math.round(store.wfaConfig.is_pct * 100) }}%</span>
+          </label>
+          <input v-model.number="store.wfaConfig.is_pct" type="range" min="0.50" max="0.80" step="0.05"
+            class="w-full h-1.5 accent-yellow-400" />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-gray-400">Otimizar IS</label>
+            <button @click="store.wfaConfig.optimize_is_samples = store.wfaConfig.optimize_is_samples > 0 ? 0 : 40"
+              class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+              :class="store.wfaConfig.optimize_is_samples > 0 ? 'bg-accent-yellow' : 'bg-surface-500'">
+              <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                :class="store.wfaConfig.optimize_is_samples > 0 ? 'translate-x-4' : 'translate-x-0.5'" />
+            </button>
+          </div>
+          <template v-if="store.wfaConfig.optimize_is_samples > 0">
+            <label class="text-[10px] text-gray-500 flex items-center justify-between mb-1">
+              <span>Amostras IS</span>
+              <span>{{ store.wfaConfig.optimize_is_samples }}</span>
+            </label>
+            <input v-model.number="store.wfaConfig.optimize_is_samples" type="range" min="20" max="100" step="10"
+              class="w-full h-1.5 accent-yellow-400" />
+          </template>
+          <p v-else class="text-[10px] text-gray-600">Usa os parâmetros atuais da estratégia.</p>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-gray-400">Custos da corretora</label>
+            <button @click="store.wfaConfig.apply_costs = !store.wfaConfig.apply_costs"
+              class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+              :class="store.wfaConfig.apply_costs ? 'bg-accent-yellow' : 'bg-surface-500'">
+              <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                :class="store.wfaConfig.apply_costs ? 'translate-x-4' : 'translate-x-0.5'" />
+            </button>
+          </div>
+          <div v-if="store.wfaConfig.apply_costs" class="grid grid-cols-2 gap-2">
+            <select v-model="store.wfaConfig.cost_exchange" class="form-select w-full text-xs">
+              <option value="binance">Binance</option><option value="bybit">Bybit</option><option value="okx">OKX</option>
+            </select>
+            <select v-model="store.wfaConfig.cost_scenario" class="form-select w-full text-xs">
+              <option value="realista">Realista</option><option value="pessimista">Pessimista</option>
+            </select>
+            <label class="col-span-2 flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+              <input v-model="store.wfaConfig.use_funding" type="checkbox" class="accent-accent-yellow" />
+              Incluir funding
+            </label>
+          </div>
+          <p v-else class="text-[10px] text-gray-600">Resultado bruto, sem fees e funding.</p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button @click="store.runWfa()" :disabled="store.wfaLoading || !store.results"
+          class="btn-secondary min-w-40 py-2 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+          <span v-if="store.wfaLoading" class="dollar-loader-sm">$</span>
+          {{ store.wfaLoading ? 'Calculando...' : 'Executar WFA' }}
+        </button>
+      </div>
+    </div>
+
     <div v-if="store.wfaResults" class="space-y-4">
 
       <!-- WFE badge + summary cards -->
@@ -152,7 +228,7 @@
 
     <!-- Empty state -->
     <div v-else class="text-center text-gray-500 text-xs py-8">
-      Configure os parametros WFA na barra lateral e clique em "Executar WFA".
+      Selecione as janelas e o percentual in-sample acima e clique em "Executar WFA".
     </div>
   </div>
 </template>
@@ -164,7 +240,10 @@ import { purgeChart } from '@/composables/useCharts.js'
 
 // Reutilizavel: por padrao usa o store de backtest, mas aceita outro store
 // (ex.: prop challenge) que exponha wfaResults/wfaLoading/wfaError.
-const props = defineProps({ store: { type: Object, default: undefined } })
+const props = defineProps({
+  store: { type: Object, default: undefined },
+  showControls: { type: Boolean, default: true },
+})
 const backtestStore = useBacktestStore()
 const store = props.store ?? backtestStore
 

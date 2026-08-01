@@ -286,7 +286,7 @@
         <h2 class="text-sm font-semibold text-gray-200 mb-3">
           <span class="text-accent-yellow">◆</span> Forward Testing (Walk-Forward Analysis)
         </h2>
-        <WalkForwardSection :store="store" />
+        <WalkForwardSection :store="store" :show-controls="false" />
       </div>
     </div>
   </div>
