@@ -195,12 +195,16 @@ export const useTerminalStore = defineStore('terminal', () => {
     }[kind] || kind
   }
 
+  // Quem descarta e o ToastStack, nao a store: so o componente sabe se o
+  // ponteiro ou o foco esta sobre o alerta, e alerta de preco sumindo
+  // sozinho enquanto esta sendo lido reprova o WCAG 2.2.1.
   function pushToast(title, body) {
     const id = Date.now() + Math.random()
     toasts.value.push({ id, title, body })
-    setTimeout(() => {
-      toasts.value = toasts.value.filter((t) => t.id !== id)
-    }, 8000)
+  }
+
+  function dismissToast(id) {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
   }
 
   // ── Notícias ──────────────────────────────────────────────────────────
@@ -246,7 +250,8 @@ export const useTerminalStore = defineStore('terminal', () => {
     fetchScreener, setScreenerMarket, startScreenerPolling, stopScreenerPolling,
     desData, desLoading, desError, fetchDes,
     alerts, toasts, unseenTriggered, kindLabel,
-    fetchAlerts, addAlert, removeAlert, startAlertsPolling, markAlertsSeen, pushToast,
+    fetchAlerts, addAlert, removeAlert, startAlertsPolling, markAlertsSeen,
+    pushToast, dismissToast,
     newsItems, newsFailed, newsLoading, newsCat, setNewsCat,
     startNewsPolling, stopNewsPolling,
   }

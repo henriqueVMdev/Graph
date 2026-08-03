@@ -104,7 +104,7 @@
   .form-input {
     @apply bg-surface-600 border border-surface-400 rounded-lg px-3 py-2 text-gray-100 text-sm
            hover:border-surface-400 focus:outline-none focus:ring-1 focus:ring-accent-yellow
-           focus:border-accent-yellow/60 placeholder:text-gray-600 transition-colors duration-150
+           focus:border-accent-yellow/60 placeholder:text-gray-500 transition-colors duration-150
            font-mono;
   }
 
@@ -129,7 +129,7 @@
   }
 
   .metric-label {
-    @apply text-[10px] text-gray-500 uppercase tracking-wide;
+    @apply text-[10px] text-gray-400 uppercase tracking-wide;
   }
 
   .table-row {
@@ -149,7 +149,7 @@
   }
 
   .tab-btn:not(.active) {
-    @apply text-gray-500 hover:text-gray-300;
+    @apply text-gray-400 hover:text-gray-300;
   }
 
   .badge-green {

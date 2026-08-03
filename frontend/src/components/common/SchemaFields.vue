@@ -1,6 +1,6 @@
 <template>
   <div v-for="section in schema" :key="section.title" class="mb-4">
-    <h4 class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
+    <h4 class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
       {{ section.title }}
     </h4>
     <div class="space-y-2">

@@ -5,7 +5,7 @@
       <!-- Estrategia -->
       <div class="sidebar-section">
         <p class="sidebar-section-title">Estrategia</p>
-        <div v-if="store.strategies.length === 0" class="text-xs text-gray-500 py-2">
+        <div v-if="store.strategies.length === 0" class="text-xs text-gray-400 py-2">
           Nenhuma estrategia encontrada
         </div>
         <template v-else>
@@ -21,7 +21,7 @@
               :disabled="!!s.error"
             >{{ s.name }}</option>
           </select>
-          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-500 leading-relaxed">
+          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-400 leading-relaxed">
             {{ store.selectedStrategy.description }}
           </p>
         </template>
@@ -139,7 +139,7 @@
                    class="w-3.5 h-3.5 accent-accent-yellow" />
             <span class="text-xs text-gray-300">Entrada maker (limite)</span>
           </label>
-          <p class="text-[10px] text-gray-600 leading-snug">
+          <p class="text-[10px] text-gray-500 leading-snug">
             Alavancagem implícita = risco ÷ distância do stop de cada trade
             (limitada acima). Fees e funding esperados são descontados por
             trade — os "Custos da Corretora" abaixo ficam ignorados.
@@ -273,7 +273,7 @@
       <!-- ── Forward Testing (Walk-Forward Analysis) ──────────────── -->
       <div class="sidebar-section border-t border-surface-600 pt-4">
         <p class="sidebar-section-title">Forward Testing (WFA)</p>
-        <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
+        <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">
           Valida a estrategia em dados nao vistos: otimiza in-sample e mede o desempenho out-of-sample.
         </p>
 
@@ -343,14 +343,14 @@
         </div>
 
         <template v-if="store.wfaConfig.apply_costs">
-          <label class="text-xs text-gray-500 block mb-1">Exchange (fees + funding)</label>
+          <label class="text-xs text-gray-400 block mb-1">Exchange (fees + funding)</label>
           <select v-model="store.wfaConfig.cost_exchange" class="form-select w-full text-xs mb-2">
             <option value="binance">Binance</option>
             <option value="bybit">Bybit</option>
             <option value="okx">OKX</option>
           </select>
 
-          <label class="text-xs text-gray-500 block mb-1">Cenário</label>
+          <label class="text-xs text-gray-400 block mb-1">Cenário</label>
           <select v-model="store.wfaConfig.cost_scenario" class="form-select w-full text-xs mb-2">
             <option value="realista">Realista</option>
             <option value="pessimista">Pessimista (funding 1.5x + slippage)</option>

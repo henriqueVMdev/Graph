@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
       <h3 class="text-sm text-gray-200 font-semibold">Novo deployment</h3>
       <button @click="store.showForm = false; store.pendingDeployment = null"
-              class="text-gray-500 hover:text-gray-300 text-sm">✕</button>
+              class="text-gray-400 hover:text-gray-300 text-sm">✕</button>
     </div>
 
     <div v-if="fromValidation"
@@ -78,7 +78,7 @@
 
     <!-- Proteções opcionais (default: tudo desligado — só o stop da estratégia) -->
     <div class="border-t border-surface-600 pt-3 space-y-2">
-      <p class="text-[10px] text-gray-500 uppercase tracking-widest">
+      <p class="text-[10px] text-gray-400 uppercase tracking-widest">
         Proteções (opcional — padrão desligado)
       </p>
 
@@ -105,7 +105,7 @@
       <div class="flex items-center justify-between gap-2">
         <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
           <input type="checkbox" v-model="guard.check_balance" class="w-3.5 h-3.5 accent-accent-yellow" />
-          Checar saldo antes de enviar <span class="text-gray-600">(só real)</span>
+          Checar saldo antes de enviar <span class="text-gray-500">(só real)</span>
         </label>
       </div>
 

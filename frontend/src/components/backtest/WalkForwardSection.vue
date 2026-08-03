@@ -31,14 +31,14 @@
             </button>
           </div>
           <template v-if="store.wfaConfig.optimize_is_samples > 0">
-            <label class="text-[10px] text-gray-500 flex items-center justify-between mb-1">
+            <label class="text-[10px] text-gray-400 flex items-center justify-between mb-1">
               <span>Amostras IS</span>
               <span>{{ store.wfaConfig.optimize_is_samples }}</span>
             </label>
             <input v-model.number="store.wfaConfig.optimize_is_samples" type="range" min="20" max="100" step="10"
               class="w-full h-1.5 accent-yellow-400" />
           </template>
-          <p v-else class="text-[10px] text-gray-600">Usa os parâmetros atuais da estratégia.</p>
+          <p v-else class="text-[10px] text-gray-500">Usa os parâmetros atuais da estratégia.</p>
         </div>
 
         <div>
@@ -58,12 +58,12 @@
             <select v-model="store.wfaConfig.cost_scenario" class="form-select w-full text-xs">
               <option value="realista">Realista</option><option value="pessimista">Pessimista</option>
             </select>
-            <label class="col-span-2 flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+            <label class="col-span-2 flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
               <input v-model="store.wfaConfig.use_funding" type="checkbox" class="accent-accent-yellow" />
               Incluir funding
             </label>
           </div>
-          <p v-else class="text-[10px] text-gray-600">Resultado bruto, sem fees e funding.</p>
+          <p v-else class="text-[10px] text-gray-500">Resultado bruto, sem fees e funding.</p>
         </div>
       </div>
 
@@ -87,10 +87,10 @@
           </div>
           <div class="text-3xl font-bold" :class="wfeColor">{{ fmt2(store.wfaResults.wfe) }}</div>
           <div class="text-[10px] mt-0.5" :class="wfeColor">{{ wfeLabel }}</div>
-          <div class="text-[9px] text-gray-600 mt-0.5">&gt;0.5 aceitavel</div>
+          <div class="text-[9px] text-gray-500 mt-0.5">&gt;0.5 aceitavel</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Retorno anual. OOS
             <span class="metric-help" title="Retorno anualizado medio das janelas Out-of-Sample. Representa o desempenho real da estrategia em dados que nao foram usados na otimizacao.">?</span>
           </div>
@@ -99,14 +99,14 @@
           </div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Retorno anual. IS
             <span class="metric-help" title="Retorno anualizado medio das janelas In-Sample. Representa o desempenho durante a fase de otimizacao. Se for muito superior ao OOS, pode indicar overfitting.">?</span>
           </div>
           <div class="text-sm font-semibold text-gray-200">{{ fmtPct(store.wfaResults.avg_is_annualized) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Janelas validas
             <span class="metric-help" title="Numero de janelas Walk-Forward que geraram trades suficientes tanto na fase IS quanto OOS. Mais janelas validas aumentam a confiabilidade estatistica da analise.">?</span>
           </div>
@@ -123,35 +123,35 @@
             <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
           </div>
           <div class="text-2xl font-bold text-red-400">-{{ fmtUsd(totalCostSpent) }}</div>
-          <div class="text-[10px] text-gray-600 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
+          <div class="text-[10px] text-gray-500 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Retorno OOS líquido
             <span class="metric-help" title="Retorno medio das janelas Out-of-Sample apos descontar fees (maker/taker) e funding reais da corretora. Este e o resultado liquido esperado do forward test.">?</span>
           </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
             {{ fmtPct(store.wfaResults.avg_oos_net_return) }}
           </div>
-          <div class="text-[10px] text-gray-600 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
+          <div class="text-[10px] text-gray-500 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Fees pagos (OOS)
             <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
           </div>
           <div class="text-sm font-semibold text-red-400">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
-          <div class="text-[10px] text-gray-600 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
+          <div class="text-[10px] text-gray-500 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
-          <div class="text-xs text-gray-500 mb-0.5">
+          <div class="text-xs text-gray-400 mb-0.5">
             Funding total (OOS)
             <span class="metric-help" title="Soma do funding pago/recebido nas janelas OOS. Positivo = a estrategia recebeu funding; negativo = pagou.">?</span>
           </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
             {{ fmtUsd(store.wfaResults.total_oos_funding) }}
           </div>
-          <div class="text-[10px] text-gray-600 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
+          <div class="text-[10px] text-gray-500 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
         </div>
       </div>
 
@@ -167,7 +167,7 @@
           :key="i"
           @click="activeTab = i"
           class="px-3 py-1.5 text-xs font-medium rounded-t transition-colors inline-flex items-center gap-1"
-          :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-500 hover:text-gray-300'"
+          :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-400 hover:text-gray-300'"
         >
           {{ t }}
           <span class="metric-help" :title="tabDescriptions[i]">?</span>
@@ -207,7 +207,7 @@
 
       <!-- Tab 4: Heatmap de Parametros (only when IS was optimized) -->
       <div v-if="hasParamHeatmap" v-show="activeTab === 4">
-        <p class="text-xs text-gray-500 mb-2">
+        <p class="text-xs text-gray-400 mb-2">
           Cor = valor otimizado por janela. Bandas horizontais consistentes indicam estabilidade.
         </p>
         <div ref="paramHeatmapChart" style="min-height:260px;" class="w-full"></div>
@@ -227,7 +227,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else class="text-center text-gray-500 text-xs py-8">
+    <div v-else class="text-center text-gray-400 text-xs py-8">
       Selecione as janelas e o percentual in-sample acima e clique em "Executar WFA".
     </div>
   </div>

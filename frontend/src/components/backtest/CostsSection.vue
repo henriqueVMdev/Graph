@@ -53,7 +53,7 @@
       </button>
     </div>
 
-    <p v-if="!hasTrades" class="text-xs text-gray-500">
+    <p v-if="!hasTrades" class="text-xs text-gray-400">
       Rode um backtest com sizing (alavancagem/quantidade) definido para custear os trades.
     </p>
 
@@ -102,7 +102,7 @@
           </tr>
         </tbody>
       </table>
-      <p class="text-[11px] text-gray-500 mt-2">
+      <p class="text-[11px] text-gray-400 mt-2">
         Sobrevive = PnL líquido &gt; 0 e Sharpe líquido &gt; 0. Default taker nas duas pontas;
         o cenário pessimista usa funding × 1,5 + slippage. Custos sobre o notional alavancado.
       </p>

@@ -1,7 +1,7 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <h1 class="text-base font-semibold text-gray-100">Alertas de Preço, Funding e Sinais</h1>
-    <p class="text-[10px] text-gray-600 -mt-3">além dos alertas manuais, o vigia automático monitora o universo da Central de Inteligência a cada 15 min: mudanças de sinal (ex.: NEUTRO → COMPRA) e divergências novas aparecem em Disparados</p>
+    <p class="text-[10px] text-gray-500 -mt-3">além dos alertas manuais, o vigia automático monitora o universo da Central de Inteligência a cada 15 min: mudanças de sinal (ex.: NEUTRO → COMPRA) e divergências novas aparecem em Disparados</p>
 
     <!-- criar -->
     <div class="card p-4">
@@ -9,19 +9,19 @@
         <span class="text-accent-yellow">◆</span> Novo alerta
       </h2>
       <form @submit.prevent="create" class="flex flex-wrap items-end gap-3">
-        <label class="text-xs text-gray-500 block">
+        <label class="text-xs text-gray-400 block">
           Mercado
           <select v-model="form.market" class="form-select !py-1.5 text-xs mt-1 block">
             <option value="crypto">Cripto</option>
             <option value="tradfi">Tradicional</option>
           </select>
         </label>
-        <label class="text-xs text-gray-500 block">
+        <label class="text-xs text-gray-400 block">
           Símbolo
           <input v-model="form.symbol" :placeholder="form.market === 'crypto' ? 'BTC' : 'AAPL, OURO...'" required
                  class="form-input !py-1.5 text-xs w-28 uppercase mt-1 block" />
         </label>
-        <label class="text-xs text-gray-500 block">
+        <label class="text-xs text-gray-400 block">
           Condição
           <select v-model="form.kind" class="form-select !py-1.5 text-xs mt-1 block">
             <option value="price_above">Preço acima de</option>
@@ -32,12 +32,12 @@
             <option value="signal_score_below">Score multifator abaixo de</option>
           </select>
         </label>
-        <label class="text-xs text-gray-500 block">
+        <label class="text-xs text-gray-400 block">
           Nível {{ form.kind.startsWith('funding') ? '(fração, ex.: 0.0005)' : '($)' }}
           <input v-model.number="form.level" type="number" step="any" required
                  class="form-input !py-1.5 text-xs w-32 mt-1 block" />
         </label>
-        <label class="text-xs text-gray-500 block flex-1 min-w-40">
+        <label class="text-xs text-gray-400 block flex-1 min-w-40">
           Nota (opcional)
           <input v-model="form.note" class="form-input !py-1.5 text-xs w-full mt-1 block" />
         </label>
@@ -58,16 +58,16 @@
               <span v-if="a.market === 'tradfi'" class="ml-1 text-[9px] font-mono px-1 py-0.5
                     rounded bg-blue-900/40 text-blue-300 border border-blue-800/50">TRAD</span></td>
             <td class="py-1.5 text-gray-400">{{ terminal.kindLabel(a.kind) }} {{ a.level }}</td>
-            <td class="py-1.5 text-gray-600">{{ a.note }}</td>
-            <td class="py-1.5 text-gray-600">{{ tsFmt(a.created_at) }}</td>
+            <td class="py-1.5 text-gray-500">{{ a.note }}</td>
+            <td class="py-1.5 text-gray-500">{{ tsFmt(a.created_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-600 hover:text-red-400">✕</button>
+                      class="text-gray-500 hover:text-red-400">✕</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-else class="text-xs text-gray-600">nenhum alerta ativo — checagem a cada 30s no servidor</p>
+      <p v-else class="text-xs text-gray-500">nenhum alerta ativo — checagem a cada 30s no servidor</p>
     </div>
 
     <!-- disparados -->
@@ -81,15 +81,15 @@
             <td class="py-1.5 font-bold text-accent-yellow">{{ a.symbol }}</td>
             <td class="py-1.5 text-gray-400">{{ terminal.kindLabel(a.kind) }} {{ a.level }}</td>
             <td class="py-1.5 text-gray-300">{{ a.trigger_value != null ? 'disparou em ' + a.trigger_value : a.note }}</td>
-            <td class="py-1.5 text-gray-600">{{ tsFmt(a.triggered_at) }}</td>
+            <td class="py-1.5 text-gray-500">{{ tsFmt(a.triggered_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-600 hover:text-red-400">✕</button>
+                      class="text-gray-500 hover:text-red-400">✕</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-else class="text-xs text-gray-600">nenhum disparo ainda</p>
+      <p v-else class="text-xs text-gray-500">nenhum disparo ainda</p>
     </div>
   </div>
 </template>

@@ -11,7 +11,7 @@
     </label>
 
     <template v-if="params.hour_filter">
-      <p class="text-[10px] text-gray-500 mt-2 mb-2">
+      <p class="text-[10px] text-gray-400 mt-2 mb-2">
         Só abre posição nas horas marcadas (horário de Brasília). Vale para timeframes intradiários.
       </p>
 
@@ -34,11 +34,11 @@
           class="py-1 text-[10px] rounded font-medium transition-colors"
           :class="isActive(h)
             ? 'bg-accent-yellow/25 text-accent-yellow border border-accent-yellow/50'
-            : 'bg-surface-600 text-gray-500 border border-surface-500'"
+            : 'bg-surface-600 text-gray-400 border border-surface-500'"
         >{{ String(h).padStart(2, '0') }}</button>
       </div>
 
-      <p class="text-[10px] text-gray-600 mt-2">
+      <p class="text-[10px] text-gray-500 mt-2">
         {{ (params.allowed_hours || []).length }} de 24 horas liberadas
       </p>
     </template>

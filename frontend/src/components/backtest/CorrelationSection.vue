@@ -9,7 +9,7 @@
         <div v-for="(slot, si) in slots" :key="si" class="flex items-center gap-1.5">
 
           <!-- Separador entre slots -->
-          <span v-if="si > 0" class="text-gray-600 text-xs select-none">vs</span>
+          <span v-if="si > 0" class="text-gray-500 text-xs select-none">vs</span>
 
           <div class="flex flex-col gap-1">
             <!-- 1º select: Categoria -->
@@ -31,7 +31,7 @@
               class="border text-xs rounded-lg px-2.5 py-1.5 focus:outline-none transition-colors appearance-none"
               :class="slot.catName
                 ? 'bg-surface-700 border-surface-500 text-gray-200 focus:border-accent-yellow cursor-pointer'
-                : 'bg-surface-800 border-surface-700 text-gray-600 cursor-not-allowed'"
+                : 'bg-surface-800 border-surface-700 text-gray-500 cursor-not-allowed'"
               style="min-width:150px;"
             >
               <option value="" disabled>Ativo...</option>
@@ -46,7 +46,7 @@
           <button
             v-if="si >= 2"
             @click="removeSlot(si)"
-            class="text-gray-600 hover:text-red-400 transition-colors text-base leading-none mt-1"
+            class="text-gray-500 hover:text-red-400 transition-colors text-base leading-none mt-1"
             title="Remover"
           >×</button>
 
@@ -56,7 +56,7 @@
         <button
           v-if="slots.length < 6"
           @click="addSlot"
-          class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-dashed border-surface-500 text-gray-500 hover:text-gray-300 hover:border-surface-400 transition-colors mt-auto"
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-dashed border-surface-500 text-gray-400 hover:text-gray-300 hover:border-surface-400 transition-colors mt-auto"
         >
           <span class="text-base leading-none">+</span> ativo
         </button>
@@ -64,7 +64,7 @@
       </div>
     </div>
 
-    <div v-if="selectedSlotCount < 2" class="text-xs text-gray-500 py-4 text-center">
+    <div v-if="selectedSlotCount < 2" class="text-xs text-gray-400 py-4 text-center">
       Selecione pelo menos 2 ativos para ver a correlação
     </div>
 
@@ -85,7 +85,7 @@
       <div v-if="!store.correlationData && store.correlationLoading"
         class="flex flex-col items-center justify-center gap-3" style="min-height:420px;">
         <div class="corr-dollar-loader">$</div>
-        <span class="text-xs text-gray-500">Carregando dados...</span>
+        <span class="text-xs text-gray-400">Carregando dados...</span>
       </div>
 
       <template v-if="store.correlationData">
@@ -111,7 +111,7 @@
             <div ref="corrEl" style="min-height: 400px;"></div>
             <div v-if="store.correlationLoading" class="corr-overlay"><div class="corr-dollar-loader">$</div></div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-xs text-gray-400 mt-2">
             Valores próximos de +1 indicam ativos que se movem juntos.
             Valores próximos de -1 indicam movimentos opostos (diversificação).
           </p>
@@ -145,7 +145,7 @@
             <div ref="scatterEl" style="min-height: 420px;"></div>
             <div v-if="store.correlationLoading" class="corr-overlay"><div class="corr-dollar-loader">$</div></div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-xs text-gray-400 mt-2">
             Cada ponto representa um dia de trading. A linha mostra a regressão linear entre os retornos diários.
           </p>
         </div>
@@ -188,7 +188,7 @@
                   class="px-2.5 py-1 text-xs rounded border transition-colors"
                   :class="corrWindow === w
                     ? 'bg-accent-yellow/15 border-accent-yellow text-accent-yellow'
-                    : 'border-surface-400 text-gray-500 hover:border-accent-yellow/40 hover:text-gray-300'"
+                    : 'border-surface-400 text-gray-400 hover:border-accent-yellow/40 hover:text-gray-300'"
                 >{{ w }}</button>
               </div>
             </div>
@@ -198,7 +198,7 @@
             <div ref="coefEl" style="min-height: 420px;"></div>
             <div v-if="store.correlationLoading" class="corr-overlay"><div class="corr-dollar-loader">$</div></div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-xs text-gray-400 mt-2">
             Correlação de Pearson calculada em janela móvel de {{ corrWindow }} dias.
             Região verde indica correlação positiva; vermelha, negativa.
           </p>
@@ -262,11 +262,11 @@
                   <td class="px-3 py-2 font-mono text-gray-300">{{ fmtN(d.stats.std, 4) }}</td>
                   <td class="px-3 py-2 font-mono text-gray-300">
                     {{ fmtN(d.stats.skew, 3) }}
-                    <span class="text-gray-500 ml-1">{{ d.skew_desc }}</span>
+                    <span class="text-gray-400 ml-1">{{ d.skew_desc }}</span>
                   </td>
                   <td class="px-3 py-2 font-mono text-gray-300">
                     {{ fmtN(d.stats.kurtosis, 3) }}
-                    <span class="text-gray-500 ml-1">{{ d.kurt_desc }}</span>
+                    <span class="text-gray-400 ml-1">{{ d.kurt_desc }}</span>
                   </td>
                   <td class="px-3 py-2 font-mono"
                     :class="d.stats.sharpe_annual >= 1 ? 'badge-green' : d.stats.sharpe_annual >= 0 ? 'text-accent-yellow' : 'badge-red'">

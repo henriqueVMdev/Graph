@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">Screener</h1>
-      <span class="text-[10px] text-gray-600 font-mono">
+      <span class="text-[10px] text-gray-500 font-mono">
         {{ isCrypto ? 'bybit · top por volume · atualiza 60s' : 'yahoo finance · dados ~15min' }}
       </span>
       <div class="flex-1" />
@@ -16,7 +16,7 @@
           {{ m.label }}
         </button>
       </div>
-      <label v-if="isCrypto" class="text-xs text-gray-500 flex items-center gap-2">
+      <label v-if="isCrypto" class="text-xs text-gray-400 flex items-center gap-2">
         Volume mín ($M)
         <input v-model.number="minVolM" type="number" min="0" class="form-input !py-1 text-xs w-20" />
       </label>
@@ -39,7 +39,7 @@
     <div v-else class="card overflow-x-auto">
       <table class="w-full text-sm font-mono">
         <thead>
-          <tr class="text-[10px] text-gray-500 uppercase tracking-wider text-right border-b border-surface-500 select-none">
+          <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
             <th class="text-left px-3 py-2">#</th>
             <th class="text-left px-3 py-2">Ativo</th>
             <th v-for="c in cols" :key="c.key"
@@ -54,7 +54,7 @@
         <tbody>
           <tr v-for="(r, i) in rows" :key="r.symbol"
               class="border-b border-surface-600/60 hover:bg-surface-600/40 transition-colors">
-            <td class="px-3 py-1.5 text-left text-gray-600 text-xs">{{ i + 1 }}</td>
+            <td class="px-3 py-1.5 text-left text-gray-500 text-xs">{{ i + 1 }}</td>
             <td class="px-3 py-1.5 text-left">
               <button @click="openDes(r)"
                       class="font-bold text-gray-100 hover:text-accent-yellow">{{ r.base }}</button>
@@ -72,9 +72,9 @@
             <td class="px-3 py-1.5 text-right whitespace-nowrap">
               <button @click="terminal.addToWatchlist(isCrypto ? r.base : r.symbol, isCrypto ? 'crypto' : 'tradfi')"
                       title="+ Watchlist"
-                      class="text-gray-600 hover:text-accent-yellow text-xs px-1">👁</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
               <button @click="toBacktest(r)" title="Backtest"
-                      class="text-gray-600 hover:text-accent-yellow text-xs px-1">⚡</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">⚡</button>
             </td>
           </tr>
         </tbody>

@@ -3,9 +3,9 @@
     <h2 class="text-sm font-semibold text-gray-200 mb-1"><span class="text-accent-yellow">◆</span>
       Melhores Parâmetros (Top {{ store.filters.top_n }})
     </h2>
-    <p class="text-xs text-gray-500 mb-4">Baseado nos parâmetros com melhor Score para orientar futuros backtests.</p>
+    <p class="text-xs text-gray-400 mb-4">Baseado nos parâmetros com melhor Score para orientar futuros backtests.</p>
 
-    <div v-if="!bestParams || (!hasCategorical && !hasNumeric)" class="text-gray-500 text-sm text-center py-6">
+    <div v-if="!bestParams || (!hasCategorical && !hasNumeric)" class="text-gray-400 text-sm text-center py-6">
       Sem dados suficientes para análise
     </div>
 
@@ -33,7 +33,7 @@
                   ></div>
                 </div>
                 <span class="text-xs text-gray-300 shrink-0 max-w-[5rem] truncate text-right">{{ val }}</span>
-                <span class="text-xs text-gray-500 shrink-0 w-5 text-right tabular-nums">{{ count }}</span>
+                <span class="text-xs text-gray-400 shrink-0 w-5 text-right tabular-nums">{{ count }}</span>
               </div>
             </div>
           </div>
@@ -52,9 +52,9 @@
             <p class="text-xs text-gray-400 mb-1">{{ data.label }}</p>
             <p class="text-sm font-mono text-gray-200 font-semibold">
               {{ fmtNum(data.median) }}
-              <span class="text-xs text-gray-500 font-normal ml-1">mediana</span>
+              <span class="text-xs text-gray-400 font-normal ml-1">mediana</span>
             </p>
-            <p class="text-xs text-gray-500 mt-0.5">
+            <p class="text-xs text-gray-400 mt-0.5">
               Q25: {{ fmtNum(data.q25) }} — Q75: {{ fmtNum(data.q75) }}
             </p>
             <!-- Mini histogram bars -->

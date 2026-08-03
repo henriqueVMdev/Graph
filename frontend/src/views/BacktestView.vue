@@ -1,22 +1,8 @@
 <template>
-  <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden relative">
-    <!-- Sidebar -->
-    <BacktestSidebar
-      class="shrink-0 transition-all duration-300 overflow-hidden"
-      :class="sidebarOpen ? 'w-72' : 'w-0'"
-    />
-
-    <!-- Toggle button -->
-    <button
-      @click="toggleSidebar"
-      class="absolute top-1/2 -translate-y-1/2 z-20 w-4 h-10 flex items-center justify-center rounded-r-md bg-surface-700/60 hover:bg-surface-600/80 border-y border-r border-surface-500/50 text-gray-600 hover:text-gray-300 transition-all duration-300"
-      :style="sidebarOpen ? 'left: calc(18rem - 1px)' : 'left: 0'"
-      :title="sidebarOpen ? 'Recolher' : 'Expandir'"
-    >
-      <svg class="w-2.5 h-2.5 transition-transform duration-300" :class="sidebarOpen ? '' : 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
+  <WorkspaceShell width="18rem">
+    <template #sidebar>
+      <BacktestSidebar />
+    </template>
 
     <!-- Main content -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -126,16 +112,11 @@
         </div>
       </template>
     </div>
-  </div>
+</WorkspaceShell>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-const sidebarOpen = ref(true)
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 310)
-}
 import { useBacktestStore } from '@/stores/backtest.js'
 import BacktestSidebar from '@/components/backtest/BacktestSidebar.vue'
 import MetricCards from '@/components/backtest/MetricCards.vue'
@@ -154,6 +135,7 @@ const paramsBanner = ref(false)
 // ── Enviar para Automação ──────────────────────────────────────────────
 import { useRouter } from 'vue-router'
 import { useAutomationStore } from '@/stores/automation.js'
+import WorkspaceShell from '@/components/layout/WorkspaceShell.vue'
 const router = useRouter()
 const autoStore = useAutomationStore()
 

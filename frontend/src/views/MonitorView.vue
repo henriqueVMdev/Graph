@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">Monitor de Mercado</h1>
-      <span class="text-[10px] text-gray-600 font-mono">cripto: bybit perp · tradicional: yahoo (~15min) · atualiza 5s</span>
+      <span class="text-[10px] text-gray-500 font-mono">cripto: bybit perp · tradicional: yahoo (~15min) · atualiza 5s</span>
       <div class="flex-1" />
       <form @submit.prevent="add" class="flex gap-2">
         <select v-model="newMarket" class="form-select !py-1.5 text-xs">
@@ -22,7 +22,7 @@
     <div class="card overflow-x-auto">
       <table class="w-full text-sm font-mono">
         <thead>
-          <tr class="text-[10px] text-gray-500 uppercase tracking-wider text-right border-b border-surface-500">
+          <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
             <th class="text-left px-3 py-2">Ativo</th>
             <th class="px-3 py-2">Último</th>
             <th class="px-3 py-2">24h %</th>
@@ -62,15 +62,15 @@
             </td>
             <td class="px-3 py-2 text-right whitespace-nowrap">
               <button @click="openBook(r)" title="Book de ofertas"
-                      class="text-gray-600 hover:text-accent-yellow text-xs px-1">📖</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">📖</button>
               <button @click="alertFor(r)" title="Criar alerta"
-                      class="text-gray-600 hover:text-accent-yellow text-xs px-1">⏰</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">⏰</button>
               <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
-                      class="text-gray-600 hover:text-red-400 text-xs px-1">✕</button>
+                      class="text-gray-500 hover:text-red-400 text-xs px-1">✕</button>
             </td>
           </tr>
           <tr v-if="!terminal.watchRows.length">
-            <td colspan="9" class="text-center text-xs text-gray-600 py-8">
+            <td colspan="9" class="text-center text-xs text-gray-500 py-8">
               Watchlist vazia — adicione um símbolo acima ou via command line (Ctrl+K: "SUI MON").
             </td>
           </tr>

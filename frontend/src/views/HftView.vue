@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
 
     <!-- Header -->
     <div class="flex flex-wrap items-center gap-3">
@@ -34,16 +34,16 @@
       <!-- Posições -->
       <div class="card p-4">
         <h2 class="text-sm font-semibold text-gray-200 mb-2"><span class="text-accent-yellow">◆</span> Posições abertas</h2>
-        <div v-if="!status || !Object.keys(status.positions).length" class="text-xs text-gray-600">Nenhuma posição</div>
+        <div v-if="!status || !Object.keys(status.positions).length" class="text-xs text-gray-500">Nenhuma posição</div>
         <div v-for="(p, addr) in status?.positions || {}" :key="addr" class="flex justify-between text-xs py-1.5 border-b border-surface-700/50">
           <span class="font-semibold text-gray-200">{{ p.symbol }}</span>
           <span class="font-mono text-gray-400">${{ p.usd_in }} @ {{ p.entry.toPrecision(4) }}</span>
-          <span class="text-gray-600">{{ Math.round((Date.now()/1000 - p.opened_at) / 60) }}min</span>
+          <span class="text-gray-500">{{ Math.round((Date.now()/1000 - p.opened_at) / 60) }}min</span>
         </div>
 
         <h2 class="text-sm font-semibold text-gray-200 mt-4 mb-2"><span class="text-accent-yellow">◆</span> Config</h2>
         <div class="grid grid-cols-2 gap-2">
-          <label v-for="f in CFG_FIELDS" :key="f.key" class="text-[10px] text-gray-500">
+          <label v-for="f in CFG_FIELDS" :key="f.key" class="text-[10px] text-gray-400">
             {{ f.label }}
             <input v-model.number="cfg[f.key]" type="number" :step="f.step || 1" class="inp mt-0.5" />
           </label>
@@ -54,12 +54,12 @@
       <!-- Trades -->
       <div class="card p-4">
         <h2 class="text-sm font-semibold text-gray-200 mb-2"><span class="text-accent-yellow">◆</span> Últimos trades</h2>
-        <div v-if="!status?.trades?.length" class="text-xs text-gray-600">Nenhum trade ainda</div>
+        <div v-if="!status?.trades?.length" class="text-xs text-gray-500">Nenhum trade ainda</div>
         <div v-for="(t, i) in [...(status?.trades || [])].reverse()" :key="i" class="flex justify-between text-xs py-1.5 border-b border-surface-700/50">
           <span class="font-semibold text-gray-200 w-20 truncate">{{ t.symbol }}</span>
           <span class="font-mono" :class="t.pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">${{ t.pnl }} ({{ t.pnl_pct }}%)</span>
-          <span class="text-gray-600">{{ t.held_min }}min</span>
-          <span class="text-gray-500">{{ t.reason }}</span>
+          <span class="text-gray-500">{{ t.held_min }}min</span>
+          <span class="text-gray-400">{{ t.reason }}</span>
         </div>
       </div>
     </div>
@@ -113,7 +113,7 @@ onUnmounted(() => clearInterval(timer))
 
 <style scoped>
 .stat { @apply bg-surface-800 rounded-lg px-4 py-2.5 border border-surface-600 min-w-24; }
-.lbl { @apply text-[10px] text-gray-500; }
+.lbl { @apply text-[10px] text-gray-400; }
 .val { @apply text-base font-bold text-gray-200; }
 .inp { @apply w-full bg-surface-900 border border-surface-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-yellow/50; }
 </style>

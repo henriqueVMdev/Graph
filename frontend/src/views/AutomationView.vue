@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-[calc(100vh-3.5rem)]">
+  <div class="flex h-[calc(100dvh-3.5rem)]">
     <!-- Sidebar: lista + form -->
     <aside class="w-80 shrink-0 border-r border-surface-500 bg-surface-800 overflow-y-auto p-4 space-y-4">
       <div class="flex items-center justify-between">
@@ -12,7 +12,7 @@
 
       <!-- Status do runner -->
       <div class="flex items-center gap-2 text-[11px]"
-           :class="runnerOk ? 'text-gray-500' : 'text-red-400'">
+           :class="runnerOk ? 'text-gray-400' : 'text-red-400'">
         <span class="w-1.5 h-1.5 rounded-full"
               :class="runnerOk ? 'bg-accent-yellow animate-pulse' : 'bg-red-500'" />
         <span v-if="runnerOk">

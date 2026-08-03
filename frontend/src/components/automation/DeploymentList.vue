@@ -16,7 +16,7 @@
           :class="badgeClass(d)"
         >{{ d.status }}</span>
       </div>
-      <div class="flex items-center justify-between mt-1.5 text-xs text-gray-500">
+      <div class="flex items-center justify-between mt-1.5 text-xs text-gray-400">
         <span class="flex items-center gap-1.5">
           {{ d.symbol }} · {{ d.interval }} ·
           <span v-if="d.mode === 'real'"
@@ -36,7 +36,7 @@
       <div v-if="d.error" class="mt-1 text-[10px] text-red-400 truncate">{{ d.error }}</div>
     </div>
 
-    <div v-if="!store.deployments.length" class="text-xs text-gray-600 text-center py-6">
+    <div v-if="!store.deployments.length" class="text-xs text-gray-500 text-center py-6">
       Nenhum deployment. Crie um aqui ou envie uma estratégia validada
       pelo Backtesting / Prop Challenge.
     </div>

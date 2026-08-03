@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">EQS · Screening Fundamentalista</h1>
-      <span class="text-[10px] text-gray-600 font-mono">yahoo screener · mercado global · dados ~15min</span>
+      <span class="text-[10px] text-gray-500 font-mono">yahoo screener · mercado global · dados ~15min</span>
       <div class="flex-1" />
       <div class="flex rounded-lg overflow-hidden border border-surface-500">
         <button v-for="t in TABS" :key="t.key" @click="tab = t.key"
@@ -20,7 +20,7 @@
       <div class="card p-4 space-y-3">
         <!-- presets -->
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[10px] text-gray-600 uppercase tracking-wider">Presets</span>
+          <span class="text-[10px] text-gray-500 uppercase tracking-wider">Presets</span>
           <button v-for="p in PRESETS" :key="p.label" @click="applyPreset(p)"
                   class="px-2 py-0.5 text-[11px] font-mono rounded border border-surface-500
                          text-gray-400 hover:text-accent-yellow hover:border-accent-yellow/50 transition-colors">
@@ -28,26 +28,26 @@
           </button>
           <button @click="clearFilters"
                   class="px-2 py-0.5 text-[11px] font-mono rounded border border-surface-600
-                         text-gray-600 hover:text-red-400 transition-colors">limpar</button>
+                         text-gray-500 hover:text-red-400 transition-colors">limpar</button>
         </div>
 
         <!-- país / setor / opções -->
         <div class="flex flex-wrap items-end gap-3">
-          <label class="text-xs text-gray-500 block">
+          <label class="text-xs text-gray-400 block">
             País
             <select v-model="region" class="form-select !py-1.5 text-xs mt-1 block w-44">
               <option value="">Global (todos)</option>
               <option v-for="r in meta.regions" :key="r.key" :value="r.key">{{ r.label }}</option>
             </select>
           </label>
-          <label class="text-xs text-gray-500 block">
+          <label class="text-xs text-gray-400 block">
             Setor
             <select v-model="sector" class="form-select !py-1.5 text-xs mt-1 block w-52">
               <option value="">Todos os setores</option>
               <option v-for="s in meta.sectors" :key="s" :value="s">{{ s }}</option>
             </select>
           </label>
-          <label class="text-xs text-gray-500 block">
+          <label class="text-xs text-gray-400 block">
             Ordenar por
             <select v-model="sort" class="form-select !py-1.5 text-xs mt-1 block w-36">
               <option value="mcap">Market cap</option>
@@ -57,7 +57,7 @@
               <option value="pct_change">Variação dia</option>
             </select>
           </label>
-          <label class="text-xs text-gray-500 flex items-center gap-1.5 pb-2">
+          <label class="text-xs text-gray-400 flex items-center gap-1.5 pb-2">
             <input type="checkbox" v-model="includeOtc" class="accent-yellow-400" />
             incluir OTC
           </label>
@@ -70,14 +70,14 @@
 
         <!-- métricas min/max -->
         <details class="group" open>
-          <summary class="text-[10px] text-gray-600 uppercase tracking-wider cursor-pointer select-none
+          <summary class="text-[10px] text-gray-500 uppercase tracking-wider cursor-pointer select-none
                           hover:text-gray-400">
             Filtros por métrica (min / max) — múltiplos · crescimento · margem · dívida · dividendos · liquidez
           </summary>
           <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-2 mt-2">
             <div v-for="m in meta.metrics" :key="m.key" class="text-[11px]">
-              <div class="text-gray-500 font-mono mb-0.5">
-                {{ m.label }} <span class="text-gray-700">({{ m.unit }})</span>
+              <div class="text-gray-400 font-mono mb-0.5">
+                {{ m.label }} <span class="text-gray-500">({{ m.unit }})</span>
               </div>
               <div class="flex gap-1">
                 <input v-model.number="ranges[m.key].min" type="number" step="any" placeholder="min"
@@ -89,7 +89,7 @@
               </div>
             </div>
           </div>
-          <p class="text-[10px] text-gray-700 mt-2 font-mono">
+          <p class="text-[10px] text-gray-500 mt-2 font-mono">
             market cap em $ (ex.: 1000000000 = $1B) · vol. médio em ações/dia · % direto (ex.: margem 15 = 15%)
           </p>
         </details>
@@ -103,13 +103,13 @@
       </div>
 
       <div v-else-if="rows.length" class="card overflow-x-auto">
-        <div class="px-3 pt-2 text-[10px] text-gray-600 font-mono">
+        <div class="px-3 pt-2 text-[10px] text-gray-500 font-mono">
           {{ totalMatches }} empresas casam com o filtro no Yahoo · exibindo {{ rows.length }} ·
           score = oportunidade relativa dentro do grupo filtrado (valor + dividendo + momento)
         </div>
         <table class="w-full text-sm font-mono">
           <thead>
-            <tr class="text-[10px] text-gray-500 uppercase tracking-wider text-right border-b border-surface-500 select-none">
+            <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
               <th class="text-left px-3 py-2">#</th>
               <th class="text-left px-3 py-2">Ativo</th>
               <th class="text-left px-3 py-2">Empresa</th>
@@ -124,7 +124,7 @@
           <tbody>
             <tr v-for="r in sortedRows" :key="r.symbol"
                 class="border-b border-surface-600/60 hover:bg-surface-600/40 transition-colors">
-              <td class="px-3 py-1.5 text-left text-gray-600 text-xs">{{ r.rank }}</td>
+              <td class="px-3 py-1.5 text-left text-gray-500 text-xs">{{ r.rank }}</td>
               <td class="px-3 py-1.5 text-left">
                 <button @click="openDes(r.symbol)"
                         class="font-bold text-gray-100 hover:text-accent-yellow">{{ r.symbol }}</button>
@@ -137,7 +137,7 @@
               <td class="px-3 py-1.5 text-right text-gray-300">{{ r.pb != null ? r.pb.toFixed(2) : '—' }}</td>
               <td class="px-3 py-1.5 text-right text-gray-300">{{ r.div_yield != null ? r.div_yield.toFixed(2) + '%' : '—' }}</td>
               <td class="px-3 py-1.5 text-right" :class="pctClass(r.chg_52w)">{{ fmtPct(r.chg_52w) }}</td>
-              <td class="px-3 py-1.5 text-right text-gray-500">{{ fmtVol(r.avg_vol) }}</td>
+              <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(r.avg_vol) }}</td>
               <td class="px-3 py-1.5 text-right">
                 <div class="flex items-center justify-end gap-1.5"
                      :title="`valor ${r.score_valor ?? '—'} · dividendo ${r.score_div ?? '—'} · momento ${r.score_momento ?? '—'}`">
@@ -149,19 +149,19 @@
               </td>
               <td class="px-3 py-1.5 text-right whitespace-nowrap">
                 <button @click="terminal.addToWatchlist(r.symbol, 'tradfi')" title="+ Watchlist"
-                        class="text-gray-600 hover:text-accent-yellow text-xs px-1">👁</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
                 <button @click="openDes(r.symbol)" title="DES"
-                        class="text-gray-600 hover:text-accent-yellow text-xs px-1">📋</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">📋</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-else-if="ran" class="text-center text-gray-600 text-sm py-12">
+      <div v-else-if="ran" class="text-center text-gray-500 text-sm py-12">
         nenhuma empresa casa com esses filtros — afrouxe algum limite
       </div>
-      <div v-else class="text-center text-gray-600 text-sm py-12">
+      <div v-else class="text-center text-gray-500 text-sm py-12">
         escolha um preset ou defina filtros e clique em <span class="text-accent-yellow font-mono">▶ Rodar screening</span>
       </div>
     </template>
@@ -169,13 +169,13 @@
     <!-- ══ FUNDOS / ETFs / BONDS ══ -->
     <template v-else>
       <div class="card p-4 flex flex-wrap items-end gap-3">
-        <label class="text-xs text-gray-500 block">
+        <label class="text-xs text-gray-400 block">
           Screen pronto (Yahoo)
           <select v-model="fundScreen" @change="runFunds" class="form-select !py-1.5 text-xs mt-1 block w-72">
             <option v-for="s in meta.fund_screens" :key="s.key" :value="s.key">{{ s.label }}</option>
           </select>
         </label>
-        <span class="text-[10px] text-gray-600 font-mono pb-2">
+        <span class="text-[10px] text-gray-500 font-mono pb-2">
           bonds são cobertos via ETFs/fundos de renda fixa (bond ETFs · high yield)
         </span>
       </div>
@@ -188,12 +188,12 @@
       </div>
 
       <div v-else-if="fundRows.length" class="card overflow-x-auto">
-        <div class="px-3 pt-2 text-[10px] text-gray-600 font-mono">
+        <div class="px-3 pt-2 text-[10px] text-gray-500 font-mono">
           {{ fundTotal }} no universo · exibindo {{ fundRows.length }}
         </div>
         <table class="w-full text-sm font-mono">
           <thead>
-            <tr class="text-[10px] text-gray-500 uppercase tracking-wider text-right border-b border-surface-500">
+            <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
               <th class="text-left px-3 py-2">Ativo</th>
               <th class="text-left px-3 py-2">Nome</th>
               <th class="text-left px-3 py-2">Tipo</th>
@@ -214,18 +214,18 @@
                         class="font-bold text-gray-100 hover:text-accent-yellow">{{ r.symbol }}</button>
               </td>
               <td class="px-3 py-1.5 text-left text-gray-400 text-xs max-w-56 truncate">{{ r.name }}</td>
-              <td class="px-3 py-1.5 text-left text-[10px] text-gray-500">{{ r.quote_type }}</td>
+              <td class="px-3 py-1.5 text-left text-[10px] text-gray-400">{{ r.quote_type }}</td>
               <td class="px-3 py-1.5 text-right">{{ fmt(r.last) }}</td>
               <td class="px-3 py-1.5 text-right" :class="pctClass(r.pct_change)">{{ fmtPct(r.pct_change) }}</td>
               <td class="px-3 py-1.5 text-right" :class="pctClass(r.chg_52w)">{{ fmtPct(r.chg_52w) }}</td>
               <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(r.net_assets) }}</td>
               <td class="px-3 py-1.5 text-right text-gray-400">{{ r.expense_ratio != null ? r.expense_ratio.toFixed(2) + '%' : '—' }}</td>
-              <td class="px-3 py-1.5 text-right text-gray-500">{{ fmtVol(r.avg_vol) }}</td>
+              <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(r.avg_vol) }}</td>
               <td class="px-3 py-1.5 text-right whitespace-nowrap">
                 <button @click="terminal.addToWatchlist(r.symbol, 'tradfi')" title="+ Watchlist"
-                        class="text-gray-600 hover:text-accent-yellow text-xs px-1">👁</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
                 <button @click="openDes(r.symbol)" title="DES"
-                        class="text-gray-600 hover:text-accent-yellow text-xs px-1">📋</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">📋</button>
               </td>
             </tr>
           </tbody>

@@ -65,4 +65,17 @@ for (let i = 0; i < escala.length - 1; i++) {
     + `${hueD.toFixed(0)} graus de matiz - indistinguiveis lado a lado`)
 }
 
+// Rampa de cinza de texto: todo nivel usado como texto precisa passar AA
+// sobre surface-600, que e a superficie mais clara em que ele aparece.
+const cinza = { 400: '#9ca3af', 500: cfg.theme.extend.colors.gray[500] }
+const fundoClaro = cfg.theme.extend.colors.surface[600]
+for (const [nivel, hex] of Object.entries(cinza)) {
+  const r = contraste(hex, fundoClaro)
+  assert.ok(r >= 4.5, `gray-${nivel} tem ${r.toFixed(2)}:1 sobre surface-600 - abaixo de AA`)
+}
+// E precisam ser degraus distintos, senao a hierarquia some.
+const degrau = contraste(cinza[400], cinza[500])
+assert.ok(degrau >= 1.25, `gray-400 e gray-500 a ${degrau.toFixed(2)}:1 - degrau fraco demais`)
+
 console.log('tokens ok:', Object.entries(accent).map(([k, v]) => `${k}=${v}`).join(' '))
+console.log('cinzas ok:', Object.entries(cinza).map(([k, v]) => `gray-${k}=${v}`).join(' '))

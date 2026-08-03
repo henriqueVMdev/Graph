@@ -8,7 +8,7 @@
         :key="i"
         @click="activeTab = i"
         class="px-3 py-1.5 text-xs font-medium rounded-t transition-colors"
-        :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-500 hover:text-gray-300'"
+        :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-400 hover:text-gray-300'"
       >{{ t }}</button>
     </div>
 
@@ -74,7 +74,7 @@
       <template v-if="results.regime_probs">
         <div ref="rollingChart" style="min-height:380px;" class="w-full"></div>
       </template>
-      <div v-else class="text-center text-gray-500 text-xs py-8">
+      <div v-else class="text-center text-gray-400 text-xs py-8">
         Probabilidades rolling só disponíveis com os métodos HMM e Markov Switching.
       </div>
     </div>
@@ -89,7 +89,7 @@
           class="bg-surface-700 rounded-lg px-3 py-2 text-center"
           :class="b.n === results.n_states ? 'border border-accent-yellow' : 'border border-surface-500'"
         >
-          <div class="text-gray-500">{{ b.n }} estados</div>
+          <div class="text-gray-400">{{ b.n }} estados</div>
           <div class="font-mono text-gray-300">{{ b.bic.toLocaleString() }}</div>
           <div v-if="b.n === results.n_states" class="text-[10px] text-accent-yellow mt-0.5">selecionado</div>
         </div>

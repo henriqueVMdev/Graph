@@ -1,5 +1,6 @@
 <template>
-  <nav class="h-14 bg-surface-800/90 backdrop-blur border-b border-surface-500 flex items-center px-4 gap-4 shrink-0 sticky top-0 z-40">
+  <nav aria-label="Navegação principal"
+       class="h-14 bg-surface-800/90 backdrop-blur border-b border-surface-500 flex items-center px-4 gap-4 shrink-0 sticky top-0 z-40">
 
     <!-- Marca -->
     <RouterLink to="/" class="flex items-center gap-2.5 pr-2 group">
@@ -8,7 +9,7 @@
                   group-hover:shadow-yellow-glow transition-shadow">G</div>
       <div class="leading-none hidden lg:block">
         <div class="text-[13px] font-bold tracking-wide text-gray-100">GRAPH</div>
-        <div class="text-[9px] text-gray-600 uppercase tracking-[0.2em]">quant lab</div>
+        <div class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">quant lab</div>
       </div>
     </RouterLink>
 
@@ -18,6 +19,11 @@
     <div ref="navEl" class="flex items-center gap-1">
       <div v-for="g in GROUPS" :key="g.label" class="relative">
         <button
+          :ref="(el) => { if (el) groupBtns[g.label] = el }"
+          type="button"
+          :aria-expanded="openGroup === g.label"
+          aria-haspopup="true"
+          :aria-controls="`nav-grupo-${slug(g.label)}`"
           @click="openGroup = openGroup === g.label ? null : g.label"
           class="nav-link"
           :class="{ active: groupActive(g) || openGroup === g.label }"
@@ -34,10 +40,11 @@
 
         <Transition name="dd">
           <div v-if="openGroup === g.label"
+               :id="`nav-grupo-${slug(g.label)}`"
                class="absolute left-0 top-full mt-1.5 min-w-48 rounded-lg border
                       border-surface-500 bg-surface-800/95 backdrop-blur shadow-xl
                       py-1.5 z-50">
-            <div class="px-3 pb-1 text-[9px] uppercase tracking-[0.18em] text-gray-600">
+            <div class="px-3 pb-1 text-[9px] uppercase tracking-[0.18em] text-gray-500">
               {{ g.hint }}
             </div>
             <RouterLink
@@ -60,29 +67,34 @@
 
     <div class="flex-1" />
 
-    <!-- Status de execução -->
-    <div v-if="busyLabel" class="flex items-center gap-2 text-xs text-accent-yellow/80 shrink-0">
-      <span class="dollar-loader-sm">$</span>
-      <span class="hidden md:inline">{{ busyLabel }}</span>
+    <!-- Status de execução. O rotulo some abaixo de md, mas a regiao viva
+         continua anunciando: e a unica pista de que algo esta rodando. -->
+    <div class="flex items-center gap-2 text-xs text-accent-yellow/80 shrink-0"
+         role="status" aria-live="polite">
+      <template v-if="busyLabel">
+        <span class="dollar-loader-sm" aria-hidden="true">$</span>
+        <span class="hidden md:inline">{{ busyLabel }}</span>
+        <span class="md:hidden sr-only">{{ busyLabel }}</span>
+      </template>
     </div>
 
     <!-- Command line hint -->
     <button @click="$emit('open-cmd')" title="Command line (Ctrl+K)"
-            class="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-gray-600
+            class="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-gray-500
                    border border-surface-500 rounded-md px-2 py-1 hover:text-accent-yellow
                    hover:border-accent-yellow/40 transition-colors shrink-0">
       <span class="text-accent-yellow">&gt;_</span> Ctrl+K
     </button>
 
     <!-- Sino de alertas -->
-    <RouterLink to="/alerts" class="relative shrink-0 text-gray-500 hover:text-accent-yellow transition-colors"
-                title="Alertas">
+    <RouterLink to="/alerts" class="relative shrink-0 text-gray-400 hover:text-accent-yellow transition-colors"
+                :aria-label="alertsLabel">
       <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
-      <span v-if="terminal.unseenTriggered.length"
+      <span v-if="terminal.unseenTriggered.length" aria-hidden="true"
             class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full
                    bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
         {{ terminal.unseenTriggered.length }}
@@ -92,14 +104,14 @@
     <!-- Relógio de sessão (UTC + Brasília) -->
     <div class="hidden md:flex items-center gap-3 font-mono text-[11px] leading-none shrink-0">
       <div class="text-right">
-        <div class="text-gray-300">{{ clockUtc }} <span class="text-gray-600">UTC</span></div>
-        <div class="text-gray-500">{{ clockBrt }} <span class="text-gray-700">BRT</span></div>
+        <div class="text-gray-300">{{ clockUtc }} <span class="text-gray-500">UTC</span></div>
+        <div class="text-gray-400">{{ clockBrt }} <span class="text-gray-500">BRT</span></div>
       </div>
       <!-- Janela de entrada 19h-00h BRT da estratégia validada -->
       <div class="flex items-center gap-1.5 px-2 py-1 rounded-md border"
            :class="inWindow
              ? 'border-accent-yellow/40 bg-accent-yellow/10 text-accent-yellow'
-             : 'border-surface-500 bg-surface-700 text-gray-600'"
+             : 'border-surface-500 bg-surface-700 text-gray-500'"
            title="Janela de entrada da estratégia validada: 19:00-00:00 Brasília">
         <span class="w-1.5 h-1.5 rounded-full"
               :class="inWindow ? 'bg-accent-yellow animate-pulse' : 'bg-gray-600'" />
@@ -196,6 +208,14 @@ const GROUPS = [
 
 const openGroup = ref(null)
 const navEl = ref(null)
+const groupBtns = {}
+
+const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+const alertsLabel = computed(() => {
+  const n = terminal.unseenTriggered.length
+  return n ? `Alertas, ${n} ${n === 1 ? 'novo' : 'novos'}` : 'Alertas'
+})
 
 function groupActive(g) {
   return g.items.some((i) => i.to === route.path)
@@ -205,6 +225,15 @@ function onClickOutside(e) {
   if (openGroup.value && navEl.value && !navEl.value.contains(e.target)) {
     openGroup.value = null
   }
+}
+
+// Esc fecha e devolve o foco ao botao que abriu, senao o foco fica orfao no
+// meio do documento depois que o painel some.
+function onKeydown(e) {
+  if (e.key !== 'Escape' || !openGroup.value) return
+  const btn = groupBtns[openGroup.value]
+  openGroup.value = null
+  btn?.focus()
 }
 
 const busyLabel = computed(() => {
@@ -238,16 +267,18 @@ onMounted(() => {
   clockTimer = setInterval(tick, 1000)
   terminal.startAlertsPolling()      // badge do sino em qualquer página
   window.addEventListener('click', onClickOutside)
+  window.addEventListener('keydown', onKeydown)
 })
 onBeforeUnmount(() => {
   clearInterval(clockTimer)
   window.removeEventListener('click', onClickOutside)
+  window.removeEventListener('keydown', onKeydown)
 })
 </script>
 
 <style scoped>
 .nav-link {
-  @apply flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-500 rounded-lg
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-400 rounded-lg
          hover:text-gray-200 hover:bg-surface-600 transition-all duration-150 font-medium
          whitespace-nowrap;
 }

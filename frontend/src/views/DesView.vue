@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <!-- busca -->
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">DES · Descrição do Ativo</h1>
@@ -28,7 +28,7 @@
       <!-- cabeçalho: preço grande estilo terminal -->
       <div class="card p-5 flex flex-wrap items-end gap-6">
         <div>
-          <div class="text-xs text-gray-500 font-mono">
+          <div class="text-xs text-gray-400 font-mono">
             {{ d.symbol }} · {{ isTradfi ? (d.exchange_name || 'yahoo') : d.exchange }}
             <span v-if="isTradfi" class="ml-1.5 text-[9px] px-1 py-0.5 rounded
                   bg-blue-900/40 text-blue-300 border border-blue-800/50">TRAD</span>
@@ -37,7 +37,7 @@
           <div class="text-4xl font-bold font-mono text-gray-100 mt-1">
             {{ fmt(d.last) }}
             <span v-if="isTradfi && d.currency && d.currency !== 'USD'"
-                  class="text-sm text-gray-500">{{ d.currency }}</span>
+                  class="text-sm text-gray-400">{{ d.currency }}</span>
             <span class="text-lg ml-2" :class="pctClass(d.pct24h)">{{ fmtPct(d.pct24h) }}</span>
           </div>
         </div>
@@ -87,11 +87,11 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-xs font-mono">
           <div v-for="f in fundamentals" :key="f.label"
                class="flex justify-between border-b border-surface-600/40 py-1">
-            <span class="text-gray-500">{{ f.label }}</span>
+            <span class="text-gray-400">{{ f.label }}</span>
             <span class="text-gray-300">{{ f.value }}</span>
           </div>
         </div>
-        <p v-if="d.summary" class="text-[11px] text-gray-500 mt-3 leading-relaxed">
+        <p v-if="d.summary" class="text-[11px] text-gray-400 mt-3 leading-relaxed">
           {{ d.summary }}<span v-if="d.summary.length >= 600">…</span>
         </p>
       </div>
@@ -112,16 +112,16 @@
         </h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-xs font-mono">
           <div class="flex justify-between border-b border-surface-600/40 py-1">
-            <span class="text-gray-500">Qty mínima</span>
+            <span class="text-gray-400">Qty mínima</span>
             <span class="text-gray-300">{{ d.min_qty ?? '—' }}</span></div>
           <div class="flex justify-between border-b border-surface-600/40 py-1">
-            <span class="text-gray-500">Notional mín</span>
+            <span class="text-gray-400">Notional mín</span>
             <span class="text-gray-300">{{ d.min_notional ?? '—' }}</span></div>
           <div class="flex justify-between border-b border-surface-600/40 py-1">
-            <span class="text-gray-500">Contract size</span>
+            <span class="text-gray-400">Contract size</span>
             <span class="text-gray-300">{{ d.contract_size ?? '—' }}</span></div>
           <div class="flex justify-between border-b border-surface-600/40 py-1">
-            <span class="text-gray-500">Fees mk/tk</span>
+            <span class="text-gray-400">Fees mk/tk</span>
             <span class="text-gray-300">
               {{ d.fees?.maker != null ? (d.fees.maker * 100).toFixed(3) + '% / ' + (d.fees.taker * 100).toFixed(3) + '%' : '—' }}
             </span></div>
@@ -129,7 +129,7 @@
       </div>
     </template>
 
-    <div v-else class="text-center text-gray-600 text-sm py-16">
+    <div v-else class="text-center text-gray-500 text-sm py-16">
       Informe um símbolo acima ou use o command line: <span class="font-mono text-accent-yellow">BTC DES</span>
     </div>
   </div>

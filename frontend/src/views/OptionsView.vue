@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">OMON · Opções</h1>
-      <span class="text-[10px] text-gray-600 font-mono">chain via yahoo (~15min) · ações, ETFs e índices US</span>
+      <span class="text-[10px] text-gray-500 font-mono">chain via yahoo (~15min) · ações, ETFs e índices US</span>
       <div class="flex-1" />
       <form @submit.prevent="load()" class="flex gap-2 items-center">
         <input v-model="symbolInput" placeholder="ex.: AAPL, SPY, TSLA"
@@ -70,7 +70,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-500 uppercase text-right border-b border-surface-500">
+              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="px-2 py-1.5">Strike</th>
                 <th class="px-2 py-1.5">Último</th>
                 <th class="px-2 py-1.5">Bid</th>
@@ -95,14 +95,14 @@
                 <td class="px-2 py-1 text-gray-300">{{ r.last ?? '—' }}</td>
                 <td class="px-2 py-1 text-gray-400">{{ r.bid ?? '—' }}</td>
                 <td class="px-2 py-1 text-gray-400">{{ r.ask ?? '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.volume != null ? Math.round(r.volume) : '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.oi != null ? Math.round(r.oi) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.volume != null ? Math.round(r.volume) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.oi != null ? Math.round(r.oi) : '—' }}</td>
                 <td class="px-2 py-1 text-gray-300">{{ r.iv != null ? (r.iv * 100).toFixed(1) + '%' : '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.theo != null ? r.theo.toFixed(2) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.theo != null ? r.theo.toFixed(2) : '—' }}</td>
                 <td class="px-2 py-1 text-gray-300">{{ r.delta != null ? r.delta.toFixed(2) : '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.gamma != null ? r.gamma.toFixed(4) : '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.theta != null ? r.theta.toFixed(3) : '—' }}</td>
-                <td class="px-2 py-1 text-gray-500">{{ r.vega != null ? r.vega.toFixed(3) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.gamma != null ? r.gamma.toFixed(4) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.theta != null ? r.theta.toFixed(3) : '—' }}</td>
+                <td class="px-2 py-1 text-gray-400">{{ r.vega != null ? r.vega.toFixed(3) : '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -110,7 +110,7 @@
       </div>
     </template>
 
-    <div v-else class="text-center text-gray-600 text-sm py-16">
+    <div v-else class="text-center text-gray-500 text-sm py-16">
       Informe um ticker com opções listadas (EUA) — ou command line:
       <span class="font-mono text-accent-yellow">AAPL OMON</span>
     </div>

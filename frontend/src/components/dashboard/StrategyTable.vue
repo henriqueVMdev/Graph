@@ -27,7 +27,7 @@
       </div>
 
       <!-- Divider -->
-      <span class="text-gray-600 text-xs hidden sm:block">|</span>
+      <span class="text-gray-500 text-xs hidden sm:block">|</span>
 
       <!-- Secondary sort (client-side) -->
       <div class="flex items-center gap-2">
@@ -113,7 +113,7 @@
             </td>
           </tr>
           <tr v-if="displayRows.length === 0">
-            <td :colspan="columns.length" class="text-center py-6 text-gray-500">
+            <td :colspan="columns.length" class="text-center py-6 text-gray-400">
               Nenhum resultado após os filtros aplicados
             </td>
           </tr>

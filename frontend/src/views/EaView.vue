@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">FA · Análise da Empresa</h1>
-      <span class="text-[10px] text-gray-600 font-mono">demonstrações · analistas · donos · dividendos (yahoo)</span>
+      <span class="text-[10px] text-gray-500 font-mono">demonstrações · analistas · donos · dividendos (yahoo)</span>
       <div class="flex-1" />
       <form @submit.prevent="load" class="flex gap-2">
         <input v-model="symbolInput" placeholder="ex.: AAPL, PETR4.SA"
@@ -22,19 +22,19 @@
       <!-- header -->
       <div class="card p-5 flex flex-wrap items-end gap-6">
         <div>
-          <div class="text-xs text-gray-500 font-mono">
+          <div class="text-xs text-gray-400 font-mono">
             {{ d.yf_symbol }} · {{ d.exchange_name }} · {{ d.sector }} / {{ d.industry }}
           </div>
           <div class="text-lg text-gray-200 mt-0.5">{{ d.name }}</div>
           <div class="text-3xl font-bold font-mono text-gray-100">
             {{ fmt(d.last) }}
-            <span class="text-sm text-gray-500">{{ d.currency }}</span>
+            <span class="text-sm text-gray-400">{{ d.currency }}</span>
             <span class="text-base ml-2" :class="pctClass(d.pct24h)">{{ fmtPct(d.pct24h) }}</span>
           </div>
         </div>
         <div class="flex-1" />
         <div class="text-right">
-          <div class="text-[10px] text-gray-500 uppercase">Market cap</div>
+          <div class="text-[10px] text-gray-400 uppercase">Market cap</div>
           <div class="text-xl font-bold font-mono text-gray-200">{{ fmtVol(d.mcap) }}</div>
           <button @click="toDes" class="btn-secondary !py-1 text-[11px] mt-1">📋 DES</button>
           <button @click="toOmon" class="btn-secondary !py-1 text-[11px] mt-1 ml-1">OMON</button>
@@ -82,7 +82,7 @@
                 <span>máx {{ fmt(pt.high) }}</span>
               </div>
             </template>
-            <p v-else class="text-xs text-gray-600">sem cobertura de analistas</p>
+            <p v-else class="text-xs text-gray-500">sem cobertura de analistas</p>
           </div>
 
           <!-- recomendações -->
@@ -96,13 +96,13 @@
                      :class="b.cls" class="flex items-center justify-center overflow-hidden"
                      :title="`${b.label}: ${b.n}`">{{ b.pct >= 12 ? b.n : '' }}</div>
               </div>
-              <div class="flex flex-wrap gap-3 mt-2 text-[10px] font-mono text-gray-500">
+              <div class="flex flex-wrap gap-3 mt-2 text-[10px] font-mono text-gray-400">
                 <span v-for="b in recBars" :key="b.label" class="flex items-center gap-1">
                   <span class="w-2 h-2 rounded-sm inline-block" :class="b.cls"></span>{{ b.label }} {{ b.n }}
                 </span>
               </div>
             </template>
-            <p v-else class="text-xs text-gray-600">sem recomendações</p>
+            <p v-else class="text-xs text-gray-500">sem recomendações</p>
           </div>
         </div>
 
@@ -113,7 +113,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-500 uppercase text-right border-b border-surface-500">
+              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Ativo</th>
                 <th class="text-left px-3 py-2">Empresa</th>
                 <th class="px-3 py-2">Mkt cap</th>
@@ -152,7 +152,7 @@
           </table>
         </div>
 
-        <p v-if="d.summary" class="card p-4 text-[11px] text-gray-500 leading-relaxed">{{ d.summary }}…</p>
+        <p v-if="d.summary" class="card p-4 text-[11px] text-gray-400 leading-relaxed">{{ d.summary }}…</p>
       </template>
 
       <!-- ══ DEMONSTRAÇÕES ══ -->
@@ -181,7 +181,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-500 uppercase text-right border-b border-surface-500">
+              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Data</th>
                 <th class="px-3 py-2">EPS estimado</th>
                 <th class="px-3 py-2">EPS reportado</th>
@@ -223,7 +223,7 @@
                 <td class="px-3 py-1.5 text-right text-gray-300">{{ pctOf(h.pct) }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(h.shares) }} ações</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(h.value) }}</td>
-                <td class="px-3 py-1.5 text-right text-gray-600">{{ h.date }}</td>
+                <td class="px-3 py-1.5 text-right text-gray-500">{{ h.date }}</td>
               </tr>
             </tbody>
           </table>
@@ -237,12 +237,12 @@
             <tbody>
               <tr v-for="(t, i) in d.insiders" :key="i" class="border-b border-surface-600/40">
                 <td class="px-3 py-1.5 text-gray-200 max-w-40 truncate">{{ t.insider }}</td>
-                <td class="px-3 py-1.5 text-gray-500 max-w-32 truncate">{{ t.position }}</td>
+                <td class="px-3 py-1.5 text-gray-400 max-w-32 truncate">{{ t.position }}</td>
                 <td class="px-3 py-1.5"
                     :class="isSale(t.text) ? 'text-red-400' : 'text-green-400'">{{ t.text || '—' }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(t.shares) }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ t.value ? fmtVol(t.value) : '—' }}</td>
-                <td class="px-3 py-1.5 text-right text-gray-600">{{ t.date }}</td>
+                <td class="px-3 py-1.5 text-right text-gray-500">{{ t.date }}</td>
               </tr>
             </tbody>
           </table>
@@ -251,7 +251,7 @@
         <div class="card p-4 space-y-3" v-if="d.smart_money">
           <div>
             <div class="text-sm font-semibold text-gray-200"><span class="text-accent-yellow">◆</span> Insiders & Smart Money · múltiplos mercados</div>
-            <div class="text-[10px] text-gray-600">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
+            <div class="text-[10px] text-gray-500">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
           </div>
           <div v-if="d.smart_money.errors?.length" class="text-[10px] text-amber-400">{{ d.smart_money.errors.join(' · ') }}</div>
           <div v-for="feed in d.smart_money.feeds || []" :key="feed.source" class="rounded-lg bg-surface-600/30 p-3">
@@ -263,23 +263,23 @@
               <a :href="feed.url" target="_blank" rel="noopener" class="text-[10px] text-accent-yellow hover:underline">fonte oficial ↗</a>
             </div>
             <div v-if="feed.latest" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
-              <div v-if="feed.latest.net != null"><span class="text-gray-500">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmtVol(feed.latest.net) }}</div></div>
-              <div v-if="feed.latest.net_percentile_2y != null"><span class="text-gray-500">Percentil 2 anos</span><div class="text-gray-200">{{ feed.latest.net_percentile_2y }}%</div></div>
-              <div v-if="feed.latest.ratio != null"><span class="text-gray-500">Long/Short top traders</span><div class="text-gray-200">{{ feed.latest.ratio.toFixed(2) }}</div></div>
-              <div v-if="feed.latest.long_pct != null"><span class="text-gray-500">Long / Short</span><div><span class="text-green-400">{{ feed.latest.long_pct.toFixed(1) }}%</span> / <span class="text-red-400">{{ feed.latest.short_pct.toFixed(1) }}%</span></div></div>
-              <div v-if="feed.latest.date"><span class="text-gray-500">Referência</span><div class="text-gray-300">{{ feed.latest.date }}</div></div>
+              <div v-if="feed.latest.net != null"><span class="text-gray-400">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmtVol(feed.latest.net) }}</div></div>
+              <div v-if="feed.latest.net_percentile_2y != null"><span class="text-gray-400">Percentil 2 anos</span><div class="text-gray-200">{{ feed.latest.net_percentile_2y }}%</div></div>
+              <div v-if="feed.latest.ratio != null"><span class="text-gray-400">Long/Short top traders</span><div class="text-gray-200">{{ feed.latest.ratio.toFixed(2) }}</div></div>
+              <div v-if="feed.latest.long_pct != null"><span class="text-gray-400">Long / Short</span><div><span class="text-green-400">{{ feed.latest.long_pct.toFixed(1) }}%</span> / <span class="text-red-400">{{ feed.latest.short_pct.toFixed(1) }}%</span></div></div>
+              <div v-if="feed.latest.date"><span class="text-gray-400">Referência</span><div class="text-gray-300">{{ feed.latest.date }}</div></div>
             </div>
             <table v-if="feed.filings?.length" class="w-full text-[11px] font-mono">
               <tbody><tr v-for="f in feed.filings" :key="f.url" class="border-t border-surface-500/40">
-                <td class="py-1 text-accent-yellow">Form {{ f.form }}</td><td class="text-gray-500">{{ f.date }}</td>
+                <td class="py-1 text-accent-yellow">Form {{ f.form }}</td><td class="text-gray-400">{{ f.date }}</td>
                 <td class="text-gray-300">{{ f.description || 'Insider ownership filing' }}</td>
                 <td class="text-right"><a :href="f.url" target="_blank" rel="noopener" class="text-gray-400 hover:text-accent-yellow">abrir ↗</a></td>
               </tr></tbody>
             </table>
             <div v-if="feed.famous_wallets?.length" class="mt-3 overflow-x-auto">
-              <div class="text-[10px] text-gray-500 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
+              <div class="text-[10px] text-gray-400 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
               <table class="w-full text-[10px] font-mono">
-                <thead><tr class="text-gray-600 border-b border-surface-500">
+                <thead><tr class="text-gray-500 border-b border-surface-500">
                   <th class="py-1 text-left">Rótulo</th><th class="text-left">Endereço</th>
                   <th class="text-right">Saldo BTC</th><th class="text-right">Recebido</th>
                   <th class="text-right">Txs</th><th class="text-right">Última atividade</th>
@@ -290,7 +290,7 @@
                   <td class="text-right text-gray-200">{{ w.balance_btc != null ? w.balance_btc.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.received_btc != null ? w.received_btc.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.tx_count?.toLocaleString('pt-BR') ?? '—' }}</td>
-                  <td class="text-right text-gray-500">{{ fmtDateTs(w.last_activity_ts) }}</td>
+                  <td class="text-right text-gray-400">{{ fmtDateTs(w.last_activity_ts) }}</td>
                 </tr></tbody>
               </table>
               <div class="text-[9px] text-amber-400/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
@@ -301,7 +301,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
               <a v-for="s in d.smart_money.sources || []" :key="s.market + s.source" :href="s.url" target="_blank" rel="noopener"
                  class="rounded bg-surface-600/30 p-2 text-gray-400 hover:text-accent-yellow">
-                <span class="text-gray-600">{{ s.market }} · </span>{{ s.source }} ↗
+                <span class="text-gray-500">{{ s.market }} · </span>{{ s.source }} ↗
               </a>
             </div>
           </details>
@@ -343,7 +343,7 @@
             </h2>
             <table class="w-full text-xs font-mono">
               <thead>
-                <tr class="text-[10px] text-gray-500 uppercase text-right border-b border-surface-500">
+                <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
                   <th class="text-left px-2 py-1">Ano fiscal</th>
                   <th class="px-2 py-1">Recompras</th>
                   <th class="px-2 py-1">Dividendos</th>
@@ -373,7 +373,7 @@
       </template>
     </template>
 
-    <div v-else class="text-center text-gray-600 text-sm py-16">
+    <div v-else class="text-center text-gray-500 text-sm py-16">
       Informe um ticker — ou command line: <span class="font-mono text-accent-yellow">AAPL FA</span>
     </div>
   </div>
@@ -502,7 +502,7 @@ const StmtTable = (props) => {
     h('div', { class: 'px-3 pt-2 text-sm font-semibold text-gray-200' }, [
       h('span', { class: 'text-accent-yellow' }, '◆ '), props.title]),
     h('table', { class: 'w-full text-xs font-mono' }, [
-      h('thead', h('tr', { class: 'text-[10px] text-gray-500 uppercase text-right border-b border-surface-500' }, [
+      h('thead', h('tr', { class: 'text-[10px] text-gray-400 uppercase text-right border-b border-surface-500' }, [
         h('th', { class: 'px-3 py-2 text-left' }, ''),
         ...s.periods.map((p) => h('th', { class: 'px-3 py-2' }, p)),
       ])),

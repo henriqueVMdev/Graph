@@ -10,7 +10,7 @@
             REAL · {{ dep.account }}
           </span>
         </h2>
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-gray-400">
           {{ dep.strategy_file }} · {{ dep.symbol }} {{ dep.interval }} ·
           {{ dep.exchange }} · {{ dep.mode }}
           <span v-if="dep.guardrails" class="text-accent-yellow/70">
@@ -58,34 +58,34 @@
     <!-- Posição aberta / ordem pendente -->
     <div class="grid grid-cols-2 gap-3">
       <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-        <div class="text-[10px] text-gray-500 uppercase mb-1.5">Posição aberta</div>
+        <div class="text-[10px] text-gray-400 uppercase mb-1.5">Posição aberta</div>
         <template v-if="s.position">
           <div class="text-sm" :class="s.position.side === 1 ? 'text-accent-yellow' : 'text-red-400'">
             {{ s.position.side === 1 ? 'LONG' : 'SHORT' }} @ {{ fmt(s.position.entry_price) }}
           </div>
-          <div class="text-[11px] text-gray-500 mt-1">
+          <div class="text-[11px] text-gray-400 mt-1">
             TP {{ fmt(s.position.tp_price) }} · SL {{ fmt(s.position.sl_price) }} ·
             {{ s.position.bars_held }}/{{ s.position.max_bars }} barras
           </div>
         </template>
-        <div v-else class="text-xs text-gray-600">flat</div>
+        <div v-else class="text-xs text-gray-500">flat</div>
       </div>
       <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-        <div class="text-[10px] text-gray-500 uppercase mb-1.5">Ordem pendente</div>
+        <div class="text-[10px] text-gray-400 uppercase mb-1.5">Ordem pendente</div>
         <template v-if="s.working_order">
           <div class="text-sm text-gray-300">
             Limite {{ s.working_order.side === 1 ? 'compra' : 'venda' }}
             @ {{ fmt(s.working_order.price) }}
           </div>
-          <div class="text-[11px] text-gray-500 mt-1">válida por 1 candle</div>
+          <div class="text-[11px] text-gray-400 mt-1">válida por 1 candle</div>
         </template>
-        <div v-else class="text-xs text-gray-600">nenhuma</div>
+        <div v-else class="text-xs text-gray-500">nenhuma</div>
       </div>
     </div>
 
     <!-- Parâmetros da estratégia automatizada -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-500 uppercase mb-2">
+      <div class="text-[10px] text-gray-400 uppercase mb-2">
         Parâmetros da estratégia · {{ dep.strategy_file }}
       </div>
       <div v-if="paramList.length" class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-0.5">
@@ -94,11 +94,11 @@
           :key="p.key"
           class="flex justify-between gap-2 text-[11px] border-b border-surface-600/40 py-1"
         >
-          <span class="text-gray-500 truncate" :title="p.key">{{ p.label }}</span>
+          <span class="text-gray-400 truncate" :title="p.key">{{ p.label }}</span>
           <span class="text-gray-300 font-medium shrink-0">{{ p.value }}</span>
         </div>
       </div>
-      <div v-else class="text-xs text-gray-600">defaults da estratégia</div>
+      <div v-else class="text-xs text-gray-500">defaults da estratégia</div>
     </div>
 
     <!-- Monitor de invalidação -->
@@ -114,10 +114,10 @@
 
     <!-- Trades -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-500 uppercase mb-2">Trades fechados</div>
+      <div class="text-[10px] text-gray-400 uppercase mb-2">Trades fechados</div>
       <table v-if="s.trades?.length" class="w-full text-xs">
         <thead>
-          <tr class="text-gray-600 text-left">
+          <tr class="text-gray-500 text-left">
             <th class="pb-1.5 font-medium">Lado</th>
             <th class="pb-1.5 font-medium">Entrada</th>
             <th class="pb-1.5 font-medium">Saída</th>
@@ -132,7 +132,7 @@
             </td>
             <td class="py-1.5 text-gray-400">{{ fmt(t.entry_price) }}</td>
             <td class="py-1.5 text-gray-400">{{ fmt(t.exit_price) }}</td>
-            <td class="py-1.5 text-gray-500">{{ t.exit_reason }}</td>
+            <td class="py-1.5 text-gray-400">{{ t.exit_reason }}</td>
             <td class="py-1.5 text-right font-medium"
                 :class="t.pnl_pct >= 0 ? 'text-accent-yellow' : 'text-red-400'">
               {{ t.pnl_pct >= 0 ? '+' : '' }}{{ t.pnl_pct?.toFixed(3) }}%
@@ -140,15 +140,15 @@
           </tr>
         </tbody>
       </table>
-      <div v-else class="text-xs text-gray-600">nenhum trade fechado ainda</div>
+      <div v-else class="text-xs text-gray-500">nenhum trade fechado ainda</div>
     </div>
 
     <!-- Eventos -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-500 uppercase mb-2">Eventos</div>
+      <div class="text-[10px] text-gray-400 uppercase mb-2">Eventos</div>
       <div class="space-y-1 max-h-52 overflow-y-auto">
         <div v-for="ev in s.events" :key="ev.id" class="flex gap-2 text-[11px]">
-          <span class="text-gray-600 shrink-0">{{ tsFmt(ev.ts) }}</span>
+          <span class="text-gray-500 shrink-0">{{ tsFmt(ev.ts) }}</span>
           <span :class="ev.level === 'error' ? 'text-red-400' : 'text-gray-400'">
             {{ ev.message }}
           </span>
@@ -157,7 +157,7 @@
     </div>
   </div>
 
-  <div v-else class="flex items-center justify-center h-full text-sm text-gray-600">
+  <div v-else class="flex items-center justify-center h-full text-sm text-gray-500">
     Selecione um deployment
   </div>
 </template>
@@ -243,7 +243,7 @@ function askDelete() {
   @apply rounded-xl border border-surface-500 bg-surface-700 p-3;
 }
 .kpi-label {
-  @apply text-[10px] text-gray-500 uppercase;
+  @apply text-[10px] text-gray-400 uppercase;
 }
 .kpi-value {
   @apply text-base text-gray-200 font-semibold mt-0.5;

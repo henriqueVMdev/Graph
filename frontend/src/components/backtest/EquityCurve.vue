@@ -2,7 +2,7 @@
   <div>
     <div class="flex items-center gap-4 mb-3">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-500">Inicio:</span>
+        <span class="text-xs text-gray-400">Inicio:</span>
         <input
           type="date"
           v-model="dateFrom"
@@ -11,7 +11,7 @@
         />
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-500">Ate:</span>
+        <span class="text-xs text-gray-400">Ate:</span>
         <input
           type="date"
           v-model="dateTo"
@@ -23,7 +23,7 @@
       <button
         v-if="dateFrom || dateTo"
         @click="clearRange"
-        class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+        class="text-[10px] text-gray-400 hover:text-gray-300 transition-colors"
       >limpar</button>
     </div>
     <div ref="chartEl" class="w-full" style="min-height: 450px;"></div>

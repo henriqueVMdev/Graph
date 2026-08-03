@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
 
     <!-- Header / controls -->
     <div class="flex flex-wrap items-center gap-3">
@@ -16,7 +16,7 @@
           class="px-3 py-1 text-xs rounded-md transition-all font-medium"
           :class="store.chain === id
             ? 'bg-accent-yellow/15 text-accent-yellow'
-            : 'text-gray-500 hover:text-gray-200'"
+            : 'text-gray-400 hover:text-gray-200'"
         >
           {{ label }}
         </button>
@@ -27,14 +27,14 @@
         <button
           @click="store.setKind('trending')"
           class="px-3 py-1 text-xs rounded-md transition-all font-medium"
-          :class="store.kind === 'trending' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-500 hover:text-gray-200'"
+          :class="store.kind === 'trending' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-400 hover:text-gray-200'"
         >
           🔥 Trending
         </button>
         <button
           @click="store.setKind('new')"
           class="px-3 py-1 text-xs rounded-md transition-all font-medium"
-          :class="store.kind === 'new' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-500 hover:text-gray-200'"
+          :class="store.kind === 'new' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-400 hover:text-gray-200'"
         >
           ✨ Novos
         </button>
@@ -43,12 +43,12 @@
       <div class="flex-1" />
 
       <!-- Refresh info -->
-      <div class="flex items-center gap-3 text-xs text-gray-500">
+      <div class="flex items-center gap-3 text-xs text-gray-400">
         <span v-if="store.updatedAt">Atualizado {{ formatTime(store.updatedAt) }}</span>
         <button
           @click="store.toggleAutoRefresh()"
           class="px-2 py-1 rounded-md border border-surface-600 transition-all"
-          :class="store.autoRefresh ? 'text-accent-yellow border-accent-yellow/40' : 'text-gray-500'"
+          :class="store.autoRefresh ? 'text-accent-yellow border-accent-yellow/40' : 'text-gray-400'"
           title="Auto-refresh a cada 60s"
         >
           {{ store.autoRefresh ? 'Auto 60s ●' : 'Auto off' }}
@@ -77,7 +77,7 @@
     <div v-if="store.hasTokens" class="card overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-xs text-gray-500 border-b border-surface-600">
+          <tr class="text-xs text-gray-400 border-b border-surface-600">
             <th class="text-left px-4 py-2.5 font-medium">#</th>
             <th class="text-left px-4 py-2.5 font-medium">Token</th>
             <th class="text-right px-4 py-2.5 font-medium">Preço</th>
@@ -101,12 +101,12 @@
             :class="{ 'bg-accent-yellow/5': store.hypeToken?.pool_address === t.pool_address }"
             @click="store.fetchHype(t)"
           >
-            <td class="px-4 py-2.5 text-gray-600">{{ i + 1 }}</td>
+            <td class="px-4 py-2.5 text-gray-500">{{ i + 1 }}</td>
             <td class="px-4 py-2.5">
               <div class="flex items-center gap-2">
                 <img v-if="t.image_url && t.image_url !== 'missing.png'" :src="t.image_url" class="w-5 h-5 rounded-full" @error="$event.target.style.display='none'" />
                 <span class="font-semibold text-gray-100">{{ t.symbol }}</span>
-                <span class="text-xs text-gray-500 truncate max-w-36">{{ t.name }}</span>
+                <span class="text-xs text-gray-400 truncate max-w-36">{{ t.name }}</span>
               </div>
             </td>
             <td class="px-4 py-2.5 text-right font-mono text-gray-200">{{ formatPrice(t.price_usd) }}</td>
@@ -119,14 +119,14 @@
             <td class="px-4 py-2.5 text-right font-mono text-gray-400">{{ formatUsd(t.fdv_usd) }}</td>
             <td class="px-4 py-2.5 text-right font-mono text-xs">
               <span class="text-accent-yellow">{{ t.buys_h24 ?? '—' }}</span>
-              <span class="text-gray-600"> / </span>
+              <span class="text-gray-500"> / </span>
               <span class="text-accent-red-light">{{ t.sells_h24 ?? '—' }}</span>
             </td>
-            <td class="px-4 py-2.5 text-right text-xs text-gray-500">{{ formatAge(t.created_at) }}</td>
+            <td class="px-4 py-2.5 text-right text-xs text-gray-400">{{ formatAge(t.created_at) }}</td>
             <td class="px-2 py-2.5 text-right">
               <button
                 @click.stop="openDex(t)"
-                class="text-gray-600 hover:text-accent-yellow transition-colors"
+                class="text-gray-500 hover:text-accent-yellow transition-colors"
                 title="Abrir no DexScreener"
               >↗</button>
             </td>
@@ -156,9 +156,9 @@
           <div class="flex items-center gap-2">
             <img v-if="store.hypeToken.image_url && store.hypeToken.image_url !== 'missing.png'" :src="store.hypeToken.image_url" class="w-6 h-6 rounded-full" />
             <h2 class="text-base font-bold text-gray-100">{{ store.hypeToken.symbol }}</h2>
-            <span class="text-xs text-gray-500">{{ store.hypeToken.name }}</span>
+            <span class="text-xs text-gray-400">{{ store.hypeToken.name }}</span>
           </div>
-          <button @click="store.closeHype()" class="text-gray-500 hover:text-gray-200 text-lg leading-none">✕</button>
+          <button @click="store.closeHype()" class="text-gray-400 hover:text-gray-200 text-lg leading-none">✕</button>
         </div>
 
         <!-- Loading -->
@@ -176,7 +176,7 @@
           <div class="bg-surface-900 rounded-xl p-4 text-center border border-surface-600">
             <div class="text-4xl font-bold" :class="scoreClass(store.hype.score)">{{ store.hype.score }}</div>
             <div class="text-sm font-semibold mt-1" :class="scoreClass(store.hype.score)">{{ store.hype.label }}</div>
-            <div class="text-xs text-gray-600 mt-1">Hype score 0–100</div>
+            <div class="text-xs text-gray-500 mt-1">Hype score 0–100</div>
           </div>
 
           <!-- Breakdown -->
@@ -209,24 +209,24 @@
           <div>
             <h3 class="text-sm font-semibold text-gray-200 mb-2">
               <span class="text-accent-yellow">◆</span> Social
-              <span class="text-xs text-gray-600 font-normal ml-1">({{ twitterSourceLabel }})</span>
+              <span class="text-xs text-gray-500 font-normal ml-1">({{ twitterSourceLabel }})</span>
             </h3>
             <div v-if="store.hype.tweets.length" class="space-y-2">
               <div v-for="(tw, i) in store.hype.tweets" :key="i" class="bg-surface-900 rounded-lg p-3 border border-surface-700">
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
                   <a v-if="tw.url" :href="tw.url" target="_blank" class="font-medium text-gray-400 hover:text-accent-yellow">@{{ tw.user || '?' }}</a>
                   <span v-else class="font-medium text-gray-400">@{{ tw.user || '?' }}</span>
                   <span>{{ tw.created_at }}</span>
                 </div>
                 <p class="text-xs text-gray-300 leading-relaxed">{{ tw.text }}</p>
-                <div class="flex gap-3 mt-1.5 text-xs text-gray-600">
+                <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
                   <span>♥ {{ tw.likes ?? 0 }}</span>
                   <span>⟳ {{ tw.retweets ?? 0 }}</span>
                   <span v-if="tw.views">👁 {{ tw.views }}</span>
                 </div>
               </div>
             </div>
-            <p v-else class="text-xs text-gray-600 leading-relaxed">
+            <p v-else class="text-xs text-gray-500 leading-relaxed">
               Nenhum post encontrado sobre esse token (nem no Bluesky).
               Isso por si só já é sinal: sem conversa social = hype só on-chain.
             </p>

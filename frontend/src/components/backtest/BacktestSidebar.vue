@@ -6,7 +6,7 @@
       <div class="sidebar-section">
         <p class="sidebar-section-title">Estratégia</p>
 
-        <div v-if="store.strategies.length === 0" class="text-xs text-gray-500 py-2">
+        <div v-if="store.strategies.length === 0" class="text-xs text-gray-400 py-2">
           Nenhuma estratégia encontrada em strategies/
         </div>
 
@@ -26,7 +26,7 @@
             </option>
           </select>
 
-          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-500 leading-relaxed">
+          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-400 leading-relaxed">
             {{ store.selectedStrategy.description }}
           </p>
 
@@ -186,7 +186,7 @@
                   class="py-1 text-[10px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_long_months', m.n)
                     ? 'bg-green-500/30 text-green-300 border border-green-500/50'
-                    : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                    : 'bg-surface-600 text-gray-400 border border-surface-500'"
                 >{{ m.label }}</button>
               </div>
             </div>
@@ -200,7 +200,7 @@
                   class="py-1 text-[10px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_short_months', m.n)
                     ? 'bg-red-500/30 text-red-300 border border-red-500/50'
-                    : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                    : 'bg-surface-600 text-gray-400 border border-surface-500'"
                 >{{ m.label }}</button>
               </div>
             </div>

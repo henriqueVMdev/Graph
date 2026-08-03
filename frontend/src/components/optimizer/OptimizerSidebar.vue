@@ -3,7 +3,7 @@
     <!-- Estrategia -->
     <section>
       <h3 class="sidebar-title">Estrategia</h3>
-      <div v-if="store.strategies.length === 0" class="text-xs text-gray-500 py-2">
+      <div v-if="store.strategies.length === 0" class="text-xs text-gray-400 py-2">
         Nenhuma estrategia encontrada em strategies/
       </div>
       <template v-else>
@@ -19,7 +19,7 @@
             :disabled="!!s.error"
           >{{ s.name }}</option>
         </select>
-        <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-500 leading-relaxed mb-2">
+        <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-400 leading-relaxed mb-2">
           {{ store.selectedStrategy.description }}
         </p>
       </template>
@@ -101,7 +101,7 @@
                 class="input-field text-left flex items-center justify-between cursor-pointer"
               >
                 <span class="truncate text-xs">{{ dropdownLabel(field) }}</span>
-                <svg class="w-3 h-3 shrink-0 text-gray-500 transition-transform" :class="openDropdown === field.key ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3 h-3 shrink-0 text-gray-400 transition-transform" :class="openDropdown === field.key ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
               </button>
@@ -134,7 +134,7 @@
               <input type="number" v-model.number="ranges[field.key].max" class="input-field text-xs" placeholder="max" />
               <input type="number" v-model.number="ranges[field.key].step" class="input-field text-xs" placeholder="step" />
             </div>
-            <div class="text-xs text-gray-600 mt-0.5">
+            <div class="text-xs text-gray-500 mt-0.5">
               {{ (store.customGrid[field.key] || []).length }} valores
             </div>
           </template>
@@ -142,7 +142,7 @@
         </div>
       </template>
 
-      <div v-else-if="store.useCustomGrid && schemaFields.length === 0" class="text-xs text-gray-500">
+      <div v-else-if="store.useCustomGrid && schemaFields.length === 0" class="text-xs text-gray-400">
         Estrategia sem schema de parametros
       </div>
     </section>
@@ -187,7 +187,7 @@
               class="py-1 text-[10px] rounded font-medium transition-colors"
               :class="store.cycleLongMonths.includes(m.n)
                 ? 'bg-green-500/30 text-green-300 border border-green-500/50'
-                : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                : 'bg-surface-600 text-gray-400 border border-surface-500'"
             >{{ m.label }}</button>
           </div>
         </div>
@@ -201,7 +201,7 @@
               class="py-1 text-[10px] rounded font-medium transition-colors"
               :class="store.cycleShortMonths.includes(m.n)
                 ? 'bg-red-500/30 text-red-300 border border-red-500/50'
-                : 'bg-surface-600 text-gray-500 border border-surface-500'"
+                : 'bg-surface-600 text-gray-400 border border-surface-500'"
             >{{ m.label }}</button>
           </div>
         </div>
@@ -232,7 +232,7 @@
             :style="{ width: (store.progress.current / store.progress.total * 100) + '%' }"
           />
         </div>
-        <div class="text-xs text-gray-500 mt-1">
+        <div class="text-xs text-gray-400 mt-1">
           {{ store.progress.valid }} validos
         </div>
       </div>
@@ -496,7 +496,7 @@ onMounted(() => {
   @apply text-xs font-bold text-gray-400 uppercase tracking-wider mb-2;
 }
 .label {
-  @apply block text-xs text-gray-500 mb-1;
+  @apply block text-xs text-gray-400 mb-1;
 }
 .input-field {
   @apply w-full bg-surface-700 border border-surface-500 rounded-md px-2.5 py-1.5 text-sm text-gray-200 outline-none focus:border-accent-yellow/50 transition;
@@ -508,6 +508,6 @@ onMounted(() => {
   @apply bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30;
 }
 .btn-inactive {
-  @apply bg-surface-700 text-gray-500 border border-surface-500 hover:text-gray-300;
+  @apply bg-surface-700 text-gray-400 border border-surface-500 hover:text-gray-300;
 }
 </style>

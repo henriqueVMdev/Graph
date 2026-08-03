@@ -6,7 +6,7 @@
       <div class="sidebar-section">
         <p class="sidebar-section-title">Estratégia</p>
 
-        <div v-if="store.strategies.length === 0" class="text-xs text-gray-500 py-2">
+        <div v-if="store.strategies.length === 0" class="text-xs text-gray-400 py-2">
           Nenhuma estratégia encontrada em strategies/
         </div>
 
@@ -26,7 +26,7 @@
             </option>
           </select>
 
-          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-500 leading-relaxed">
+          <p v-if="store.selectedStrategy?.description" class="text-xs text-gray-400 leading-relaxed">
             {{ store.selectedStrategy.description }}
           </p>
         </template>

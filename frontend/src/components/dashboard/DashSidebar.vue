@@ -21,7 +21,7 @@
 
         <!-- Ou selecionar arquivo existente -->
         <div v-if="store.files.length > 0">
-          <span class="text-xs text-gray-500 block mb-1">Ou selecionar arquivo:</span>
+          <span class="text-xs text-gray-400 block mb-1">Ou selecionar arquivo:</span>
           <select v-model="selectedFile" @change="onSelectFile" class="form-select w-full">
             <option value="">-- selecione --</option>
             <option v-for="f in store.files" :key="f" :value="f">{{ f }}</option>
@@ -30,7 +30,7 @@
 
         <!-- Asset indicator -->
         <div v-if="store.asset" class="mt-2 text-xs text-gray-400">
-          <span class="text-gray-500">Ativo:</span>
+          <span class="text-gray-400">Ativo:</span>
           <span class="ml-1 font-semibold text-gray-200">{{ store.asset }}</span>
         </div>
       </div>
@@ -41,22 +41,22 @@
 
         <div class="space-y-1.5 text-xs">
           <div v-if="store.asset" class="flex justify-between">
-            <span class="text-gray-500">Ativo</span>
+            <span class="text-gray-400">Ativo</span>
             <span class="text-gray-200 font-semibold">{{ store.asset }}</span>
           </div>
           <div v-if="store.timeframe" class="flex justify-between">
-            <span class="text-gray-500">Timeframe</span>
+            <span class="text-gray-400">Timeframe</span>
             <span class="text-gray-200 font-semibold">{{ store.timeframe }}</span>
           </div>
           <div v-if="store.optDate" class="flex justify-between">
-            <span class="text-gray-500">Data</span>
+            <span class="text-gray-400">Data</span>
             <span class="text-gray-200">{{ store.optDate }}</span>
           </div>
         </div>
 
         <!-- Grid testado -->
         <div v-if="Object.keys(store.gridSummary).length > 0" class="mt-3">
-          <p class="text-xs text-gray-500 mb-1.5 font-medium">Parametros testados</p>
+          <p class="text-xs text-gray-400 mb-1.5 font-medium">Parametros testados</p>
           <div class="space-y-1.5">
             <div
               v-for="(values, param) in store.gridSummary"
@@ -135,7 +135,7 @@
         </div>
 
         <!-- Count badge -->
-        <div class="text-xs text-gray-500 mt-2">
+        <div class="text-xs text-gray-400 mt-2">
           <span class="text-gray-400 font-semibold">{{ store.filteredCount }}</span>
           parâmetros filtrados
         </div>

@@ -2,7 +2,11 @@
   <Teleport to="body">
     <div v-if="open" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm"
          @click.self="close">
-      <div class="max-w-2xl mx-auto mt-[12vh] rounded-xl border border-accent-yellow/50
+      <div ref="dialogEl"
+           role="dialog"
+           aria-modal="true"
+           aria-label="Linha de comando"
+           class="max-w-2xl mx-4 sm:mx-auto mt-[12vh] rounded-xl border border-accent-yellow/50
                   bg-black shadow-yellow-glow overflow-hidden">
         <!-- input -->
         <div class="flex items-center gap-3 px-4 py-3 border-b border-surface-600">
@@ -12,12 +16,13 @@
             v-model="query"
             @keydown.enter.prevent="go"
             @keydown.esc.prevent="close"
+            aria-label="Comando"
             placeholder="ex.: BTC 15M BT · OURO DES · EURUSD MON · SCR · NEWS"
             class="flex-1 bg-transparent font-mono text-base text-accent-yellow uppercase
-                   placeholder:normal-case placeholder:text-gray-600 focus:outline-none"
+                   placeholder:normal-case placeholder:text-gray-500 focus:outline-none"
             spellcheck="false" autocomplete="off"
           />
-          <span class="text-[10px] text-gray-600 font-mono border border-surface-500
+          <span class="text-[10px] text-gray-500 font-mono border border-surface-500
                        rounded px-1.5 py-0.5">ENTER = GO</span>
         </div>
 
@@ -30,24 +35,24 @@
               · {{ parsed.symbolLabel }}
             </span>
             <span v-if="parsed.tf" class="text-gray-400">· {{ parsed.tf }}</span>
-            <span v-if="parsed.exchange" class="text-gray-500">· {{ parsed.exchange }}</span>
+            <span v-if="parsed.exchange" class="text-gray-400">· {{ parsed.exchange }}</span>
           </div>
-          <div v-else class="text-gray-600 text-xs">
+          <div v-else class="text-gray-500 text-xs">
             função não reconhecida — termine com um código (BT, DES, MON, SCR...)
           </div>
         </div>
 
         <!-- ajuda -->
         <div v-else class="px-4 py-3 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1
-                           font-mono text-[11px] text-gray-500">
+                           font-mono text-[11px] text-gray-400">
           <div v-for="f in FUNCS" :key="f.codes[0]" class="flex gap-2">
             <span class="text-accent-yellow w-14">{{ f.codes.join('/') }}</span>
             <span>{{ f.label }}</span>
           </div>
-          <div class="col-span-full mt-1 text-gray-700">
+          <div class="col-span-full mt-1 text-gray-500">
             [SÍMBOLO] [TIMEFRAME] FUNÇÃO — ex.: SOL 1H REG · DOGE MON · BTC BYBIT BT
           </div>
-          <div class="col-span-full text-gray-700">
+          <div class="col-span-full text-gray-500">
             mercado tradicional: OURO DES · EURUSD MON · AAPL TRAD DES · SPX DES
           </div>
         </div>
@@ -71,6 +76,7 @@ const terminal = useTerminalStore()
 const open = ref(false)
 const query = ref('')
 const inputEl = ref(null)
+const dialogEl = ref(null)
 
 const FUNCS = [
   { codes: ['BT'], label: 'Backtesting', route: '/backtest' },
@@ -189,12 +195,18 @@ function go() {
   close()
 }
 
+// Quem tinha o foco antes do dialogo abrir, para devolver no fechamento.
+let focoAnterior = null
+
 function close() {
   open.value = false
   query.value = ''
+  focoAnterior?.focus?.()
+  focoAnterior = null
 }
 
 async function show() {
+  focoAnterior = document.activeElement
   open.value = true
   if (!Object.keys(btStore.assets || {}).length) btStore.fetchAssets?.()
   await nextTick()
@@ -205,6 +217,23 @@ function onKey(e) {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault()
     open.value ? close() : show()
+    return
+  }
+  if (!open.value) return
+  if (e.key === 'Escape') { e.preventDefault(); close(); return }
+  // Sem prender o foco, o Tab sai do dialogo e caminha pela pagina atras do
+  // fundo escuro, onde nao da para ver onde ele esta.
+  if (e.key === 'Tab') {
+    const alvos = dialogEl.value?.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])')
+    if (!alvos?.length) return
+    const primeiro = alvos[0]
+    const ultimo = alvos[alvos.length - 1]
+    if (e.shiftKey && document.activeElement === primeiro) {
+      e.preventDefault(); ultimo.focus()
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault(); primeiro.focus()
+    }
   }
 }
 

@@ -1,22 +1,8 @@
 <template>
-  <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden relative">
-    <!-- Sidebar -->
-    <ChartSidebar
-      class="shrink-0 transition-all duration-300 overflow-hidden"
-      :class="sidebarOpen ? 'w-72' : 'w-0'"
-    />
-
-    <!-- Toggle button -->
-    <button
-      @click="toggleSidebar"
-      class="absolute top-1/2 -translate-y-1/2 z-20 w-4 h-10 flex items-center justify-center rounded-r-md bg-surface-700/60 hover:bg-surface-600/80 border-y border-r border-surface-500/50 text-gray-600 hover:text-gray-300 transition-all duration-300"
-      :style="sidebarOpen ? 'left: calc(18rem - 1px)' : 'left: 0'"
-      :title="sidebarOpen ? 'Recolher' : 'Expandir'"
-    >
-      <svg class="w-2.5 h-2.5 transition-transform duration-300" :class="sidebarOpen ? '' : 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
+  <WorkspaceShell width="18rem">
+    <template #sidebar>
+      <ChartSidebar />
+    </template>
 
     <!-- Main content -->
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -69,18 +55,19 @@
 
         <div v-else class="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
           <p class="text-gray-400 text-sm">Escolha o ativo, o timeframe e a estratégia, e clique em <span class="text-accent-yellow font-semibold">"Carregar gráfico"</span>.</p>
-          <p class="text-gray-600 text-xs mt-2">Você verá candles, indicadores e os marcadores de trade da estratégia — com stop e alvo.</p>
+          <p class="text-gray-500 text-xs mt-2">Você verá candles, indicadores e os marcadores de trade da estratégia — com stop e alvo.</p>
         </div>
       </div>
     </div>
-  </div>
+</WorkspaceShell>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useChartStore } from '@/stores/chart.js'
 import ChartSidebar from '@/components/chart/ChartSidebar.vue'
 import ChartCanvas from '@/components/chart/ChartCanvas.vue'
+import WorkspaceShell from '@/components/layout/WorkspaceShell.vue'
 
 const store = useChartStore()
 
@@ -91,11 +78,6 @@ const overlayDefs = [
   { key: 'volume', label: 'Volume' },
 ]
 
-const sidebarOpen = ref(true)
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 310)
-}
 
 onMounted(async () => {
   await Promise.all([store.fetchAssets(), store.fetchStrategies()])

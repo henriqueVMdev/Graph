@@ -1,7 +1,7 @@
 <template>
   <div class="rounded-xl border p-4" :class="borderClass">
     <div class="flex items-center justify-between mb-3">
-      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Live vs Backtest
       </h3>
       <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase" :class="badgeClass">
@@ -11,17 +11,17 @@
 
     <div class="grid grid-cols-3 gap-3 text-center">
       <div>
-        <div class="text-[10px] text-gray-500 uppercase">Trades</div>
+        <div class="text-[10px] text-gray-400 uppercase">Trades</div>
         <div class="text-lg text-gray-200 font-semibold">{{ c.n_trades ?? 0 }}</div>
       </div>
       <div>
-        <div class="text-[10px] text-gray-500 uppercase">WR realizada</div>
+        <div class="text-[10px] text-gray-400 uppercase">WR realizada</div>
         <div class="text-lg font-semibold" :class="wrClass">
           {{ c.realized_wr != null ? c.realized_wr + '%' : '—' }}
         </div>
       </div>
       <div>
-        <div class="text-[10px] text-gray-500 uppercase">WR esperada</div>
+        <div class="text-[10px] text-gray-400 uppercase">WR esperada</div>
         <div class="text-lg text-gray-400 font-semibold">
           {{ c.expected_wr != null ? c.expected_wr + '%' : '—' }}
         </div>
@@ -73,5 +73,5 @@ const wrClass = computed(() => {
 
 const detailClass = computed(() =>
   verdict.value === 'invalidated' ? 'text-red-400'
-    : verdict.value === 'warn' ? 'text-orange-400' : 'text-gray-500')
+    : verdict.value === 'warn' ? 'text-orange-400' : 'text-gray-400')
 </script>

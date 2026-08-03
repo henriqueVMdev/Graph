@@ -1,12 +1,12 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto">
     <div class="max-w-7xl mx-auto p-5 space-y-5">
 
       <!-- Header -->
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 class="text-xl font-bold text-gray-100 tracking-tight">Diário de Operações</h1>
-          <p class="text-sm text-gray-500 mt-0.5">Registre seus trades por estratégia e acompanhe o capital</p>
+          <p class="text-sm text-gray-400 mt-0.5">Registre seus trades por estratégia e acompanhe o capital</p>
         </div>
         <div class="flex items-end gap-3">
           <!-- Sincronizar corretoras -->
@@ -27,7 +27,7 @@
             <div>
               <label class="metric-label block mb-1">Capital inicial</label>
               <div class="flex items-center gap-1.5">
-                <span class="text-gray-500 text-sm">$</span>
+                <span class="text-gray-400 text-sm">$</span>
                 <input
                   v-model.number="capitalDraft"
                   type="number"
@@ -50,7 +50,7 @@
           <span
             v-for="(count, ex) in store.syncResult.by_exchange"
             :key="ex"
-            class="text-gray-500 capitalize"
+            class="text-gray-400 capitalize"
           >{{ ex }}: <b class="text-gray-300">{{ count }}</b></span>
         </div>
         <div v-if="store.syncResult.warnings.length" class="mt-2 space-y-0.5 text-[11px] text-amber-300">
@@ -94,7 +94,7 @@
           <span class="metric-label">Trades</span>
           <span class="metric-value text-gray-100">
             {{ s.total_trades }}
-            <span class="text-[10px] font-normal text-gray-500">
+            <span class="text-[10px] font-normal text-gray-400">
               ({{ s.wins }}W / {{ s.losses }}L)
             </span>
           </span>
@@ -106,7 +106,7 @@
         <div class="card p-4 lg:col-span-2">
           <div class="flex items-center justify-between mb-2">
             <h2 class="text-sm font-semibold text-gray-300">Curva de Capital</h2>
-            <div class="flex gap-4 text-[11px] text-gray-500">
+            <div class="flex gap-4 text-[11px] text-gray-400">
               <span>Ganho médio <b class="text-accent-yellow font-mono">{{ money(s?.avg_win) }}</b></span>
               <span>Perda média <b class="text-accent-red-light font-mono">{{ money(s?.avg_loss) }}</b></span>
             </div>
@@ -117,7 +117,7 @@
             :capital-inicial="s.capital_inicial"
             class="h-72"
           />
-          <div v-else class="h-72 flex items-center justify-center text-gray-600 text-sm">
+          <div v-else class="h-72 flex items-center justify-center text-gray-500 text-sm">
             Nenhuma operação registrada ainda
           </div>
         </div>
@@ -135,7 +135,7 @@
                 <span class="text-sm font-medium text-gray-200 truncate">{{ b.strategy }}</span>
                 <span class="text-sm font-mono font-semibold" :class="netClass(b.net)">{{ moneySigned(b.net) }}</span>
               </div>
-              <div class="flex items-center gap-3 text-[11px] text-gray-500">
+              <div class="flex items-center gap-3 text-[11px] text-gray-400">
                 <span>{{ b.trades }} trades</span>
                 <span class="text-accent-yellow/80">{{ b.win_rate.toFixed(0) }}% win</span>
                 <span>PF {{ b.profit_factor == null ? '∞' : b.profit_factor.toFixed(2) }}</span>
@@ -148,7 +148,7 @@
               </div>
             </div>
           </div>
-          <div v-else class="text-gray-600 text-sm py-8 text-center">Sem dados</div>
+          <div v-else class="text-gray-500 text-sm py-8 text-center">Sem dados</div>
         </div>
       </div>
 
@@ -220,7 +220,7 @@
         <div v-if="store.trades.length" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 border-b border-surface-500">
+              <tr class="text-left text-[11px] uppercase tracking-wide text-gray-400 border-b border-surface-500">
                 <th class="px-4 py-2 font-medium">Data</th>
                 <th class="px-4 py-2 font-medium">Origem</th>
                 <th class="px-4 py-2 font-medium">Ativo</th>
@@ -251,13 +251,13 @@
                 <td class="px-4 py-2 text-right font-mono" :class="t.result === 'gain' ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ t.result === 'gain' ? '+' : '−' }}{{ money(t.amount) }}
                 </td>
-                <td class="px-4 py-2 text-right font-mono text-gray-500">
+                <td class="px-4 py-2 text-right font-mono text-gray-400">
                   {{ t.fee ? '−' + money(t.fee) : '—' }}
                 </td>
-                <td class="px-4 py-2 text-gray-500 max-w-xs truncate">{{ t.notes || '—' }}</td>
+                <td class="px-4 py-2 text-gray-400 max-w-xs truncate">{{ t.notes || '—' }}</td>
                 <td class="px-4 py-2 text-right">
                   <button
-                    class="text-gray-600 hover:text-accent-red-light transition-colors"
+                    class="text-gray-500 hover:text-accent-red-light transition-colors"
                     title="Excluir"
                     @click="store.removeTrade(t.id)"
                   >
@@ -270,7 +270,7 @@
             </tbody>
           </table>
         </div>
-        <div v-else class="px-4 py-12 text-center text-gray-600 text-sm">
+        <div v-else class="px-4 py-12 text-center text-gray-500 text-sm">
           Nenhuma operação registrada. Use o formulário acima para começar.
         </div>
       </div>

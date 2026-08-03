@@ -54,7 +54,7 @@ const THRESHOLDS = {
 
 function valueClass(key) {
   const v = props.metrics[key]
-  if (v == null) return 'text-gray-500'
+  if (v == null) return 'text-gray-400'
   const t = THRESHOLDS[key]
   if (v >= t.good) return 'text-green-400'
   if (v >= t.ok)   return 'text-accent-yellow'

@@ -72,7 +72,7 @@
                      hover:file:bg-surface-400 cursor-pointer"
             />
           </label>
-          <p class="text-[10px] text-gray-600 mt-1">CSV deve ter colunas: Date, Open, High, Low, Close, Volume</p>
+          <p class="text-[10px] text-gray-500 mt-1">CSV deve ter colunas: Date, Open, High, Low, Close, Volume</p>
         </template>
       </div>
 
@@ -90,7 +90,7 @@
         <template v-if="store.method !== 'changepoint'">
           <label class="text-xs text-gray-400 block mb-1">
             Nº de Estados
-            <span class="text-gray-600">(0 = auto via BIC)</span>
+            <span class="text-gray-500">(0 = auto via BIC)</span>
           </label>
           <select v-model.number="store.nStates" class="form-select w-full text-xs mb-3">
             <option :value="0">Automático (BIC)</option>
@@ -124,7 +124,7 @@
           <input type="checkbox" v-model="store.causal" class="accent-accent-yellow mt-0.5" />
           <span>
             Causal (tempo real)
-            <span class="block text-[10px] text-gray-600">
+            <span class="block text-[10px] text-gray-500">
               Probabilidades filtradas: o regime da barra t usa só dados até t —
               operável ao vivo. Desmarcado = suavizado com a série inteira
               (descrição histórica melhor, mas com lookahead).
@@ -139,7 +139,7 @@
         :disabled="store.isRunning || !canRun"
         class="w-full py-2.5 rounded-lg text-sm font-bold transition-colors"
         :class="store.isRunning || !canRun
-          ? 'bg-surface-600 text-gray-500 cursor-not-allowed'
+          ? 'bg-surface-600 text-gray-400 cursor-not-allowed'
           : 'bg-accent-yellow text-black hover:bg-yellow-400'"
       >
         <template v-if="store.isRunning">

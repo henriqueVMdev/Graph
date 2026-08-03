@@ -46,7 +46,7 @@
         <span class="metric-label">Episodios DD</span>
         <span class="metric-value text-gray-100">
           {{ metrics.n_dd_episodes ?? '—' }}
-          <span v-if="metrics.avg_dd_length != null" class="text-xs text-gray-500 ml-1">
+          <span v-if="metrics.avg_dd_length != null" class="text-xs text-gray-400 ml-1">
             (~{{ Math.round(metrics.avg_dd_length) }} barras)
           </span>
         </span>
@@ -61,7 +61,7 @@
     <div v-if="drawdown.episodes && drawdown.episodes.length">
       <button
         @click="showEpisodes = !showEpisodes"
-        class="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        class="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 transition-colors"
       >
         <svg
           class="w-3.5 h-3.5 transition-transform duration-200"
@@ -76,7 +76,7 @@
       <div v-if="showEpisodes" class="overflow-x-auto mt-2">
         <table class="w-full text-xs text-gray-400 border-collapse">
           <thead>
-            <tr class="border-b border-surface-600 text-gray-500 text-left">
+            <tr class="border-b border-surface-600 text-gray-400 text-left">
               <th class="py-1.5 pr-4">#</th>
               <th class="py-1.5 pr-4">Inicio</th>
               <th class="py-1.5 pr-4">Fim</th>
@@ -91,7 +91,7 @@
               class="border-b border-surface-700/50 hover:bg-surface-800/50 transition-colors"
               :class="i === 0 ? 'text-accent-red-light' : ''"
             >
-              <td class="py-1.5 pr-4 text-gray-600">{{ i + 1 }}</td>
+              <td class="py-1.5 pr-4 text-gray-500">{{ i + 1 }}</td>
               <td class="py-1.5 pr-4">{{ ep.start }}</td>
               <td class="py-1.5 pr-4">{{ ep.end }}</td>
               <td class="py-1.5 pr-4 text-right font-mono"

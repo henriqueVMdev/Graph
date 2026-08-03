@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">FI · Juros & Crédito</h1>
-      <span class="text-[10px] text-gray-600 font-mono">treasuries US via yahoo · atualiza 15 min</span>
+      <span class="text-[10px] text-gray-500 font-mono">treasuries US via yahoo · atualiza 15 min</span>
       <div class="flex-1" />
       <button @click="load" class="btn-secondary !py-1.5 text-xs">↻ Atualizar</button>
     </div>
@@ -48,21 +48,21 @@
             </h2>
             <div class="space-y-2 text-sm font-mono">
               <div class="flex justify-between">
-                <span class="text-gray-500">10a − 2a</span>
+                <span class="text-gray-400">10a − 2a</span>
                 <span :class="(d.spread_10y2y ?? 0) < 0 ? 'text-red-400 font-bold' : 'text-gray-200'">
                   {{ d.spread_10y2y != null ? d.spread_10y2y.toFixed(2) + ' pp' : '—' }}
                   {{ (d.spread_10y2y ?? 0) < 0 ? '· INVERTIDA' : '' }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">10a − 3m</span>
+                <span class="text-gray-400">10a − 3m</span>
                 <span :class="(d.spread_10y3m ?? 0) < 0 ? 'text-red-400 font-bold' : 'text-gray-200'">
                   {{ d.spread_10y3m != null ? d.spread_10y3m.toFixed(2) + ' pp' : '—' }}
                   {{ (d.spread_10y3m ?? 0) < 0 ? '· INVERTIDA' : '' }}
                 </span>
               </div>
             </div>
-            <p class="text-[10px] text-gray-600 mt-2">curva invertida historicamente antecede recessões</p>
+            <p class="text-[10px] text-gray-500 mt-2">curva invertida historicamente antecede recessões</p>
           </div>
 
           <div class="card p-4">
@@ -76,15 +76,15 @@
             </h2>
             <div class="space-y-2 text-sm font-mono">
               <div class="flex justify-between">
-                <span class="text-gray-500">High Yield {{ credit?.source === 'proxy_etf' ? '(HYG−5a)' : 'OAS' }}</span>
+                <span class="text-gray-400">High Yield {{ credit?.source === 'proxy_etf' ? '(HYG−5a)' : 'OAS' }}</span>
                 <span class="text-gray-200">{{ creditNow('hy') }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">Invest. Grade {{ credit?.source === 'proxy_etf' ? '(LQD−10a)' : 'OAS' }}</span>
+                <span class="text-gray-400">Invest. Grade {{ credit?.source === 'proxy_etf' ? '(LQD−10a)' : 'OAS' }}</span>
                 <span class="text-gray-200">{{ creditNow('ig') }}</span>
               </div>
             </div>
-            <p v-if="credit?.source === 'proxy_etf'" class="text-[10px] text-gray-600 mt-2 leading-snug">
+            <p v-if="credit?.source === 'proxy_etf'" class="text-[10px] text-gray-500 mt-2 leading-snug">
               FRED indisponível nesta rede — proxy = yield de distribuição do ETF menos treasury de
               duration equivalente (subestima o OAS real; útil como direção, não como nível)
             </p>

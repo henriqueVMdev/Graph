@@ -8,7 +8,7 @@
     <button
       type="button"
       @click="decrement"
-      class="px-2.5 text-gray-500 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-r border-surface-400 text-base leading-none"
+      class="px-2.5 text-gray-400 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-r border-surface-400 text-base leading-none"
       tabindex="-1"
     >−</button>
 
@@ -27,7 +27,7 @@
     <button
       type="button"
       @click="increment"
-      class="px-2.5 text-gray-500 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-l border-surface-400 text-base leading-none"
+      class="px-2.5 text-gray-400 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-l border-surface-400 text-base leading-none"
       tabindex="-1"
     >+</button>
   </div>

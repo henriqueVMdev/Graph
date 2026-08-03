@@ -30,6 +30,15 @@ export default {
           red: '#dc2626',
           'red-light': '#f87171',
         },
+        // O #6b7280 padrao do Tailwind da 3.96:1 sobre surface-700 e reprova
+        // AA. Era a cor de texto mais usada do app. gray-600 (2.54:1) e
+        // gray-700 (1.86:1) eram ilegiveis e foram absorvidos aqui: dois
+        // niveis que se le em vez de quatro que nao se le.
+        //   gray-400 #9ca3af  7.6:1  secundario
+        //   gray-500 #858b99  5.6:1  terciario, hint, placeholder
+        gray: {
+          500: '#858b99',
+        },
       },
       fontFamily: {
         sans: ['"Inter"', 'system-ui', 'sans-serif'],

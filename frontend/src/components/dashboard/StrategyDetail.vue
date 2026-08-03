@@ -19,7 +19,7 @@
         >
           Enviar para Prop Challenge
         </button>
-        <button @click="store.clearSelection()" class="text-gray-500 hover:text-gray-300 text-lg leading-none">✕</button>
+        <button @click="store.clearSelection()" class="text-gray-400 hover:text-gray-300 text-lg leading-none">✕</button>
       </div>
     </div>
 
@@ -36,7 +36,7 @@
     <!-- Parameters grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 text-xs">
       <div v-for="(val, key) in displayParams" :key="key" class="flex gap-1">
-        <span class="text-gray-500 shrink-0">{{ formatKey(key) }}:</span>
+        <span class="text-gray-400 shrink-0">{{ formatKey(key) }}:</span>
         <span class="text-gray-200 font-medium break-all">{{ formatVal(val) }}</span>
       </div>
     </div>

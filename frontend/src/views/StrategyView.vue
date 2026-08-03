@@ -1,8 +1,8 @@
 <template>
-  <div class="h-[calc(100vh-3.5rem)] overflow-y-auto p-4 space-y-4">
+  <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">OSA · Simulador de Estratégias</h1>
-      <span class="text-[10px] text-gray-600 font-mono">payoff · precificação Black-Scholes · greeks · cenários</span>
+      <span class="text-[10px] text-gray-500 font-mono">payoff · precificação Black-Scholes · greeks · cenários</span>
       <div class="flex-1" />
       <form @submit.prevent="loadChain" class="flex gap-2">
         <input v-model="symbolInput" placeholder="ex.: AAPL (opcional)"
@@ -15,16 +15,16 @@
     <!-- parâmetros -->
     <div class="card p-4 space-y-3">
       <div class="flex flex-wrap items-end gap-3">
-        <label class="text-xs text-gray-500 block">Spot
+        <label class="text-xs text-gray-400 block">Spot
           <input v-model.number="spot" type="number" step="any"
                  class="form-input !py-1.5 text-xs w-28 mt-1 block" /></label>
-        <label class="text-xs text-gray-500 block">Dias até vencimento
+        <label class="text-xs text-gray-400 block">Dias até vencimento
           <input v-model.number="dte" type="number" min="0"
                  class="form-input !py-1.5 text-xs w-24 mt-1 block" /></label>
-        <label class="text-xs text-gray-500 block">IV padrão (%)
+        <label class="text-xs text-gray-400 block">IV padrão (%)
           <input v-model.number="ivDefault" type="number" step="any"
                  class="form-input !py-1.5 text-xs w-24 mt-1 block" /></label>
-        <label v-if="chain" class="text-xs text-gray-500 block">Vencimento (chain)
+        <label v-if="chain" class="text-xs text-gray-400 block">Vencimento (chain)
           <select v-model="chainExpiry" @change="loadChain(chainExpiry)"
                   class="form-select !py-1.5 text-xs mt-1 block">
             <option v-for="e in chain.expiries" :key="e" :value="e">{{ e }}</option>
@@ -36,7 +36,7 @@
 
       <!-- presets -->
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] text-gray-600 uppercase tracking-wider">Estruturas</span>
+        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Estruturas</span>
         <button v-for="p in PRESETS" :key="p.label" @click="applyPreset(p)"
                 class="px-2 py-0.5 text-[11px] font-mono rounded border border-surface-500
                        text-gray-400 hover:text-accent-yellow hover:border-accent-yellow/50">
@@ -46,7 +46,7 @@
       <!-- pernas -->
       <table class="w-full text-xs font-mono" v-if="legs.length">
         <thead>
-          <tr class="text-[10px] text-gray-500 uppercase text-left border-b border-surface-500">
+          <tr class="text-[10px] text-gray-400 uppercase text-left border-b border-surface-500">
             <th class="py-1.5 pr-2">Lado</th>
             <th class="py-1.5 pr-2">Tipo</th>
             <th class="py-1.5 pr-2">Strike</th>
@@ -70,7 +70,7 @@
             <td class="py-1 pr-2">
               <input v-if="l.kind !== 'stock'" v-model.number="l.strike" type="number" step="any"
                      class="form-input !py-1 text-xs w-24" @change="fillPremium(l)" />
-              <span v-else class="text-gray-600">—</span></td>
+              <span v-else class="text-gray-500">—</span></td>
             <td class="py-1 pr-2">
               <input v-model.number="l.qty" type="number" min="0" step="any"
                      class="form-input !py-1 text-xs w-16" /></td>
@@ -81,7 +81,7 @@
               <input v-if="l.kind !== 'stock'" v-model.number="l.iv" type="number" step="any"
                      class="form-input !py-1 text-xs w-20" placeholder="auto" /></td>
             <td class="py-1 text-right">
-              <button @click="legs.splice(i, 1)" class="text-gray-600 hover:text-red-400">✕</button></td>
+              <button @click="legs.splice(i, 1)" class="text-gray-500 hover:text-red-400">✕</button></td>
           </tr>
         </tbody>
       </table>
@@ -126,7 +126,7 @@
           <table class="w-full text-sm font-mono">
             <tbody>
               <tr v-for="(g, k) in GREEK_LABELS" :key="k" class="border-b border-surface-600/40">
-                <td class="py-1.5 text-gray-500">{{ g.label }} <span class="text-gray-700">({{ g.hint }})</span></td>
+                <td class="py-1.5 text-gray-400">{{ g.label }} <span class="text-gray-500">({{ g.hint }})</span></td>
                 <td class="py-1.5 text-right font-bold"
                     :class="res.net_greeks[k] >= 0 ? 'text-accent-yellow' : 'text-red-400'">
                   {{ res.net_greeks[k] }}</td>
@@ -142,7 +142,7 @@
           </h2>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-500 uppercase text-right border-b border-surface-500">
+              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left py-1.5 px-2"></th>
                 <th v-for="s in res.spot_shifts" :key="s" class="py-1.5 px-2">
                   {{ s > 0 ? '+' : '' }}{{ (s * 100).toFixed(0) }}%</th>
@@ -150,7 +150,7 @@
             </thead>
             <tbody>
               <tr v-for="sc in res.scenarios" :key="sc.when" class="border-b border-surface-600/40">
-                <td class="py-1.5 px-2 text-gray-500">{{ sc.when }}</td>
+                <td class="py-1.5 px-2 text-gray-400">{{ sc.when }}</td>
                 <td v-for="(v, j) in sc.pnl" :key="j" class="py-1.5 px-2 text-right font-bold"
                     :class="v >= 0 ? 'text-accent-yellow' : 'text-red-400'">{{ v }}</td>
               </tr>

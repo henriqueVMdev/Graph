@@ -1,22 +1,8 @@
 <template>
-  <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden relative">
-    <!-- Sidebar -->
-    <PropChallengeSidebar
-      class="shrink-0 transition-all duration-300 overflow-hidden"
-      :class="sidebarOpen ? 'w-72' : 'w-0'"
-    />
-
-    <!-- Toggle button -->
-    <button
-      @click="toggleSidebar"
-      class="absolute top-1/2 -translate-y-1/2 z-20 w-4 h-10 flex items-center justify-center rounded-r-md bg-surface-700/60 hover:bg-surface-600/80 border-y border-r border-surface-500/50 text-gray-600 hover:text-gray-300 transition-all duration-300"
-      :style="sidebarOpen ? 'left: calc(18rem - 1px)' : 'left: 0'"
-      :title="sidebarOpen ? 'Recolher' : 'Expandir'"
-    >
-      <svg class="w-2.5 h-2.5 transition-transform duration-300" :class="sidebarOpen ? '' : 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
+  <WorkspaceShell width="18rem">
+    <template #sidebar>
+      <PropChallengeSidebar />
+    </template>
 
     <!-- Main content -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -79,20 +65,20 @@
           <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
             <span class="text-gray-300">
               Risco fixo <span class="text-accent-yellow font-mono">{{ store.results.risk_sizing.risk_pct }}%</span>/trade
-              <span class="text-gray-600">· fees + funding esperados embutidos</span>
+              <span class="text-gray-500">· fees + funding esperados embutidos</span>
             </span>
             <div class="flex flex-wrap items-center gap-4 font-mono">
               <span class="text-gray-400">Alavancagem:
                 <span class="text-accent-yellow">{{ store.results.risk_sizing.avg_leverage }}x</span>
-                <span class="text-gray-600">méd ·</span>
+                <span class="text-gray-500">méd ·</span>
                 <span class="text-gray-200">{{ store.results.risk_sizing.max_leverage }}x</span>
-                <span class="text-gray-600">máx</span>
+                <span class="text-gray-500">máx</span>
                 <span v-if="store.results.risk_sizing.pct_capped > 0" class="text-amber-400">
                   ({{ store.results.risk_sizing.pct_capped }}% no teto)</span>
               </span>
               <span class="text-gray-400">PnL/trade:
                 <span :class="store.results.risk_sizing.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_gross_pnl }}%</span>
-                <span class="text-gray-600">→</span>
+                <span class="text-gray-500">→</span>
                 <span :class="store.results.risk_sizing.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_net_pnl }}%</span>
               </span>
               <span class="text-gray-400">Drag: fees
@@ -105,7 +91,7 @@
           <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-amber-300">
             ⚠ {{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
           </div>
-          <p class="mt-1 text-[10px] text-gray-600">{{ store.results.risk_sizing.note }}</p>
+          <p class="mt-1 text-[10px] text-gray-500">{{ store.results.risk_sizing.note }}</p>
         </div>
 
         <!-- Custos da corretora aplicados (fees + funding) -->
@@ -115,12 +101,12 @@
               Líquido de custos ·
               <span class="capitalize text-accent-yellow">{{ store.results.costs.exchange }}</span>
               · {{ store.results.costs.scenario }}
-              <span class="text-gray-600">({{ store.results.costs.use_funding ? 'fees + funding' : 'só fees' }})</span>
+              <span class="text-gray-500">({{ store.results.costs.use_funding ? 'fees + funding' : 'só fees' }})</span>
             </span>
             <div class="flex flex-wrap items-center gap-4 font-mono">
               <span class="text-gray-400">PnL/trade:
                 <span :class="store.results.costs.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_gross_pnl }}%</span>
-                <span class="text-gray-600">→</span>
+                <span class="text-gray-500">→</span>
                 <span :class="store.results.costs.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_net_pnl }}%</span>
               </span>
               <span class="text-gray-400">Fees: <span class="text-red-400">-${{ store.results.costs.total_fees.toLocaleString() }}</span></span>
@@ -136,19 +122,19 @@
 
         <!-- Probabilidade geral -->
         <div class="card p-6 text-center border-accent-yellow/30">
-          <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">Probabilidade de Aprovacao</p>
+          <p class="text-xs text-gray-400 uppercase tracking-widest mb-2">Probabilidade de Aprovacao</p>
           <p class="text-5xl font-bold font-mono" :class="overallColor">
             {{ store.results.overall.pass_rate }}%
           </p>
-          <p class="text-xs text-gray-500 mt-2">
+          <p class="text-xs text-gray-400 mt-2">
             {{ store.results.overall.passed }} aprovados de {{ store.results.num_sims }} simulacoes
           </p>
           <div v-if="store.results.overall.est_total_days" class="mt-3 pt-3 border-t border-surface-500">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Tempo Estimado Total</p>
+            <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Tempo Estimado Total</p>
             <p class="text-2xl font-bold font-mono text-accent-yellow">
               {{ formatDays(store.results.overall.est_total_days) }}
             </p>
-            <p v-if="store.results.trade_stats.avg_days_between_trades" class="text-[10px] text-gray-600 mt-1">
+            <p v-if="store.results.trade_stats.avg_days_between_trades" class="text-[10px] text-gray-500 mt-1">
               ~1 trade a cada {{ store.results.trade_stats.avg_days_between_trades }} dias
             </p>
           </div>
@@ -289,7 +275,7 @@
         <WalkForwardSection :store="store" :show-controls="false" />
       </div>
     </div>
-  </div>
+</WorkspaceShell>
 </template>
 
 <script setup>
@@ -306,6 +292,7 @@ const store = usePropChallengeStore()
 // ── Enviar para Automação ──────────────────────────────────────────────
 import { useRouter } from 'vue-router'
 import { useAutomationStore } from '@/stores/automation.js'
+import WorkspaceShell from '@/components/layout/WorkspaceShell.vue'
 const router = useRouter()
 const autoStore = useAutomationStore()
 
@@ -328,14 +315,8 @@ function sendToAutomation() {
   }
   router.push('/automation')
 }
-const sidebarOpen = ref(true)
 const phase1ChartEl = ref(null)
 const phase2ChartEl = ref(null)
-
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 310)
-}
 
 function formatDays(days) {
   if (days == null) return '-'

@@ -45,7 +45,7 @@
           class="ml-auto px-3 py-1 text-xs rounded-md bg-surface-600 text-gray-400 hover:bg-surface-500 border border-surface-400 transition-colors disabled:opacity-40"
         >↺ Regenerar</button>
       </div>
-      <div v-if="gbmLoading" class="flex items-center justify-center h-32 text-gray-500 text-sm gap-2">
+      <div v-if="gbmLoading" class="flex items-center justify-center h-32 text-gray-400 text-sm gap-2">
         <span class="dollar-loader-sm">$</span>
         Calculando simulacoes...
       </div>
@@ -53,19 +53,19 @@
       <div v-show="!gbmLoading && !gbmError" ref="gbmChart" style="min-height:520px;" class="w-full"></div>
       <div v-if="gbmData && !gbmLoading" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div class="card p-3 text-center">
-          <div class="text-xs text-gray-500 mb-0.5">Capital Mediano</div>
+          <div class="text-xs text-gray-400 mb-0.5">Capital Mediano</div>
           <div class="text-sm font-semibold text-accent-yellow">{{ fmtMoney(gbmData.stats.median_final) }}</div>
         </div>
         <div class="card p-3 text-center">
-          <div class="text-xs text-gray-500 mb-0.5">P10 · pessimista</div>
+          <div class="text-xs text-gray-400 mb-0.5">P10 · pessimista</div>
           <div class="text-sm font-semibold text-red-400">{{ fmtMoney(gbmData.stats.p10_final) }}</div>
         </div>
         <div class="card p-3 text-center">
-          <div class="text-xs text-gray-500 mb-0.5">P90 · otimista</div>
+          <div class="text-xs text-gray-400 mb-0.5">P90 · otimista</div>
           <div class="text-sm font-semibold text-green-400">{{ fmtMoney(gbmData.stats.p90_final) }}</div>
         </div>
         <div class="card p-3 text-center">
-          <div class="text-xs text-gray-500 mb-0.5">Prob. de Lucro</div>
+          <div class="text-xs text-gray-400 mb-0.5">Prob. de Lucro</div>
           <div class="text-sm font-semibold"
             :class="gbmData.stats.prob_profit >= 50 ? 'text-green-400' : 'text-red-400'"
           >{{ gbmData.stats.prob_profit?.toFixed(1) }}%</div>
@@ -122,7 +122,7 @@
       <div v-if="valError" class="text-red-400 text-xs p-3 bg-red-400/10 rounded-lg">{{ valError }}</div>
 
       <!-- Placeholder before first run -->
-      <div v-if="!valData && !valLoading" class="flex flex-col items-center justify-center text-center text-gray-500 text-sm" style="min-height:520px;">
+      <div v-if="!valData && !valLoading" class="flex flex-col items-center justify-center text-center text-gray-400 text-sm" style="min-height:520px;">
         <svg class="w-10 h-10 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
         </svg>
@@ -132,7 +132,7 @@
       <!-- First-run loading indicator (no previous data) -->
       <div v-if="!valData && valLoading" class="flex flex-col items-center justify-center text-center" style="min-height:520px;">
         <div class="mc-dollar-loader">$</div>
-        <div class="text-gray-500 text-xs mt-4">Calculando simulações...</div>
+        <div class="text-gray-400 text-xs mt-4">Calculando simulações...</div>
       </div>
 
       <!-- Results (kept visible during re-runs) -->
@@ -150,7 +150,7 @@
         <div class="flex gap-1 mb-2">
           <button v-for="(s, i) in subTabs" :key="i"
             class="px-3 py-1 text-xs rounded-md transition-colors"
-            :class="subTab === i ? 'bg-surface-500 text-gray-100' : 'bg-surface-700 text-gray-500 hover:bg-surface-600'"
+            :class="subTab === i ? 'bg-surface-500 text-gray-100' : 'bg-surface-700 text-gray-400 hover:bg-surface-600'"
             @click="subTab = i; renderMcCharts()"
           >{{ s }}</button>
         </div>
@@ -171,7 +171,7 @@
           <template v-if="currentMc">
             <!-- Retorno Mediano -->
             <div class="card p-3 text-center group relative">
-              <div class="text-xs text-gray-500 mb-0.5 flex items-center justify-center gap-1">
+              <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Retorno Mediano
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Retorno percentual da equity curve na simulação mediana (P50). Metade das simulações ficou acima, metade abaixo desse valor.</div></span>
               </div>
@@ -181,7 +181,7 @@
             </div>
             <!-- DD P95 -->
             <div class="card p-3 text-center group relative">
-              <div class="text-xs text-gray-500 mb-0.5 flex items-center justify-center gap-1">
+              <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 DD P95 · pior cenário
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Drawdown máximo no percentil 95 das simulações. Ou seja, em 95% dos cenários o drawdown não passou desse valor — representa o pior cenário plausível da estratégia.</div></span>
               </div>
@@ -189,7 +189,7 @@
             </div>
             <!-- Rank Sharpe -->
             <div class="card p-3 text-center group relative">
-              <div class="text-xs text-gray-500 mb-0.5 flex items-center justify-center gap-1">
+              <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Rank Sharpe
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Posição percentual do Sharpe original em relação às simulações. Se está no 80º percentil, significa que o backtest real teve Sharpe melhor que 80% das simulações — quanto maior, mais robusta é a estratégia.</div></span>
               </div>
@@ -199,7 +199,7 @@
             </div>
             <!-- Prob. Ruína -->
             <div class="card p-3 text-center group relative">
-              <div class="text-xs text-gray-500 mb-0.5 flex items-center justify-center gap-1">
+              <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Prob. Ruína
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Percentual de simulações em que o capital final ficou abaixo de 50% do capital inicial. Indica a probabilidade da estratégia sofrer uma perda catastrófica — abaixo de 5% é considerado seguro.</div></span>
               </div>
@@ -230,28 +230,28 @@
               <span class="mt-0.5 w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0"></span>
               <div>
                 <div class="text-xs font-semibold text-gray-300">Reshuffle (sem reposição)</div>
-                <div class="text-xs text-gray-500 leading-relaxed">Embaralha a ordem dos trades sem repetição. Preserva exatamente os mesmos resultados individuais de cada trade, mas testa se a ordem de entrada/saída importa. Ideal para verificar se os lucros dependem de timing específico.</div>
+                <div class="text-xs text-gray-400 leading-relaxed">Embaralha a ordem dos trades sem repetição. Preserva exatamente os mesmos resultados individuais de cada trade, mas testa se a ordem de entrada/saída importa. Ideal para verificar se os lucros dependem de timing específico.</div>
               </div>
             </div>
             <div class="flex gap-3 pt-3">
               <span class="mt-0.5 w-2 h-2 rounded-full bg-blue-400 flex-shrink-0"></span>
               <div>
                 <div class="text-xs font-semibold text-gray-300">Bootstrap (com reposição)</div>
-                <div class="text-xs text-gray-500 leading-relaxed">Reamostrado com reposição — cada simulação sorteia trades aleatoriamente, podendo repetir o mesmo trade. Simula variações plausíveis do histórico e expande o espaço de cenários possíveis.</div>
+                <div class="text-xs text-gray-400 leading-relaxed">Reamostrado com reposição — cada simulação sorteia trades aleatoriamente, podendo repetir o mesmo trade. Simula variações plausíveis do histórico e expande o espaço de cenários possíveis.</div>
               </div>
             </div>
             <div class="flex gap-3 pt-3">
               <span class="mt-0.5 w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
               <div>
                 <div class="text-xs font-semibold text-gray-300">Aleatorizado (ruído gaussiano)</div>
-                <div class="text-xs text-gray-500 leading-relaxed">Adiciona ruído gaussiano ao PnL de cada trade, simulando variações de execução realistas como derrapagem, slippage e impacto de mercado. Útil para estressar a estratégia com pequenas perturbações.</div>
+                <div class="text-xs text-gray-400 leading-relaxed">Adiciona ruído gaussiano ao PnL de cada trade, simulando variações de execução realistas como derrapagem, slippage e impacto de mercado. Útil para estressar a estratégia com pequenas perturbações.</div>
               </div>
             </div>
             <div class="flex gap-3 pt-3">
               <span class="mt-0.5 w-2 h-2 rounded-full bg-purple-400 flex-shrink-0"></span>
               <div>
                 <div class="text-xs font-semibold text-gray-300">Alt. Retornos (equity curve)</div>
-                <div class="text-xs text-gray-500 leading-relaxed">Embaralha os retornos diários da equity curve, destruindo a correlação temporal mas preservando a distribuição estatística dos retornos. Avalia a robustez da curva de capital como um todo, independente dos trades individuais.</div>
+                <div class="text-xs text-gray-400 leading-relaxed">Embaralha os retornos diários da equity curve, destruindo a correlação temporal mas preservando a distribuição estatística dos retornos. Avalia a robustez da curva de capital como um todo, independente dos trades individuais.</div>
               </div>
             </div>
           </div>
@@ -263,7 +263,7 @@
          TAB 2 — Permutation Test
     ═══════════════════════════════════════════════════════════════════════ -->
     <div v-show="topTab === 2" class="space-y-4" style="min-height:520px;">
-      <div v-if="!valData && !valLoading" class="text-gray-500 text-sm text-center flex items-center justify-center" style="min-height:520px;">
+      <div v-if="!valData && !valLoading" class="text-gray-400 text-sm text-center flex items-center justify-center" style="min-height:520px;">
         Execute a Validação MC (aba anterior) para ver o Permutation Test.
       </div>
       <template v-if="valData?.permutation_test">
@@ -285,9 +285,9 @@
               </div>
             </div>
             <div class="text-right">
-              <div class="text-xs text-gray-500 mb-1">Sharpe Original</div>
+              <div class="text-xs text-gray-400 mb-1">Sharpe Original</div>
               <div class="text-xl font-semibold text-accent-yellow">{{ valData.permutation_test.original_sharpe?.toFixed(4) }}</div>
-              <div class="text-xs text-gray-500 mt-1">Mediana aleatória: {{ valData.permutation_test.median_random?.toFixed(4) }}</div>
+              <div class="text-xs text-gray-400 mt-1">Mediana aleatória: {{ valData.permutation_test.median_random?.toFixed(4) }}</div>
             </div>
           </div>
         </div>
@@ -298,23 +298,23 @@
         <!-- Stats -->
         <div class="grid grid-cols-3 gap-3">
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-0.5">p-value</div>
+            <div class="text-xs text-gray-400 mb-0.5">p-value</div>
             <div class="text-base font-semibold"
               :class="valData.permutation_test.p_value < 0.05 ? 'text-green-400' : 'text-red-400'"
             >{{ valData.permutation_test.p_value?.toFixed(4) }}</div>
           </div>
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-0.5">Rank Percentil</div>
+            <div class="text-xs text-gray-400 mb-0.5">Rank Percentil</div>
             <div class="text-base font-semibold text-accent-yellow">{{ valData.permutation_test.backtest_rank?.toFixed(1) }}º</div>
           </div>
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-0.5">Permutações</div>
+            <div class="text-xs text-gray-400 mb-0.5">Permutações</div>
             <div class="text-base font-semibold text-gray-300">{{ valData.permutation_test.n_perms?.toLocaleString('pt-BR') }}</div>
           </div>
         </div>
 
         <!-- Explanation -->
-        <div class="text-xs text-gray-500 bg-surface-700 rounded-lg p-3 leading-relaxed">
+        <div class="text-xs text-gray-400 bg-surface-700 rounded-lg p-3 leading-relaxed">
           <span class="text-gray-400 font-medium">Como funciona:</span>
           Os log-retornos da equity curve são embaralhados aleatoriamente <em>{{ valData.permutation_test.n_perms?.toLocaleString('pt-BR') }}</em> vezes,
           destruindo os padrões temporais mas preservando as propriedades estatísticas dos retornos.
@@ -328,7 +328,7 @@
          TAB 3 — Relatório
     ═══════════════════════════════════════════════════════════════════════ -->
     <div v-show="topTab === 3" class="space-y-3" style="min-height:520px;">
-      <div v-if="!valData" class="text-gray-500 text-sm text-center flex items-center justify-center" style="min-height:520px;">
+      <div v-if="!valData" class="text-gray-400 text-sm text-center flex items-center justify-center" style="min-height:520px;">
         Execute a Validação MC (aba Validação) para gerar o relatório.
       </div>
       <template v-if="valData?.report">

@@ -3,7 +3,7 @@
     <!-- Toolbar: corretora + cenário + funding + botão -->
     <div class="flex flex-wrap items-end gap-3 mb-4">
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Corretora (candles + funding)</label>
+        <label class="text-xs text-gray-400 block mb-1">Corretora (candles + funding)</label>
         <select v-model="store.chartConfig.exchange" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
           <option value="bybit">Bybit</option>
           <option value="hyperliquid">Hyperliquid</option>
@@ -12,7 +12,7 @@
         </select>
       </div>
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Cenário (custo)</label>
+        <label class="text-xs text-gray-400 block mb-1">Cenário (custo)</label>
         <select v-model="store.chartConfig.scenario" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
           <option value="realista">Realista</option>
           <option value="pessimista">Pessimista</option>
@@ -44,7 +44,7 @@
           v-for="(t, i) in tabs" :key="i"
           @click="activeTab = i"
           class="px-3 py-1.5 text-xs font-medium rounded-t transition-colors"
-          :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-500 hover:text-gray-300'"
+          :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-400 hover:text-gray-300'"
         >{{ t }}</button>
       </div>
 
@@ -68,7 +68,7 @@
       {{ store.chartError }}
     </div>
 
-    <div v-else class="text-center text-gray-500 text-xs py-8">
+    <div v-else class="text-center text-gray-400 text-xs py-8">
       Escolha a corretora e clique em "Carregar gráficos" para ver candles, indicadores, equity e funding.
     </div>
   </div>

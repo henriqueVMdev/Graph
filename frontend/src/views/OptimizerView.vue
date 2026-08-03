@@ -1,22 +1,8 @@
 <template>
-  <div class="flex h-[calc(100vh-3.5rem)] overflow-hidden relative">
-    <!-- Sidebar -->
-    <OptimizerSidebar
-      class="shrink-0 transition-all duration-300 overflow-hidden"
-      :class="sidebarOpen ? 'w-72' : 'w-0'"
-    />
-
-    <!-- Toggle button -->
-    <button
-      @click="toggleSidebar"
-      class="absolute top-1/2 -translate-y-1/2 z-20 w-4 h-10 flex items-center justify-center rounded-r-md bg-surface-700/60 hover:bg-surface-600/80 border-y border-r border-surface-500/50 text-gray-600 hover:text-gray-300 transition-all duration-300"
-      :style="sidebarOpen ? 'left: calc(18rem - 1px)' : 'left: 0'"
-      :title="sidebarOpen ? 'Recolher' : 'Expandir'"
-    >
-      <svg class="w-2.5 h-2.5 transition-transform duration-300" :class="sidebarOpen ? '' : 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
+  <WorkspaceShell width="18rem">
+    <template #sidebar>
+      <OptimizerSidebar />
+    </template>
 
     <!-- Main content -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -50,17 +36,17 @@
         <div class="card p-3 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-xs text-gray-500">Ativo</span>
+              <span class="text-xs text-gray-400">Ativo</span>
               <span class="font-semibold text-gray-200">{{ store.results.symbol || '-' }}</span>
             </div>
             <span class="text-surface-500">|</span>
             <div class="flex items-center gap-2 text-sm">
-              <span class="text-xs text-gray-500">Timeframe</span>
+              <span class="text-xs text-gray-400">Timeframe</span>
               <span class="font-semibold text-gray-200">{{ store.results.interval || '-' }}</span>
             </div>
             <span v-if="store.selectedStrategy" class="text-surface-500">|</span>
             <div v-if="store.selectedStrategy" class="flex items-center gap-2 text-sm">
-              <span class="text-xs text-gray-500">Estrategia</span>
+              <span class="text-xs text-gray-400">Estrategia</span>
               <span class="font-semibold text-gray-200">{{ store.selectedStrategy.name }}</span>
             </div>
           </div>
@@ -89,19 +75,19 @@
         <!-- Metric cards -->
         <div class="grid grid-cols-4 gap-3">
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-1">Configs Testadas</div>
+            <div class="text-xs text-gray-400 mb-1">Configs Testadas</div>
             <div class="text-lg font-bold text-gray-200">{{ store.results.total_tested?.toLocaleString() }}</div>
           </div>
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-1">Configs Validas</div>
+            <div class="text-xs text-gray-400 mb-1">Configs Validas</div>
             <div class="text-lg font-bold text-accent-yellow">{{ store.results.valid_count?.toLocaleString() }}</div>
           </div>
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-1">Tempo</div>
+            <div class="text-xs text-gray-400 mb-1">Tempo</div>
             <div class="text-lg font-bold text-gray-200">{{ store.results.elapsed }}s</div>
           </div>
           <div class="card p-3 text-center">
-            <div class="text-xs text-gray-500 mb-1">Melhor {{ store.rankBy }}</div>
+            <div class="text-xs text-gray-400 mb-1">Melhor {{ store.rankBy }}</div>
             <div class="text-lg font-bold text-green-400">{{ bestScore }}</div>
           </div>
         </div>
@@ -111,7 +97,7 @@
           <h2 class="text-sm font-semibold text-gray-200 mb-3"><span class="text-accent-yellow">1.</span> Melhor Configuracao</h2>
           <div class="grid grid-cols-2 gap-4">
             <div class="min-w-0">
-              <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Metricas</h3>
+              <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Metricas</h3>
               <div class="divide-y divide-surface-600">
                 <div v-for="col in metricCols" :key="col" class="flex justify-between items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-700/50">
                   <span class="text-gray-400 text-sm truncate shrink">{{ col }}</span>
@@ -122,7 +108,7 @@
               </div>
             </div>
             <div class="min-w-0">
-              <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Parametros</h3>
+              <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Parametros</h3>
               <div class="divide-y divide-surface-600">
                 <div v-for="col in paramCols" :key="col" class="flex justify-between items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-700/50">
                   <span class="text-gray-400 text-sm truncate shrink">{{ col }}</span>
@@ -163,19 +149,20 @@
         </div>
 
         <!-- CSV saved notice -->
-        <div v-if="store.results.csv_filename" class="text-xs text-gray-500 text-center">
+        <div v-if="store.results.csv_filename" class="text-xs text-gray-400 text-center">
           CSV salvo em: data/{{ store.results.csv_filename }}
         </div>
       </template>
     </div>
-  </div>
+</WorkspaceShell>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOptimizerStore } from '@/stores/optimizer.js'
 import OptimizerSidebar from '@/components/optimizer/OptimizerSidebar.vue'
+import WorkspaceShell from '@/components/layout/WorkspaceShell.vue'
 
 const store = useOptimizerStore()
 const router = useRouter()
@@ -192,12 +179,6 @@ function sendToBacktest() {
   if (store.sendBestToBacktest()) {
     router.push('/backtest')
   }
-}
-
-const sidebarOpen = ref(true)
-function toggleSidebar() {
-  sidebarOpen.value = !sidebarOpen.value
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 310)
 }
 
 // Colunas dinamicas vindas do resultado
@@ -253,7 +234,7 @@ onMounted(async () => {
 
 <style scoped>
 .th {
-  @apply px-2 py-2 text-left text-gray-500 font-medium whitespace-nowrap;
+  @apply px-2 py-2 text-left text-gray-400 font-medium whitespace-nowrap;
 }
 .td {
   @apply px-2 py-1.5 whitespace-nowrap;
