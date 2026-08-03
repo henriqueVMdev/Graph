@@ -157,7 +157,7 @@
 
       <!-- Avisos de custo (ex.: funding indisponivel na rede) -->
       <div v-if="store.wfaResults.cost_warnings?.length" class="text-xs text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50">
-        <div v-for="(w, i) in store.wfaResults.cost_warnings" :key="i">⚠ {{ w }}</div>
+        <div v-for="(w, i) in store.wfaResults.cost_warnings" :key="i"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ w }}</div>
       </div>
 
       <!-- Tab bar -->
@@ -234,6 +234,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import InfoHint from '@/components/common/InfoHint.vue'
 import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 

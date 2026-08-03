@@ -61,7 +61,7 @@
       {{ store.costsError }}
     </div>
 
-    <div v-for="w in store.costsWarnings" :key="w" class="text-xs text-accent-brass">⚠ {{ w }}</div>
+    <div v-for="w in store.costsWarnings" :key="w" class="text-xs text-accent-brass"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ w }}</div>
 
     <!-- Tabela bruto vs líquido -->
     <div v-if="store.costsResult && store.costsResult.length" class="overflow-x-auto">
@@ -111,6 +111,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { computed } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 

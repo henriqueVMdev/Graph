@@ -29,14 +29,14 @@
           class="px-3 py-1 text-xs rounded-md transition-all font-medium"
           :class="store.kind === 'trending' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-400 hover:text-gray-200'"
         >
-          🔥 Trending
+          <Icon name="chama" class="w-3.5 h-3.5" />Trending
         </button>
         <button
           @click="store.setKind('new')"
           class="px-3 py-1 text-xs rounded-md transition-all font-medium"
           :class="store.kind === 'new' ? 'bg-accent-yellow/15 text-accent-yellow' : 'text-gray-400 hover:text-gray-200'"
         >
-          ✨ Novos
+          <Icon name="brilho" class="w-3.5 h-3.5" />Novos
         </button>
       </div>
 
@@ -51,7 +51,8 @@
           :class="store.autoRefresh ? 'text-accent-yellow border-accent-yellow/40' : 'text-gray-400'"
           title="Auto-refresh a cada 60s"
          aria-label="Auto-refresh a cada 60s">
-          {{ store.autoRefresh ? 'Auto 60s ●' : 'Auto off' }}
+          <span v-if="store.autoRefresh" class="w-1.5 h-1.5 rounded-full bg-current inline-block mr-1.5" />
+                {{ store.autoRefresh ? 'Auto 60s' : 'Auto off' }}
         </button>
         <button
           @click="store.fetchTokens()"
@@ -128,7 +129,7 @@
                 @click.stop="openDex(t)"
                 class="text-gray-500 hover:text-accent-yellow transition-colors"
                 title="Abrir no DexScreener"
-               aria-label="Abrir no DexScreener">↗</button>
+               aria-label="Abrir no DexScreener"><Icon name="externo" class="w-4 h-4" /></button>
             </td>
           </tr>
         </tbody>
@@ -158,7 +159,7 @@
             <h2 class="text-base font-bold text-gray-100">{{ store.hypeToken.symbol }}</h2>
             <span class="text-xs text-gray-400">{{ store.hypeToken.name }}</span>
           </div>
-          <button @click="store.closeHype()" class="text-gray-400 hover:text-gray-200 text-lg leading-none">✕</button>
+          <button @click="store.closeHype()" class="text-gray-400 hover:text-gray-200 text-lg leading-none"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
         </div>
 
         <!-- Loading -->
@@ -202,7 +203,7 @@
               v-for="w in store.hype.websites" :key="w.url" :href="w.url" target="_blank"
               class="px-2 py-1 text-xs rounded-md border border-surface-600 text-gray-400 hover:text-accent-yellow transition-colors"
             >{{ w.label || 'site' }}</a>
-            <span v-if="store.hype.boosts" class="px-2 py-1 text-xs rounded-md bg-accent-yellow/10 text-accent-yellow">⚡ {{ store.hype.boosts }} boosts</span>
+            <span v-if="store.hype.boosts" class="px-2 py-1 text-xs rounded-md bg-accent-yellow/10 text-accent-yellow inline-flex items-center gap-1"><Icon name="raio" class="w-3 h-3" />{{ store.hype.boosts }} boosts</span>
           </div>
 
           <!-- Tweets -->
@@ -220,9 +221,9 @@
                 </div>
                 <p class="text-xs text-gray-300 leading-relaxed">{{ tw.text }}</p>
                 <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
-                  <span>♥ {{ tw.likes ?? 0 }}</span>
+                  <span class="inline-flex items-center gap-1"><Icon name="coracao" class="w-3 h-3" />{{ tw.likes ?? 0 }}</span>
                   <span>⟳ {{ tw.retweets ?? 0 }}</span>
-                  <span v-if="tw.views">👁 {{ tw.views }}</span>
+                  <span v-if="tw.views" class="inline-flex items-center gap-1"><Icon name="olho" class="w-3 h-3" />{{ tw.views }}</span>
                 </div>
               </div>
             </div>
@@ -238,6 +239,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useDegenStore } from '@/stores/degen.js'
 

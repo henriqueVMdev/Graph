@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
       <h3 class="text-sm text-gray-200 font-semibold">Novo deployment</h3>
       <button @click="store.showForm = false; store.pendingDeployment = null"
-              class="text-gray-400 hover:text-gray-300 text-sm">✕</button>
+              class="text-gray-400 hover:text-gray-300 text-sm"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
     </div>
 
     <div v-if="fromValidation"
@@ -54,7 +54,7 @@
     <!-- Modo real: aviso + conta -->
     <template v-if="form.mode === 'real'">
       <div class="text-[11px] text-accent-red-light bg-red-950/40 border border-accent-red/40 rounded-lg px-2.5 py-2">
-        ⚠ Ordens com <b>dinheiro real</b> na Bybit mainnet. TP/SL ficam
+        <Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />Ordens com <b>dinheiro real</b> na Bybit mainnet. TP/SL ficam
         server-side na exchange. Proteções extras são opcionais abaixo.
       </div>
       <div class="flex items-center justify-between gap-2">
@@ -139,6 +139,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { computed, onMounted, reactive } from 'vue'
 import { useAutomationStore } from '@/stores/automation.js'
 import NumInput from '@/components/NumInput.vue'

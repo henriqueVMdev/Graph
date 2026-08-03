@@ -83,7 +83,7 @@
 
       <!-- Propostas pendentes (auto-learn) -->
       <div v-if="store.proposals.length" class="card p-3 space-y-2 border-accent-yellow/40">
-        <div class="text-xs font-semibold text-accent-yellow">⚡ Propostas de skill pendentes</div>
+        <div class="text-xs font-semibold text-accent-yellow inline-flex items-center gap-1.5"><Icon name="raio" class="w-3.5 h-3.5" />Propostas de skill pendentes</div>
         <div v-for="p in store.proposals" :key="p.id" class="bg-surface-900 rounded-lg p-2.5">
           <div class="text-[11px] font-semibold text-gray-200">{{ p.action }} · {{ p.name }}</div>
           <div class="text-[11px] text-gray-400 mt-0.5">{{ p.rationale }}</div>
@@ -154,7 +154,7 @@
             <div v-else class="max-w-3xl">
               <details class="bg-surface-900 border border-surface-700 rounded-lg px-3 py-2">
                 <summary class="text-[11px] cursor-pointer" :class="ev.type === 'tool_call' ? 'text-accent-yellow/70' : 'text-gray-400'">
-                  {{ ev.type === 'tool_call' ? '⚙ ' + ev.name + '(' + JSON.stringify(ev.args) + ')' : '↳ resultado de ' + ev.name }}
+                  <Icon v-if="ev.type === 'tool_call'" name="engrenagem" class="w-3 h-3 mr-1" />{{ ev.type === 'tool_call' ? ev.name + '(' + JSON.stringify(ev.args) + ')' : '↳ resultado de ' + ev.name }}
                 </summary>
                 <pre v-if="ev.result" class="text-[11px] text-gray-400 mt-1.5 whitespace-pre-wrap max-h-48 overflow-y-auto">{{ ev.result }}</pre>
               </details>
@@ -188,6 +188,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useAgentsStore } from '@/stores/agents.js'
 

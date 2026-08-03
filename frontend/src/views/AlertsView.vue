@@ -62,7 +62,7 @@
             <td class="py-1.5 text-gray-500">{{ tsFmt(a.created_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-500 hover:text-accent-red-light">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
             </td>
           </tr>
         </tbody>
@@ -84,7 +84,7 @@
             <td class="py-1.5 text-gray-500">{{ tsFmt(a.triggered_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-500 hover:text-accent-red-light">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
             </td>
           </tr>
         </tbody>
@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'
@@ -137,7 +138,7 @@ function tsFmt(ts) {
 onMounted(() => {
   terminal.fetchAlerts()
   terminal.markAlertsSeen()
-  // pré-preenche vindo do Monitor ("⏰" na linha)
+  // pré-preenche vindo do Monitor (botão de criar alerta na linha)
   if (route.query.symbol) form.symbol = String(route.query.symbol).toUpperCase()
   if (route.query.price) form.level = Number(route.query.price)
   if (route.query.market) form.market = String(route.query.market)

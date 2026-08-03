@@ -46,7 +46,7 @@
                 @click="sortBy(c.key)"
                 class="px-3 py-2 cursor-pointer hover:text-accent-yellow whitespace-nowrap">
               {{ c.label }}
-              <span v-if="sortKey === c.key">{{ sortDir === -1 ? '▼' : '▲' }}</span>
+              <Icon v-if="sortKey === c.key" name="seta" class="w-3 h-3 ml-0.5" :class="sortDir === -1 ? '' : 'rotate-180'" />
             </th>
             <th scope="col" class="px-3 py-2"></th>
           </tr>
@@ -72,9 +72,9 @@
             <td class="px-3 py-1.5 text-right whitespace-nowrap">
               <button @click="terminal.addToWatchlist(isCrypto ? r.base : r.symbol, isCrypto ? 'crypto' : 'tradfi')"
                       title="+ Watchlist"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="+ Watchlist">👁</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="+ Watchlist"><Icon name="olho" class="w-4 h-4" /></button>
               <button @click="toBacktest(r)" title="Backtest"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Backtest">⚡</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Backtest"><Icon name="raio" class="w-4 h-4" /></button>
             </td>
           </tr>
         </tbody>
@@ -84,6 +84,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'

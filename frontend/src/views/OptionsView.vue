@@ -44,10 +44,11 @@
             <span class="text-accent-yellow">◆</span> Volatilidade implícita por strike (smile)
           </h2>
           <div class="flex-1" />
-          <button @click="toStrategy" class="btn-secondary !py-1 text-[11px]">⚙ Simular estratégia (OSA)</button>
+          <button @click="toStrategy" class="btn-secondary !py-1 text-[11px] inline-flex items-center gap-1.5"><Icon name="engrenagem" class="w-3 h-3" />Simular estratégia (OSA)</button>
           <button @click="loadSurface" :disabled="surfaceLoading"
-                  class="btn-secondary !py-1 text-[11px] disabled:opacity-50">
-            {{ surfaceLoading ? 'montando…' : surface ? '↻ Superfície' : '▦ Superfície de vol' }}
+                  class="btn-secondary !py-1 text-[11px] disabled:opacity-50 inline-flex items-center gap-1.5">
+            <Icon v-if="!surfaceLoading" :name="surface ? 'recarregar' : 'grade'" class="w-3 h-3" />
+            {{ surfaceLoading ? 'montando…' : surface ? 'Superfície' : 'Superfície de vol' }}
           </button>
         </div>
         <div ref="smileChart" style="min-height:260px;" class="w-full"></div>
@@ -118,6 +119,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { DIRECAO, TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

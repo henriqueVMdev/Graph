@@ -52,7 +52,7 @@
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-yellow/15 text-accent-yellow
                      hover:bg-accent-yellow/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              ⚡ Enviar para Automação
+              <Icon name="raio" class="w-3.5 h-3.5" />Enviar para Automação
             </button>
             <div class="text-sm font-mono text-accent-yellow">
               ${{ store.results.account_size.toLocaleString() }}
@@ -89,7 +89,7 @@
             </div>
           </div>
           <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-accent-brass">
-            ⚠ {{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
+            <Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
           </div>
           <p class="mt-1 text-[11px] text-gray-500">{{ store.results.risk_sizing.note }}</p>
         </div>
@@ -116,7 +116,7 @@
             </div>
           </div>
           <div v-if="store.results.costs.warnings?.length" class="mt-2 text-[11px] text-accent-brass">
-            <div v-for="(w, i) in store.results.costs.warnings" :key="i">⚠ {{ w }}</div>
+            <div v-for="(w, i) in store.results.costs.warnings" :key="i"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ w }}</div>
           </div>
         </div>
 
@@ -279,6 +279,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
 

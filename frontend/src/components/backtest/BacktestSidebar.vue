@@ -23,7 +23,7 @@
               :value="s.file"
               :disabled="!!s.error"
             >
-              {{ s.name }}{{ s.error ? ' ⚠' : '' }}
+              {{ s.name }}{{ s.error ? ' (!)' : '' }}
             </option>
           </select>
 

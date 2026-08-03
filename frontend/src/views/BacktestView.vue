@@ -14,7 +14,7 @@
           </svg>
           Parametros carregados automaticamente
         </span>
-        <button @click="paramsBanner = false" class="text-gray-400 hover:text-gray-200">✕</button>
+        <button @click="paramsBanner = false" class="text-gray-400 hover:text-gray-200"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
       </div>
 
       <!-- Error -->
@@ -49,7 +49,7 @@
             class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-yellow/15 text-accent-yellow
                    hover:bg-accent-yellow/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            ⚡ Enviar para Automação
+            <Icon name="raio" class="w-3.5 h-3.5" />Enviar para Automação
           </button>
         </div>
 
@@ -116,6 +116,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, onMounted } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import BacktestSidebar from '@/components/backtest/BacktestSidebar.vue'

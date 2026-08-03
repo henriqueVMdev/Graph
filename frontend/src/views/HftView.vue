@@ -7,9 +7,9 @@
         <span class="text-accent-yellow">◆</span> HFT On-chain
         <span class="text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-600 text-gray-400 ml-1">{{ status?.mode || 'paper' }}</span>
       </h1>
-      <span v-if="status?.halted" class="text-xs px-2 py-1 rounded bg-accent-red/15 text-accent-red-light">⛔ stop diário atingido</span>
+      <span v-if="status?.halted" class="text-xs px-2 py-1 rounded bg-accent-red/15 text-accent-red-light inline-flex items-center gap-1.5"><Icon name="bloqueado" class="w-3 h-3" />stop diário atingido</span>
       <div class="flex-1" />
-      <button v-if="!status?.running" @click="start" class="px-3 py-1.5 text-xs rounded-md bg-accent-yellow/15 text-accent-yellow hover:bg-accent-yellow/25 font-medium">▶ Ligar motor</button>
+      <button v-if="!status?.running" @click="start" class="px-3 py-1.5 text-xs rounded-md bg-accent-yellow/15 text-accent-yellow hover:bg-accent-yellow/25 font-medium inline-flex items-center gap-1.5"><Icon name="executar" class="w-3 h-3" />Ligar motor</button>
       <template v-else>
         <span class="flex items-center gap-1.5 text-xs text-accent-yellow/80">
           <span class="w-2 h-2 rounded-full bg-accent-yellow animate-pulse" /> RODANDO
@@ -76,6 +76,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { quandoVisivel } from '@/composables/visibilidade.js'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import api from '@/api/client.js'

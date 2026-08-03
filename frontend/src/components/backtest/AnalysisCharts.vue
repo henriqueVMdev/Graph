@@ -35,7 +35,7 @@
     <div v-if="store.chartData">
       <!-- Avisos (ex.: funding indisponível na rede) -->
       <div v-if="store.chartData.cost_warnings?.length" class="text-xs text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50 mb-3">
-        <div v-for="(w, i) in store.chartData.cost_warnings" :key="i">⚠ {{ w }}</div>
+        <div v-for="(w, i) in store.chartData.cost_warnings" :key="i"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ w }}</div>
       </div>
 
       <!-- Tab bar -->
@@ -75,6 +75,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { DIRECAO, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
@@ -140,7 +141,7 @@ function renderPrice() {
   if (ind.upper) traces.push({ type: 'scatter', mode: 'lines', name: lbl.upper || 'Banda Sup.', x: c.dates, y: ind.upper, line: { color: 'rgba(66,165,245,0.8)', width: 1.2 } })
   if (ind.lower) traces.push({ type: 'scatter', mode: 'lines', name: lbl.lower || 'Banda Inf.', x: c.dates, y: ind.lower, line: { color: 'rgba(171,71,188,0.8)', width: 1.2 } })
 
-  // Marcadores de entrada (long ▲ verde / short ▼ vermelho) e saída (✕),
+  // Marcadores de entrada (long para cima / short para baixo) e saida,
   // e caixas de posição estilo TradingView: verde = entrada→alvo,
   // vermelho = entrada→stop, do candle de entrada ao de saída.
   const longX = [], longY = [], shortX = [], shortY = [], exitX = [], exitY = []

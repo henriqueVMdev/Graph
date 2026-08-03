@@ -43,7 +43,7 @@
 
         <button @click="gbmSeed = Math.floor(Math.random()*1e6)" :disabled="gbmLoading"
           class="ml-auto px-3 py-1 text-xs rounded-md bg-surface-600 text-gray-400 hover:bg-surface-500 border border-surface-400 transition-colors disabled:opacity-40"
-        >↺ Regenerar</button>
+        ><Icon name="recarregar" class="w-3.5 h-3.5" />Regenerar</button>
       </div>
       <div v-if="gbmLoading" class="flex items-center justify-center h-32 text-gray-400 text-sm gap-2">
         <span class="dollar-loader-sm">$</span>
@@ -115,7 +115,8 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
           </svg>
-          {{ valLoading ? 'Calculando...' : '▶ Executar Validação' }}
+          <Icon v-if="!valLoading" name="executar" class="w-3 h-3" />
+            {{ valLoading ? 'Calculando...' : 'Executar Validação' }}
         </button>
       </div>
 
@@ -351,7 +352,7 @@
             class="rounded-lg p-3 border text-center"
             :class="v.ok ? 'border-accent-yellow/30 bg-accent-yellow/5' : 'border-accent-red/30 bg-accent-red/5'"
           >
-            <div class="text-base mb-0.5">{{ v.ok ? '✓' : '✗' }}</div>
+            <div class="text-base mb-0.5"><Icon :name="v.ok ? 'ok' : 'fechar'" class="w-4 h-4 mx-auto" /></div>
             <div class="text-xs" :class="v.ok ? 'text-accent-yellow' : 'text-accent-red-light'">{{ v.label }}</div>
           </div>
         </div>
@@ -362,6 +363,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
@@ -464,7 +466,7 @@ async function renderGbmChart(d) {
     shapes: [{ type: 'line', xref: 'x', x0: lastDate, x1: lastDate,
       yref: 'paper', y0: 0, y1: 1, line: { color: '#f5c518', dash: 'dot', width: 1 } }],
     annotations: [{ xref: 'x', x: lastDate, yref: 'paper', y: 0.98,
-      text: '◀ histórico · projeção ▶', showarrow: false,
+      text: 'histórico  ·  projeção', showarrow: false,
       font: { size: 10, color: '#f5c518' }, xanchor: 'center',
       bgcolor: 'rgba(0,0,0,0.5)' }],
     hovermode: 'x unified',

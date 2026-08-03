@@ -138,7 +138,7 @@
           </table>
           <div v-for="(w, i) in pre.warnings" :key="i"
                class="text-[11px] text-accent-brass/90 flex gap-1.5">
-            <span>⚠</span><span>{{ w }}</span>
+            <Icon name="aviso" class="w-3 h-3" /><span>{{ w }}</span>
           </div>
         </div>
       </div>
@@ -349,7 +349,7 @@
                 </tbody>
               </table>
             </div>
-            <p v-if="tcaD.note" class="text-[11px] text-accent-brass/80">⚠ {{ tcaD.note }}</p>
+            <p v-if="tcaD.note" class="text-[11px] text-accent-brass/80"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ tcaD.note }}</p>
           </template>
         </div>
       </div>
@@ -358,6 +358,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { quandoVisivel } from '@/composables/visibilidade.js'
 import { ref, computed, onMounted, onBeforeUnmount, reactive } from 'vue'
 import { useRoute } from 'vue-router'

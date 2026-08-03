@@ -36,7 +36,7 @@
         <div class="text-right">
           <div class="text-[11px] text-gray-400 uppercase">Market cap</div>
           <div class="text-xl font-bold font-mono text-gray-200">{{ fmtVol(d.mcap) }}</div>
-          <button @click="toDes" class="btn-secondary !py-1 text-[11px] mt-1">📋 DES</button>
+          <button @click="toDes" class="btn-secondary !py-1 text-[11px] mt-1 inline-flex items-center gap-1.5"><Icon name="ficha" class="w-3 h-3" />DES</button>
           <button @click="toOmon" class="btn-secondary !py-1 text-[11px] mt-1 ml-1">OMON</button>
         </div>
       </div>
@@ -260,7 +260,7 @@
                 <div class="text-xs font-semibold text-gray-200">{{ feed.source }}</div>
                 <div v-if="feed.note" class="text-[11px] text-accent-brass/80">{{ feed.note }}</div>
               </div>
-              <a :href="feed.url" target="_blank" rel="noopener" class="text-[11px] text-accent-yellow hover:underline">fonte oficial ↗</a>
+              <a :href="feed.url" target="_blank" rel="noopener" class="text-[11px] text-accent-yellow hover:underline">fonte oficial <Icon name="externo" class="w-3 h-3 ml-0.5 align-[-1px]" /></a>
             </div>
             <div v-if="feed.latest" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
               <div v-if="feed.latest.net != null"><span class="text-gray-400">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ fmtVol(feed.latest.net) }}</div></div>
@@ -273,7 +273,7 @@
               <tbody><tr v-for="f in feed.filings" :key="f.url" class="border-t border-surface-500/40">
                 <td class="py-1 text-accent-yellow">Form {{ f.form }}</td><td class="text-gray-400">{{ f.date }}</td>
                 <td class="text-gray-300">{{ f.description || 'Insider ownership filing' }}</td>
-                <td class="text-right"><a :href="f.url" target="_blank" rel="noopener" class="text-gray-400 hover:text-accent-yellow">abrir ↗</a></td>
+                <td class="text-right"><a :href="f.url" target="_blank" rel="noopener" class="text-gray-400 hover:text-accent-yellow">abrir <Icon name="externo" class="w-3 h-3 ml-0.5 align-[-1px]" /></a></td>
               </tr></tbody>
             </table>
             <div v-if="feed.famous_wallets?.length" class="mt-3 overflow-x-auto">
@@ -286,7 +286,7 @@
                 </tr></thead>
                 <tbody><tr v-for="w in feed.famous_wallets" :key="w.address" class="border-b border-surface-600/40">
                   <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[11px]" :class="w.confidence === 'verified' ? 'text-accent-yellow' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
-                  <td><a :href="w.explorer_url" target="_blank" rel="noopener" class="text-accent-yellow hover:underline">{{ shortAddress(w.address) }} ↗</a></td>
+                  <td><a :href="w.explorer_url" target="_blank" rel="noopener" class="text-accent-yellow hover:underline">{{ shortAddress(w.address) }} <Icon name="externo" class="w-3 h-3 ml-0.5 align-[-1px]" /></a></td>
                   <td class="text-right text-gray-200">{{ w.balance_btc != null ? w.balance_btc.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.received_btc != null ? w.received_btc.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.tx_count?.toLocaleString('pt-BR') ?? '—' }}</td>
@@ -301,7 +301,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
               <a v-for="s in d.smart_money.sources || []" :key="s.market + s.source" :href="s.url" target="_blank" rel="noopener"
                  class="rounded bg-surface-600/30 p-2 text-gray-400 hover:text-accent-yellow">
-                <span class="text-gray-500">{{ s.market }} · </span>{{ s.source }} ↗
+                <span class="text-gray-500">{{ s.market }} · </span>{{ s.source }} <Icon name="externo" class="w-3 h-3 ml-0.5 align-[-1px]" />
               </a>
             </div>
           </details>
@@ -380,6 +380,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, computed, h, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getEa } from '@/api/client.js'

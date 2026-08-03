@@ -21,7 +21,7 @@
     </div>
 
     <div v-if="terminal.newsFailed.length" class="text-[11px] text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50">
-      ⚠ Fontes indisponíveis agora: {{ terminal.newsFailed.join(', ') }}
+      <Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />Fontes indisponíveis agora: {{ terminal.newsFailed.join(', ') }}
     </div>
 
     <div v-if="terminal.newsLoading" class="flex flex-col items-center py-16">
@@ -45,6 +45,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useTerminalStore } from '@/stores/terminal.js'
 

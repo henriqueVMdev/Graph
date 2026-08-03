@@ -43,13 +43,13 @@
         </div>
         <div class="flex-1" />
         <div class="flex flex-wrap gap-2">
-          <button @click="quick('/backtest')" class="btn-secondary !py-1.5 text-xs">⚡ Backtest</button>
-          <button @click="quick('/grafico')" class="btn-secondary !py-1.5 text-xs">📈 Gráfico</button>
-          <button @click="quick('/regime')" class="btn-secondary !py-1.5 text-xs">〰 Regimes</button>
-          <button @click="toMonitor" class="btn-secondary !py-1.5 text-xs">👁 Monitor</button>
-          <button v-if="isTradfi" @click="toRoute('/ea')" class="btn-secondary !py-1.5 text-xs">🏛 FA</button>
+          <button @click="quick('/backtest')" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="raio" class="w-3.5 h-3.5" />Backtest</button>
+          <button @click="quick('/grafico')" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="alta" class="w-3.5 h-3.5" />Gráfico</button>
+          <button @click="quick('/regime')" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="onda" class="w-3.5 h-3.5" />Regimes</button>
+          <button @click="toMonitor" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="olho" class="w-3.5 h-3.5" />Monitor</button>
+          <button v-if="isTradfi" @click="toRoute('/ea')" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="instituicao" class="w-3.5 h-3.5" />FA</button>
           <button v-if="isTradfi" @click="toRoute('/omon')" class="btn-secondary !py-1.5 text-xs">OMON</button>
-          <button v-else @click="toBook" class="btn-secondary !py-1.5 text-xs">📖 Book</button>
+          <button v-else @click="toBook" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="livro" class="w-3.5 h-3.5" />Book</button>
         </div>
       </div>
 
@@ -136,6 +136,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

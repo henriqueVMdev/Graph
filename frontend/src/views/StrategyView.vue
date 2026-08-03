@@ -31,7 +31,7 @@
           </select></label>
         <div class="flex-1" />
         <button @click="run" :disabled="!legs.length || running"
-                class="btn-primary !py-1.5 text-xs disabled:opacity-50">▶ Calcular</button>
+                class="btn-primary !py-1.5 text-xs disabled:opacity-50 inline-flex items-center gap-1.5"><Icon name="executar" class="w-3 h-3" />Calcular</button>
       </div>
 
       <!-- presets -->
@@ -81,7 +81,7 @@
               <input v-if="l.kind !== 'stock'" v-model.number="l.iv" type="number" step="any"
                      class="form-input !py-1 text-xs w-20" placeholder="auto" /></td>
             <td class="py-1 text-right">
-              <button @click="legs.splice(i, 1)" class="text-gray-500 hover:text-accent-red-light">✕</button></td>
+              <button @click="legs.splice(i, 1)" class="text-gray-500 hover:text-accent-red-light"><Icon name="fechar" class="w-3.5 h-3.5" /></button></td>
           </tr>
         </tbody>
       </table>
@@ -163,6 +163,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

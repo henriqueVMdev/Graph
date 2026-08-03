@@ -4,7 +4,7 @@
       <h1 class="text-base font-semibold text-gray-100">FI · Juros & Crédito</h1>
       <span class="text-[11px] text-gray-500 font-mono">treasuries US via yahoo · atualiza 15 min</span>
       <div class="flex-1" />
-      <button @click="load" class="btn-secondary !py-1.5 text-xs">↻ Atualizar</button>
+      <button @click="load" class="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1.5"><Icon name="recarregar" class="w-3.5 h-3.5" />Atualizar</button>
     </div>
 
     <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { DIRECAO, TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

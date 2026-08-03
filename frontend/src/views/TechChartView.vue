@@ -40,7 +40,7 @@
           <input v-model="single.s" :placeholder="single.market === 'crypto' ? 'BTC' : 'AAPL, OURO…'"
                  class="form-input !py-1.5 text-xs w-32 uppercase mt-1 block" /></label>
         <button @click="runSingle" :disabled="loading" class="btn-primary !py-1.5 text-xs disabled:opacity-50">
-          {{ loading ? '...' : '▶ Plotar' }}</button>
+          <Icon v-if="!loading" name="executar" class="w-3 h-3" />{{ loading ? '...' : 'Plotar' }}</button>
       </template>
 
       <!-- COMPARAR: vários ativos -->
@@ -57,7 +57,7 @@
         <button @click="addToCompare" class="btn-secondary !py-1.5 text-xs">+</button>
         <button @click="runCompare" :disabled="cmpList.length < 2 || loading"
                 class="btn-primary !py-1.5 text-xs disabled:opacity-50">
-          {{ loading ? '...' : '▶ Comparar' }}</button>
+          <Icon v-if="!loading" name="executar" class="w-3 h-3" />{{ loading ? '...' : 'Comparar' }}</button>
       </template>
 
       <!-- SPREAD: exatamente 2 -->
@@ -75,7 +75,7 @@
           <input v-model.number="corrWindow" type="number" min="10"
                  class="form-input !py-1.5 text-xs w-20 mt-1 block" /></label>
         <button @click="runSpread" :disabled="loading" class="btn-primary !py-1.5 text-xs disabled:opacity-50">
-          {{ loading ? '...' : '▶ Spread' }}</button>
+          <Icon v-if="!loading" name="executar" class="w-3 h-3" />{{ loading ? '...' : 'Spread' }}</button>
       </template>
 
       <!-- CONTRATOS -->
@@ -94,7 +94,7 @@
           </select></label>
         <button @click="runContracts" :disabled="!contractA || !contractB || loading"
                 class="btn-primary !py-1.5 text-xs disabled:opacity-50">
-          {{ loading ? '...' : '▶ Comparar contratos' }}</button>
+          <Icon v-if="!loading" name="executar" class="w-3 h-3" />{{ loading ? '...' : 'Comparar contratos' }}</button>
       </template>
     </div>
 
@@ -114,7 +114,7 @@
         <button @click="addCustom" class="btn-secondary !py-1 text-[11px]">+ Estudo</button>
         <span v-for="(c, i) in customs" :key="i"
               class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface-600/60 text-gray-300">
-          {{ c.expr.slice(0, 28) }} <button @click="customs.splice(i, 1); runSingle()" class="text-gray-400 hover:text-accent-red-light ml-1">✕</button></span>
+          {{ c.expr.slice(0, 28) }} <button @click="customs.splice(i, 1); runSingle()" class="text-gray-400 hover:text-accent-red-light ml-1"><Icon name="fechar" class="w-3.5 h-3.5" /></button></span>
       </div>
       <p class="text-[11px] text-gray-500 font-mono">
         funções: SMA EMA RSI STD MAX MIN ROC SHIFT ABS LOG DIFF · variáveis: open high low close volume
@@ -127,7 +127,7 @@
       <span v-for="(a, i) in cmpList" :key="i"
             class="text-[11px] font-mono px-2 py-0.5 rounded border border-surface-500 text-gray-300">
         {{ a.s }} <span class="text-gray-500">· {{ a.market === 'crypto' ? 'cripto' : 'trad' }}</span>
-        <button @click="cmpList.splice(i, 1)" class="text-gray-400 hover:text-accent-red-light ml-1">✕</button></span>
+        <button @click="cmpList.splice(i, 1)" class="text-gray-400 hover:text-accent-red-light ml-1"><Icon name="fechar" class="w-3.5 h-3.5" /></button></span>
     </div>
 
     <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
@@ -202,6 +202,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { DIRECAO, ESTUDOS, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

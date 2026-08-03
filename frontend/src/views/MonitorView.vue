@@ -62,11 +62,11 @@
             </td>
             <td class="px-3 py-2 text-right whitespace-nowrap">
               <button @click="openBook(r)" title="Book de ofertas"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Book de ofertas">📖</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Book de ofertas"><Icon name="livro" class="w-4 h-4" /></button>
               <button @click="alertFor(r)" title="Criar alerta"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Criar alerta">⏰</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Criar alerta"><Icon name="relogio" class="w-4 h-4" /></button>
               <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
-                      class="text-gray-500 hover:text-accent-red-light text-xs px-1" aria-label="Remover">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light text-xs px-1" aria-label="Remover"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
             </td>
           </tr>
           <tr v-if="!terminal.watchRows.length">
@@ -81,6 +81,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { DIRECAO } from '@/composables/chartTheme.js'
 import { ref, watch, onMounted, onBeforeUnmount, h } from 'vue'
 import { useRouter } from 'vue-router'

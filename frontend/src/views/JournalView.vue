@@ -56,7 +56,7 @@
           >{{ ex }}: <b class="text-gray-300">{{ count }}</b></span>
         </div>
         <div v-if="store.syncResult.warnings.length" class="mt-2 space-y-0.5 text-[11px] text-accent-brass">
-          <div v-for="(w, i) in store.syncResult.warnings" :key="i">⚠ {{ w }}</div>
+          <div v-for="(w, i) in store.syncResult.warnings" :key="i"><Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />{{ w }}</div>
         </div>
       </div>
 
@@ -282,6 +282,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useJournalStore } from '@/stores/journal.js'
 import { getStrategies } from '@/api/client.js'

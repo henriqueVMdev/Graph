@@ -19,7 +19,7 @@
         >
           Enviar para Prop Challenge
         </button>
-        <button @click="store.clearSelection()" class="text-gray-400 hover:text-gray-300 text-lg leading-none">✕</button>
+        <button @click="store.clearSelection()" class="text-gray-400 hover:text-gray-300 text-lg leading-none"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
       </div>
     </div>
 
@@ -44,6 +44,7 @@
 </template>
 
 <script setup>
+import Icon from '@/components/common/Icon.vue'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDashboardStore } from '@/stores/dashboard.js'
