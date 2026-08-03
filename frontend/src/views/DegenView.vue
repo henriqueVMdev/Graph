@@ -150,13 +150,18 @@
       />
       <div
         v-if="store.hypeToken"
-        class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-surface-800 border-l border-surface-500 shadow-2xl overflow-y-auto p-5 space-y-4"
+        ref="painelHype"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hype-titulo"
+        tabindex="-1"
+        class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-surface-800 border-l border-surface-500 shadow-2xl overflow-y-auto p-5 space-y-4 outline-none"
       >
         <!-- Panel header -->
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <img v-if="store.hypeToken.image_url && store.hypeToken.image_url !== 'missing.png'" :src="store.hypeToken.image_url" class="w-6 h-6 rounded-full" />
-            <h2 class="text-base font-bold text-gray-100">{{ store.hypeToken.symbol }}</h2>
+            <img v-if="store.hypeToken.image_url && store.hypeToken.image_url !== 'missing.png'" :src="store.hypeToken.image_url" alt="" class="w-6 h-6 rounded-full" />
+            <h2 id="hype-titulo" class="text-base font-bold text-gray-100">{{ store.hypeToken.symbol }}</h2>
             <span class="text-xs text-gray-400">{{ store.hypeToken.name }}</span>
           </div>
           <button @click="store.closeHype()" class="text-gray-400 hover:text-gray-200 text-lg leading-none"><Icon name="fechar" class="w-3.5 h-3.5" /></button>
@@ -240,18 +245,49 @@
 
 <script setup>
 import Icon from '@/components/common/Icon.vue'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDegenStore } from '@/stores/degen.js'
 
 const store = useDegenStore()
+
+const painelHype = ref(null)
+let gatilhoAnterior = null
+
+// O painel e Teleport para o body, entao e irmao de #app e nao filho dele:
+// marcar #app como inert tira tudo que esta atras do foco e do leitor de tela
+// de uma vez. E o focus trap nativo — nao ha o que reimplementar em JS.
+watch(() => store.hypeToken, async (aberto) => {
+  const app = document.getElementById('app')
+  if (aberto) {
+    gatilhoAnterior = document.activeElement
+    if (app) app.inert = true
+    await nextTick()
+    painelHype.value?.focus()
+  } else {
+    if (app) app.inert = false
+    gatilhoAnterior?.focus?.()
+    gatilhoAnterior = null
+  }
+})
+
+function aoTeclar(e) {
+  if (e.key === 'Escape' && store.hypeToken) store.closeHype()
+}
 
 onMounted(() => {
   store.fetchChains()
   store.fetchTokens()
   store.startAutoRefresh()
+  window.addEventListener('keydown', aoTeclar)
 })
 
-onUnmounted(() => store.stopAutoRefresh())
+onUnmounted(() => {
+  store.stopAutoRefresh()
+  window.removeEventListener('keydown', aoTeclar)
+  // Sair da rota com o painel aberto deixaria o app inteiro inerte.
+  const app = document.getElementById('app')
+  if (app) app.inert = false
+})
 
 const twitterSourceLabel = computed(() => {
   const s = store.hype?.twitter_source

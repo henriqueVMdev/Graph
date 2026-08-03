@@ -84,7 +84,7 @@
         <!-- Simulações MC -->
         <div class="mc-dropdown-wrap">
           <button @click="openDd = openDd === 'valSims' ? null : 'valSims'" class="mc-dd-btn">
-            <span class="mc-info-wrap cursor-default">Simulações<div class="mc-tooltip" style="width:240px;">Número de cenários gerados por cada método Monte Carlo. Mais simulações = distribuição mais precisa e estável, porém mais lento. 500 é um bom equilíbrio entre velocidade e precisão.</div></span>:
+            Simulações:
             <span class="text-accent-yellow font-semibold">{{ valSims }}</span>
             <svg class="w-3 h-3 ml-1 transition-transform" :class="openDd==='valSims'?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
@@ -93,11 +93,14 @@
               class="mc-dd-item" :class="valSims === n ? 'text-accent-yellow font-semibold' : ''">{{ n }}</button>
           </div>
         </div>
+        <!-- Irmao do dropdown, nao filho: o InfoHint e um botao e nao pode
+             ficar aninhado dentro do botao que abre a lista. -->
+        <InfoHint rotulo="Simulações">Número de cenários gerados por cada método Monte Carlo. Mais simulações = distribuição mais precisa e estável, porém mais lento. 500 é um bom equilíbrio entre velocidade e precisão.</InfoHint>
 
         <!-- Permutações -->
         <div class="mc-dropdown-wrap">
           <button @click="openDd = openDd === 'valPerms' ? null : 'valPerms'" class="mc-dd-btn">
-            <span class="mc-info-wrap cursor-default">Permutações<div class="mc-tooltip" style="width:260px;">Número de embaralhamentos usados no Permutation Test para calcular o p-value. Mais permutações = p-value mais preciso. 300 já é suficiente para a maioria dos casos; use 500 se quiser maior confiança estatística.</div></span>:
+            Permutações:
             <span class="text-accent-yellow font-semibold">{{ valPerms }}</span>
             <svg class="w-3 h-3 ml-1 transition-transform" :class="openDd==='valPerms'?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
@@ -106,6 +109,7 @@
               class="mc-dd-item" :class="valPerms === n ? 'text-accent-yellow font-semibold' : ''">{{ n }}</button>
           </div>
         </div>
+        <InfoHint rotulo="Permutações">Número de embaralhamentos usados no Permutation Test para calcular o p-value. Mais permutações = p-value mais preciso. 300 já é suficiente para a maioria dos casos; use 500 se quiser maior confiança estatística.</InfoHint>
 
         <button @click="runValidation"
           :disabled="valLoading"
@@ -174,7 +178,7 @@
             <div class="card p-3 text-center group relative">
               <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Retorno Mediano
-                <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Retorno percentual da equity curve na simulação mediana (P50). Metade das simulações ficou acima, metade abaixo desse valor.</div></span>
+                <InfoHint rotulo="Retorno Mediano">Retorno percentual da equity curve na simulação mediana (P50). Metade das simulações ficou acima, metade abaixo desse valor.</InfoHint>
               </div>
               <div class="text-sm font-semibold"
                 :class="currentMc.final_equity_pct.p50 >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'"
@@ -184,7 +188,7 @@
             <div class="card p-3 text-center group relative">
               <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 DD P95 · pior cenário
-                <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Drawdown máximo no percentil 95 das simulações. Ou seja, em 95% dos cenários o drawdown não passou desse valor — representa o pior cenário plausível da estratégia.</div></span>
+                <InfoHint rotulo="DD P95">Drawdown máximo no percentil 95 das simulações. Ou seja, em 95% dos cenários o drawdown não passou desse valor — representa o pior cenário plausível da estratégia.</InfoHint>
               </div>
               <div class="text-sm font-semibold text-accent-red-light">{{ currentMc.max_drawdown.p95?.toFixed(1) }}%</div>
             </div>
@@ -192,7 +196,7 @@
             <div class="card p-3 text-center group relative">
               <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Rank Sharpe
-                <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Posição percentual do Sharpe original em relação às simulações. Se está no 80º percentil, significa que o backtest real teve Sharpe melhor que 80% das simulações — quanto maior, mais robusta é a estratégia.</div></span>
+                <InfoHint rotulo="Rank Sharpe">Posição percentual do Sharpe original em relação às simulações. Se está no 80º percentil, significa que o backtest real teve Sharpe melhor que 80% das simulações — quanto maior, mais robusta é a estratégia.</InfoHint>
               </div>
               <div class="text-sm font-semibold"
                 :class="currentMc.backtest_rank_sharpe >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'"
@@ -202,7 +206,7 @@
             <div class="card p-3 text-center group relative">
               <div class="text-xs text-gray-400 mb-0.5 flex items-center justify-center gap-1">
                 Prob. Ruína
-                <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Percentual de simulações em que o capital final ficou abaixo de 50% do capital inicial. Indica a probabilidade da estratégia sofrer uma perda catastrófica — abaixo de 5% é considerado seguro.</div></span>
+                <InfoHint rotulo="Prob. Ruína">Percentual de simulações em que o capital final ficou abaixo de 50% do capital inicial. Indica a probabilidade da estratégia sofrer uma perda catastrófica — abaixo de 5% é considerado seguro.</InfoHint>
               </div>
               <div class="text-sm font-semibold"
                 :class="currentMc.ruin_prob < 5 ? 'text-accent-yellow' : 'text-accent-red-light'"
@@ -364,6 +368,7 @@
 
 <script setup>
 import Icon from '@/components/common/Icon.vue'
+import InfoHint from '@/components/common/InfoHint.vue'
 import { TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
@@ -805,56 +810,6 @@ onBeforeUnmount(() => {
   color: transparent;
   display: inline-block;
   animation: mc-ring-spin 0.7s linear infinite;
-}
-
-/* Metric info icon + tooltip */
-.mc-info-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.mc-info-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 1px solid #555;
-  color: #666;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: default;
-  line-height: 1;
-}
-
-.mc-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 220px;
-  background: #0d0d12;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #bbb;
-  line-height: 1.5;
-  text-align: left;
-  z-index: 50;
-  pointer-events: none;
-  transition: opacity 0.15s;
-  white-space: normal;
-}
-
-.mc-info-wrap:hover .mc-tooltip {
-  visibility: visible;
-  opacity: 1;
 }
 
 /* Overlay that sits on top of the chart area */

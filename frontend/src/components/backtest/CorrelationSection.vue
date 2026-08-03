@@ -218,34 +218,24 @@
                 <tr class="bg-surface-600 text-gray-400 text-left">
                   <th scope="col" class="px-3 py-2 font-medium">Ativo</th>
                   <th scope="col" class="px-3 py-2 font-medium">
-                    <span class="dist-info-wrap">Retorno Médio (%)
-                      <span class="dist-info-icon">?</span>
-                      <div class="dist-tooltip">Média dos retornos diários do ativo no período selecionado. Valores positivos indicam que o ativo subiu em média por dia; negativos indicam queda.</div>
-                    </span>
+                    Retorno Médio (%)
+                    <InfoHint rotulo="Retorno Médio (%)">Média dos retornos diários do ativo no período selecionado. Valores positivos indicam que o ativo subiu em média por dia; negativos indicam queda.</InfoHint>
                   </th>
                   <th scope="col" class="px-3 py-2 font-medium">
-                    <span class="dist-info-wrap">Volatilidade (%)
-                      <span class="dist-info-icon">?</span>
-                      <div class="dist-tooltip">Desvio padrão dos retornos diários. Mede o quanto o preço oscila — quanto maior, mais arriscado e imprevisível é o ativo. Uma volatilidade alta pode significar tanto grandes ganhos quanto grandes perdas.</div>
-                    </span>
+                    Volatilidade (%)
+                    <InfoHint rotulo="Volatilidade (%)">Desvio padrão dos retornos diários. Mede o quanto o preço oscila — quanto maior, mais arriscado e imprevisível é o ativo. Uma volatilidade alta pode significar tanto grandes ganhos quanto grandes perdas.</InfoHint>
                   </th>
                   <th scope="col" class="px-3 py-2 font-medium">
-                    <span class="dist-info-wrap">Skewness
-                      <span class="dist-info-icon">?</span>
-                      <div class="dist-tooltip">Assimetria da distribuição dos retornos. Valor positivo (cauda à direita) indica que ganhos extremos são mais prováveis que perdas extremas. Valor negativo (cauda à esquerda) indica o contrário — o ativo tem tendência a quedas abruptas.</div>
-                    </span>
+                    Skewness
+                    <InfoHint rotulo="Skewness">Assimetria da distribuição dos retornos. Valor positivo (cauda à direita) indica que ganhos extremos são mais prováveis que perdas extremas. Valor negativo (cauda à esquerda) indica o contrário — o ativo tem tendência a quedas abruptas.</InfoHint>
                   </th>
                   <th scope="col" class="px-3 py-2 font-medium">
-                    <span class="dist-info-wrap">Kurtosis
-                      <span class="dist-info-icon">?</span>
-                      <div class="dist-tooltip">Curtose da distribuição. Valores altos indicam "caudas pesadas" — eventos extremos (crashes ou ralis) ocorrem com mais frequência do que uma distribuição normal preveria. Kurtosis &gt; 3 é chamada de leptocúrtica e é comum em ativos financeiros.</div>
-                    </span>
+                    Kurtosis
+                    <InfoHint rotulo="Kurtosis">Curtose da distribuição. Valores altos indicam "caudas pesadas" — eventos extremos (crashes ou ralis) ocorrem com mais frequência do que uma distribuição normal preveria. Kurtosis &gt; 3 é chamada de leptocúrtica e é comum em ativos financeiros.</InfoHint>
                   </th>
                   <th scope="col" class="px-3 py-2 font-medium">
-                    <span class="dist-info-wrap">Sharpe (anual)
-                      <span class="dist-info-icon">?</span>
-                      <div class="dist-tooltip">Retorno anualizado dividido pela volatilidade anualizada. Mede o retorno obtido por unidade de risco. Sharpe &gt; 1 é considerado bom; &gt; 2 é excelente. Valores negativos indicam que o ativo perdeu dinheiro ajustado ao risco.</div>
-                    </span>
+                    Sharpe (anual)
+                    <InfoHint rotulo="Sharpe (anual)">Retorno anualizado dividido pela volatilidade anualizada. Mede o retorno obtido por unidade de risco. Sharpe &gt; 1 é considerado bom; &gt; 2 é excelente. Valores negativos indicam que o ativo perdeu dinheiro ajustado ao risco.</InfoHint>
                   </th>
                 </tr>
               </thead>
@@ -283,6 +273,7 @@
 </template>
 
 <script setup>
+import InfoHint from '@/components/common/InfoHint.vue'
 import { TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
@@ -684,56 +675,6 @@ function fmtN(v, dec = 2) {
 /* Garante que o tooltip não seja cortado pela tabela */
 :deep(table) { overflow: visible; }
 :deep(thead), :deep(th) { overflow: visible; position: relative; }
-
-/* Distribution table header tooltips */
-.dist-info-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-.dist-info-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  border: 1px solid #555;
-  color: #666;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: default;
-  flex-shrink: 0;
-  line-height: 1;
-}
-.dist-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 230px;
-  background: #0d0d12;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #bbb;
-  line-height: 1.5;
-  text-align: left;
-  z-index: 50;
-  pointer-events: none;
-  transition: opacity 0.15s;
-  white-space: normal;
-  font-weight: 400;
-}
-.dist-info-wrap:hover .dist-tooltip {
-  visibility: visible;
-  opacity: 1;
-}
 
 .corr-overlay {
   position: absolute; inset: 0;

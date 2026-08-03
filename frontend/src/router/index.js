@@ -1,64 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashboardView from '@/views/DashboardView.vue'
-import BacktestView from '@/views/BacktestView.vue'
-import OptimizerView from '@/views/OptimizerView.vue'
-import PropChallengeView from '@/views/PropChallengeView.vue'
-import RegimeView from '@/views/RegimeView.vue'
-import JournalView from '@/views/JournalView.vue'
-import ChartView from '@/views/ChartView.vue'
-import AutomationView from '@/views/AutomationView.vue'
-import DegenView from '@/views/DegenView.vue'
 
+// Toda rota e lazy. Estas nove eram import estatico e sozinhas respondiam por
+// 513 kB no chunk inicial — quem cai em /optimizer baixava outras oito telas
+// que nao pediu.
 const routes = [
   {
     path: '/',
     redirect: '/optimizer',
   },
-  {
-    path: '/dashboard',
-    name: 'dashboard',
-    component: DashboardView,
-  },
-  {
-    path: '/backtest',
-    name: 'backtest',
-    component: BacktestView,
-  },
-  {
-    path: '/grafico',
-    name: 'grafico',
-    component: ChartView,
-  },
-  {
-    path: '/optimizer',
-    name: 'optimizer',
-    component: OptimizerView,
-  },
-  {
-    path: '/prop-challenge',
-    name: 'prop-challenge',
-    component: PropChallengeView,
-  },
-  {
-    path: '/regime',
-    name: 'regime',
-    component: RegimeView,
-  },
-  {
-    path: '/degenerado',
-    name: 'degenerado',
-    component: DegenView,
-  },
-  {
-    path: '/journal',
-    name: 'journal',
-    component: JournalView,
-  },
-  {
-    path: '/automation',
-    name: 'automation',
-    component: AutomationView,
-  },
+  { path: '/dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+  { path: '/backtest', name: 'backtest', component: () => import('@/views/BacktestView.vue') },
+  { path: '/grafico', name: 'grafico', component: () => import('@/views/ChartView.vue') },
+  { path: '/optimizer', name: 'optimizer', component: () => import('@/views/OptimizerView.vue') },
+  { path: '/prop-challenge', name: 'prop-challenge', component: () => import('@/views/PropChallengeView.vue') },
+  { path: '/regime', name: 'regime', component: () => import('@/views/RegimeView.vue') },
+  { path: '/degenerado', name: 'degenerado', component: () => import('@/views/DegenView.vue') },
+  { path: '/journal', name: 'journal', component: () => import('@/views/JournalView.vue') },
+  { path: '/automation', name: 'automation', component: () => import('@/views/AutomationView.vue') },
   { path: '/agentes', name: 'agentes', component: () => import('@/views/AgentsView.vue') },
   { path: '/hft', name: 'hft', component: () => import('@/views/HftView.vue') },
   // ── Terminal (Bloomberg-like) — lazy-loaded ──
