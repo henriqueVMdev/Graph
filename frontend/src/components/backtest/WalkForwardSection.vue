@@ -83,7 +83,7 @@
         <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-28 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             WFE
-            <span class="metric-help" title="Walk-Forward Efficiency: razao entre o desempenho Out-of-Sample e In-Sample. Mede o quanto da performance otimizada se mantem em dados nao vistos. Acima de 0.5 e aceitavel, acima de 0.7 e excelente.">?</span>
+            <InfoHint rotulo="WFE" texto="Walk-Forward Efficiency: razao entre o desempenho Out-of-Sample e In-Sample. Mede o quanto da performance otimizada se mantem em dados nao vistos. Acima de 0.5 e aceitavel, acima de 0.7 e excelente." />
           </div>
           <div class="text-3xl font-bold" :class="wfeColor">{{ fmt2(store.wfaResults.wfe) }}</div>
           <div class="text-[11px] mt-0.5" :class="wfeColor">{{ wfeLabel }}</div>
@@ -92,7 +92,7 @@
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             Retorno anual. OOS
-            <span class="metric-help" title="Retorno anualizado medio das janelas Out-of-Sample. Representa o desempenho real da estrategia em dados que nao foram usados na otimizacao.">?</span>
+            <InfoHint rotulo="Retorno anual. OOS" texto="Retorno anualizado medio das janelas Out-of-Sample. Representa o desempenho real da estrategia em dados que nao foram usados na otimizacao." />
           </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_annualized ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtPct(store.wfaResults.avg_oos_annualized) }}
@@ -101,14 +101,14 @@
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             Retorno anual. IS
-            <span class="metric-help" title="Retorno anualizado medio das janelas In-Sample. Representa o desempenho durante a fase de otimizacao. Se for muito superior ao OOS, pode indicar overfitting.">?</span>
+            <InfoHint rotulo="Retorno anual. IS" texto="Retorno anualizado medio das janelas In-Sample. Representa o desempenho durante a fase de otimizacao. Se for muito superior ao OOS, pode indicar overfitting." />
           </div>
           <div class="text-sm font-semibold text-gray-200">{{ fmtPct(store.wfaResults.avg_is_annualized) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             Janelas validas
-            <span class="metric-help" title="Numero de janelas Walk-Forward que geraram trades suficientes tanto na fase IS quanto OOS. Mais janelas validas aumentam a confiabilidade estatistica da analise.">?</span>
+            <InfoHint rotulo="Janelas validas" texto="Numero de janelas Walk-Forward que geraram trades suficientes tanto na fase IS quanto OOS. Mais janelas validas aumentam a confiabilidade estatistica da analise." />
           </div>
           <div class="text-sm font-semibold text-gray-200">{{ store.wfaResults.n_valid_windows }}</div>
         </div>
@@ -120,7 +120,7 @@
         <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-36 border border-accent-red/40">
           <div class="text-xs text-gray-400 mb-0.5">
             Custo total descontado
-            <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
+            <InfoHint rotulo="Custo total descontado" texto="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test." />
           </div>
           <div class="text-2xl font-bold text-accent-red-light">-{{ fmtUsd(totalCostSpent) }}</div>
           <div class="text-[11px] text-gray-500 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
@@ -128,7 +128,7 @@
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
           <div class="text-xs text-gray-400 mb-0.5">
             Retorno OOS líquido
-            <span class="metric-help" title="Retorno medio das janelas Out-of-Sample apos descontar fees (maker/taker) e funding reais da corretora. Este e o resultado liquido esperado do forward test.">?</span>
+            <InfoHint rotulo="Retorno OOS líquido" texto="Retorno medio das janelas Out-of-Sample apos descontar fees (maker/taker) e funding reais da corretora. Este e o resultado liquido esperado do forward test." />
           </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtPct(store.wfaResults.avg_oos_net_return) }}
@@ -138,7 +138,7 @@
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             Fees pagos (OOS)
-            <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
+            <InfoHint rotulo="Fees pagos (OOS)" texto="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample." />
           </div>
           <div class="text-sm font-semibold text-accent-red-light">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
           <div class="text-[11px] text-gray-500 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
@@ -146,7 +146,7 @@
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
             Funding total (OOS)
-            <span class="metric-help" title="Soma do funding pago/recebido nas janelas OOS. Positivo = a estrategia recebeu funding; negativo = pagou.">?</span>
+            <InfoHint rotulo="Funding total (OOS)" texto="Soma do funding pago/recebido nas janelas OOS. Positivo = a estrategia recebeu funding; negativo = pagou." />
           </div>
           <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtUsd(store.wfaResults.total_oos_funding) }}
@@ -170,7 +170,7 @@
           :class="activeTab === i ? 'bg-surface-600 text-gray-100' : 'text-gray-400 hover:text-gray-300'"
         >
           {{ t }}
-          <span class="metric-help" :title="tabDescriptions[i]">?</span>
+          <InfoHint :rotulo="t" :texto="tabDescriptions[i]" />
         </button>
       </div>
 
@@ -194,7 +194,7 @@
             :class="selectedMetric === m.key
               ? 'bg-accent-yellow text-black border-accent-yellow'
               : 'bg-surface-600 text-gray-400 border-surface-500 hover:border-gray-400'"
-            :title="m.description"
+            :aria-label="m.label + ': ' + m.description"
           >{{ m.label }}</button>
         </div>
         <div ref="comparisonChart" style="min-height:300px;" class="w-full"></div>
@@ -234,6 +234,7 @@
 </template>
 
 <script setup>
+import InfoHint from '@/components/common/InfoHint.vue'
 import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'

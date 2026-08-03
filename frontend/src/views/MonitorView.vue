@@ -62,11 +62,11 @@
             </td>
             <td class="px-3 py-2 text-right whitespace-nowrap">
               <button @click="openBook(r)" title="Book de ofertas"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">📖</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Book de ofertas">📖</button>
               <button @click="alertFor(r)" title="Criar alerta"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">⏰</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Criar alerta">⏰</button>
               <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
-                      class="text-gray-500 hover:text-accent-red-light text-xs px-1">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light text-xs px-1" aria-label="Remover">✕</button>
             </td>
           </tr>
           <tr v-if="!terminal.watchRows.length">

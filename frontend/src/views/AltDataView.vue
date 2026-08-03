@@ -202,7 +202,7 @@
             <tbody>
               <tr v-for="r in sec.rows" :key="r.symbol" class="border-t border-surface-600/30">
                 <td class="py-2 pr-3 text-gray-200">{{ r.symbol }}
-                  <span v-if="r.suspect" class="text-accent-brass text-[11px]" title="valores implausíveis — possível erro na fonte (Yahoo)">⚠ verificar</span></td>
+                  <span v-if="r.suspect" class="text-accent-brass text-[11px]" title="valores implausíveis — possível erro na fonte (Yahoo)"><span aria-hidden="true">⚠</span> verificar<span class="sr-only">: valores implausíveis, possível erro na fonte (Yahoo)</span></span></td>
                 <td class="pr-3 text-right text-gray-400">{{ fmtB(r.inventory) }}</td>
                 <td class="pr-3 text-right text-gray-200">{{ r.days_inventory != null ? r.days_inventory + 'd' : '—' }}</td>
                 <td class="pr-3 text-right" :class="(r.days_delta_yoy || 0) > 5 ? 'text-accent-red-light' : (r.days_delta_yoy || 0) < -5 ? 'text-accent-yellow' : 'text-gray-400'">

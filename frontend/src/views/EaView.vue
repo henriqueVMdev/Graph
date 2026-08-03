@@ -70,9 +70,9 @@
                 <div class="absolute inset-y-0 rounded bg-surface-500/60"
                      :style="targetRange"></div>
                 <div class="absolute top-0 bottom-0 w-0.5 bg-gray-200" :style="targetPos(pt.current)"
-                     title="atual"></div>
+                     title="atual"><span class="sr-only">preço atual</span></div>
                 <div class="absolute top-0 bottom-0 w-0.5 bg-accent-yellow" :style="targetPos(pt.mean)"
-                     title="alvo médio"></div>
+                     title="alvo médio"><span class="sr-only">alvo médio dos analistas</span></div>
               </div>
               <div class="flex justify-between text-xs font-mono text-gray-400">
                 <span>min {{ fmt(pt.low) }}</span>
@@ -157,10 +157,10 @@
 
       <!-- ══ DEMONSTRAÇÕES ══ -->
       <template v-else-if="tab === 'dre'">
-        <StmtTable title="DRE — anual" :stmt="d.statements?.income_a" :labels="INCOME_LABELS" />
-        <StmtTable title="DRE — trimestral" :stmt="d.statements?.income_q" :labels="INCOME_LABELS" />
-        <StmtTable title="Balanço — anual" :stmt="d.statements?.balance_a" :labels="BALANCE_LABELS" />
-        <StmtTable title="Fluxo de caixa — anual" :stmt="d.statements?.cashflow_a" :labels="CASHFLOW_LABELS" />
+        <StmtTable title="DRE — anual" aria-label="DRE — anual" :stmt="d.statements?.income_a" :labels="INCOME_LABELS" />
+        <StmtTable title="DRE — trimestral" aria-label="DRE — trimestral" :stmt="d.statements?.income_q" :labels="INCOME_LABELS" />
+        <StmtTable title="Balanço — anual" aria-label="Balanço — anual" :stmt="d.statements?.balance_a" :labels="BALANCE_LABELS" />
+        <StmtTable title="Fluxo de caixa — anual" aria-label="Fluxo de caixa — anual" :stmt="d.statements?.cashflow_a" :labels="CASHFLOW_LABELS" />
       </template>
 
       <!-- ══ RESULTADOS ══ -->

@@ -48,7 +48,7 @@
             <option value="hermes">hermes (gateway)</option>
             <option value="openclaw">openclaw (gateway)</option>
           </select>
-          <input v-model.number="form.temperature" type="number" step="0.1" min="0" max="2" class="inp w-16" title="Temperatura" />
+          <input v-model.number="form.temperature" type="number" step="0.1" min="0" max="2" class="inp w-16" title="Temperatura"  aria-label="Temperatura"/>
         </div>
         <input v-model="form.base_url" placeholder="Base URL (vazio = OpenRouter)" class="inp font-mono text-[11px]" />
         <div v-if="form.agent_type === 'native'">
@@ -73,7 +73,7 @@
           <label class="flex items-center gap-1.5 text-[11px] text-gray-400 mt-2 cursor-pointer" title="Agente pode propor skills novas (exige sua aprovação)">
             <input type="checkbox" v-model="form.auto_learn" class="accent-yellow-400" />
             Auto-aprendizado (propõe skills)
-          </label>
+          <span class="sr-only"> — agente pode propor skills novas, exige sua aprovação</span></label>
         </div>
         <div class="flex gap-2">
           <button @click="save" class="flex-1 px-2 py-1.5 text-xs rounded-md bg-accent-yellow/15 text-accent-yellow hover:bg-accent-yellow/25 transition-colors font-medium">Salvar</button>

@@ -50,7 +50,7 @@
           class="px-2 py-1 rounded-md border border-surface-600 transition-all"
           :class="store.autoRefresh ? 'text-accent-yellow border-accent-yellow/40' : 'text-gray-400'"
           title="Auto-refresh a cada 60s"
-        >
+         aria-label="Auto-refresh a cada 60s">
           {{ store.autoRefresh ? 'Auto 60s ●' : 'Auto off' }}
         </button>
         <button
@@ -128,7 +128,7 @@
                 @click.stop="openDex(t)"
                 class="text-gray-500 hover:text-accent-yellow transition-colors"
                 title="Abrir no DexScreener"
-              >↗</button>
+               aria-label="Abrir no DexScreener">↗</button>
             </td>
           </tr>
         </tbody>

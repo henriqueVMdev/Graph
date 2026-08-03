@@ -37,7 +37,7 @@
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ fmt(r.low24) }}–{{ fmt(r.high24) }}</td>
                 <td class="px-3 py-1.5 text-right">
                   <button v-if="hasCurve(r.base)" @click="toCurve(r.base)" title="Curva futura"
-                          class="text-gray-500 hover:text-accent-yellow">〰</button>
+                          class="text-gray-500 hover:text-accent-yellow" aria-label="Curva futura">〰</button>
                 </td>
               </tr>
             </tbody>

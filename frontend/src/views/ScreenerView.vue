@@ -72,9 +72,9 @@
             <td class="px-3 py-1.5 text-right whitespace-nowrap">
               <button @click="terminal.addToWatchlist(isCrypto ? r.base : r.symbol, isCrypto ? 'crypto' : 'tradfi')"
                       title="+ Watchlist"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="+ Watchlist">👁</button>
               <button @click="toBacktest(r)" title="Backtest"
-                      class="text-gray-500 hover:text-accent-yellow text-xs px-1">⚡</button>
+                      class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="Backtest">⚡</button>
             </td>
           </tr>
         </tbody>

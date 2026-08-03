@@ -82,7 +82,7 @@
     <button @click="$emit('open-cmd')" title="Command line (Ctrl+K)"
             class="hidden md:flex items-center gap-1.5 text-[11px] font-mono text-gray-500
                    border border-surface-500 rounded-md px-2 py-1 hover:text-accent-yellow
-                   hover:border-accent-yellow/40 transition-colors shrink-0">
+                   hover:border-accent-yellow/40 transition-colors shrink-0" aria-label="Command line (Ctrl+K)">
       <span class="text-accent-yellow">&gt;_</span> Ctrl+K
     </button>
 
@@ -116,6 +116,7 @@
         <span class="w-1.5 h-1.5 rounded-full"
               :class="inWindow ? 'bg-accent-yellow animate-pulse' : 'bg-gray-600'" />
         <span class="text-[11px] font-semibold tracking-wide">19-00h</span>
+        <span class="sr-only">Janela de entrada da estratégia validada: 19:00 às 00:00 de Brasília</span>
       </div>
     </div>
   </nav>

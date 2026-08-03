@@ -156,9 +156,9 @@
               </td>
               <td class="px-3 py-1.5 text-right whitespace-nowrap">
                 <button @click="terminal.addToWatchlist(r.symbol, 'tradfi')" title="+ Watchlist"
-                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="+ Watchlist">👁</button>
                 <button @click="openDes(r.symbol)" title="DES"
-                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">📋</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="DES">📋</button>
               </td>
             </tr>
           </tbody>
@@ -230,9 +230,9 @@
               <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(r.avg_vol) }}</td>
               <td class="px-3 py-1.5 text-right whitespace-nowrap">
                 <button @click="terminal.addToWatchlist(r.symbol, 'tradfi')" title="+ Watchlist"
-                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">👁</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="+ Watchlist">👁</button>
                 <button @click="openDes(r.symbol)" title="DES"
-                        class="text-gray-500 hover:text-accent-yellow text-xs px-1">📋</button>
+                        class="text-gray-500 hover:text-accent-yellow text-xs px-1" aria-label="DES">📋</button>
               </td>
             </tr>
           </tbody>

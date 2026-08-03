@@ -19,7 +19,7 @@
         {{ accountKind === 'real' ? 'DINHEIRO REAL' : accountKind === 'demo' ? 'DEMO' : 'PAPER' }}
       </span>
       <button v-if="account === 'paper'" @click="resetPaper"
-              class="btn-secondary !py-1.5 text-xs" title="Zera ordens, posições e caixa da conta paper">
+              class="btn-secondary !py-1.5 text-xs" title="Zera ordens, posições e caixa da conta paper" aria-label="Zera ordens, posições e caixa da conta paper">
         Resetar paper
       </button>
     </div>

@@ -3,7 +3,7 @@
     <div v-for="m in metricList" :key="m.key" class="metric-card">
       <span class="metric-label">
         {{ m.label }}
-        <span class="metric-help" :title="m.description">?</span>
+        <InfoHint :rotulo="m.label" :texto="m.description" />
       </span>
       <span class="metric-value" :class="m.colorClass">{{ m.display }}</span>
     </div>
@@ -11,6 +11,7 @@
 </template>
 
 <script setup>
+import InfoHint from '@/components/common/InfoHint.vue'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -133,28 +134,3 @@ function fmtMoney(v) {
   return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 </script>
-
-<style scoped>
-.metric-help {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 15px;
-  height: 15px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(156, 163, 175, 0.6);
-  border: 1px solid rgba(156, 163, 175, 0.3);
-  border-radius: 50%;
-  cursor: help;
-  margin-left: 3px;
-  vertical-align: middle;
-  line-height: 1;
-  position: relative;
-}
-
-.metric-help:hover {
-  color: rgba(250, 204, 21, 0.9);
-  border-color: rgba(250, 204, 21, 0.5);
-}
-</style>

@@ -78,11 +78,11 @@
                 <th scope="col" class="px-2 py-1.5">Vol</th>
                 <th scope="col" class="px-2 py-1.5">OI</th>
                 <th scope="col" class="px-2 py-1.5">IV</th>
-                <th scope="col" class="px-2 py-1.5" title="Black-Scholes">Teo</th>
+                <th scope="col" class="px-2 py-1.5" title="Black-Scholes">Teo<span class="sr-only"> (preço teórico Black-Scholes)</span></th>
                 <th scope="col" class="px-2 py-1.5">Δ</th>
                 <th scope="col" class="px-2 py-1.5">Γ</th>
-                <th scope="col" class="px-2 py-1.5" title="por dia">Θ</th>
-                <th scope="col" class="px-2 py-1.5" title="por 1% de vol">ν</th>
+                <th scope="col" class="px-2 py-1.5" title="por dia">Θ<span class="sr-only"> (theta, decaimento por dia)</span></th>
+                <th scope="col" class="px-2 py-1.5" title="por 1% de vol">ν<span class="sr-only"> (vega, por 1% de volatilidade)</span></th>
               </tr>
             </thead>
             <tbody>
