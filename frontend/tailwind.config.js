@@ -13,14 +13,22 @@ export default {
           500: '#1e1e1e',
           400: '#2a2a2a',
         },
+        // Quatro valores, quatro nomes. Antes eram sete chaves para quatro
+        // cores: green-light, blue e yellow apontavam todas para #f5c518, o
+        // que fazia escalas de tres niveis (bom / aceitavel / ruim) sairem
+        // com dois niveis identicos na tela.
+        //
+        // Escala de avaliacao, do melhor para o pior:
+        //   yellow    #f5c518  11.8:1  nivel forte, acao, destaque
+        //   brass     #c9a227   7.9:1  nivel intermediario
+        //   red-light #f87171   6.9:1  nivel fraco, valor negativo
+        //   gray-400  #9ca3af   7.6:1  sem dado / sem julgamento
+        // Ratios medidos sobre surface-700 (#0f0f0f).
         accent: {
-          green: '#c9a227',
-          'green-light': '#f5c518',
+          yellow: '#f5c518',
+          brass: '#c9a227',
           red: '#dc2626',
           'red-light': '#f87171',
-          blue: '#f5c518',
-          yellow: '#f5c518',
-          'yellow-dim': '#c9a227',
         },
       },
       fontFamily: {

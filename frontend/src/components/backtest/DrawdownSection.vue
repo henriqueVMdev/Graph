@@ -14,9 +14,9 @@
       <div class="metric-card">
         <span class="metric-label">Recovery Factor</span>
         <span class="metric-value"
-          :class="rf == null ? 'text-gray-500'
-            : rf >= 3 ? 'text-accent-green-light'
-            : rf >= 1 ? 'text-accent-yellow'
+          :class="rf == null ? 'text-gray-400'
+            : rf >= 3 ? 'text-accent-yellow'
+            : rf >= 1 ? 'text-accent-brass'
             : 'text-accent-red-light'"
         >
           {{ rf != null ? Number(rf).toFixed(2) : '—' }}
@@ -26,9 +26,9 @@
       <div class="metric-card">
         <span class="metric-label">Ulcer Index</span>
         <span class="metric-value"
-          :class="ui == null ? 'text-gray-500'
-            : ui <= 5 ? 'text-accent-green-light'
-            : ui <= 15 ? 'text-accent-yellow'
+          :class="ui == null ? 'text-gray-400'
+            : ui <= 5 ? 'text-accent-yellow'
+            : ui <= 15 ? 'text-accent-brass'
             : 'text-accent-red-light'"
         >
           {{ ui != null ? Number(ui).toFixed(2) + '%' : '—' }}

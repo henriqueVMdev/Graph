@@ -118,7 +118,7 @@
             <td class="px-4 py-2.5 text-right font-mono text-gray-400">{{ formatUsd(t.liquidity_usd) }}</td>
             <td class="px-4 py-2.5 text-right font-mono text-gray-400">{{ formatUsd(t.fdv_usd) }}</td>
             <td class="px-4 py-2.5 text-right font-mono text-xs">
-              <span class="text-accent-green">{{ t.buys_h24 ?? '—' }}</span>
+              <span class="text-accent-yellow">{{ t.buys_h24 ?? '—' }}</span>
               <span class="text-gray-600"> / </span>
               <span class="text-accent-red-light">{{ t.sells_h24 ?? '—' }}</span>
             </td>
@@ -260,9 +260,11 @@ const twitterSourceLabel = computed(() => {
   return 'indisponível'
 })
 
+// Do mais forte para o mais fraco. Antes 75+ usava o ouro escuro e 55+ o
+// ouro claro, entao o melhor score aparecia mais apagado que o mediano.
 function scoreClass(score) {
-  if (score >= 75) return 'text-accent-green'
-  if (score >= 55) return 'text-accent-yellow'
+  if (score >= 75) return 'text-accent-yellow'
+  if (score >= 55) return 'text-accent-brass'
   if (score >= 35) return 'text-orange-400'
   return 'text-accent-red-light'
 }
@@ -294,8 +296,8 @@ function formatPct(v) {
 }
 
 function pctClass(v) {
-  if (v == null) return 'text-gray-600'
-  return v >= 0 ? 'text-accent-green' : 'text-accent-red-light'
+  if (v == null) return 'text-gray-400'
+  return v >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 
 function formatUsd(v) {

@@ -35,13 +35,13 @@ const summary = computed(() => store.summary)
 const returnClass = computed(() => {
   const v = summary.value?.avg_return
   if (v == null) return 'text-gray-400'
-  return v >= 0 ? 'text-accent-green-light' : 'text-accent-red-light'
+  return v >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 })
 
 const sharpeClass = computed(() => {
   const v = summary.value?.avg_sharpe
   if (v == null) return 'text-gray-400'
-  return v >= 1 ? 'text-accent-green-light' : v >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
+  return v >= 1 ? 'text-accent-yellow' : v >= 0 ? 'text-accent-brass' : 'text-accent-red-light'
 })
 
 function formatPct(v) {

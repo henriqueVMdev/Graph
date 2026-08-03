@@ -23,7 +23,7 @@
     <div v-if="status" class="flex flex-wrap gap-3">
       <div class="stat"><div class="lbl">Equity (est.)</div><div class="val text-accent-yellow">${{ status.equity_est }}</div></div>
       <div class="stat"><div class="lbl">Capital livre</div><div class="val">${{ status.capital }}</div></div>
-      <div class="stat"><div class="lbl">PnL hoje</div><div class="val" :class="status.day_pnl >= 0 ? 'text-accent-green' : 'text-accent-red-light'">${{ status.day_pnl }}</div></div>
+      <div class="stat"><div class="lbl">PnL hoje</div><div class="val" :class="status.day_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">${{ status.day_pnl }}</div></div>
       <div class="stat"><div class="lbl">Posições</div><div class="val">{{ Object.keys(status.positions).length }}/{{ status.config.max_positions }}</div></div>
       <div class="stat"><div class="lbl">Watchlist</div><div class="val">{{ status.watchlist_size }}</div></div>
       <div class="stat"><div class="lbl">Trades</div><div class="val">{{ status.n_trades }}</div></div>
@@ -57,7 +57,7 @@
         <div v-if="!status?.trades?.length" class="text-xs text-gray-600">Nenhum trade ainda</div>
         <div v-for="(t, i) in [...(status?.trades || [])].reverse()" :key="i" class="flex justify-between text-xs py-1.5 border-b border-surface-700/50">
           <span class="font-semibold text-gray-200 w-20 truncate">{{ t.symbol }}</span>
-          <span class="font-mono" :class="t.pnl >= 0 ? 'text-accent-green' : 'text-accent-red-light'">${{ t.pnl }} ({{ t.pnl_pct }}%)</span>
+          <span class="font-mono" :class="t.pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">${{ t.pnl }} ({{ t.pnl_pct }}%)</span>
           <span class="text-gray-600">{{ t.held_min }}min</span>
           <span class="text-gray-500">{{ t.reason }}</span>
         </div>
@@ -68,7 +68,7 @@
     <div class="card p-4">
       <h2 class="text-sm font-semibold text-gray-200 mb-2"><span class="text-accent-yellow">◆</span> Log</h2>
       <div v-for="(e, i) in [...(status?.events || [])].reverse()" :key="i" class="text-[11px] font-mono py-0.5"
-           :class="{ 'text-accent-yellow': e.kind === 'entry', 'text-accent-green': e.kind === 'exit', 'text-accent-red-light': ['error','guardrail'].includes(e.kind), 'text-gray-500': !['entry','exit','error','guardrail'].includes(e.kind) }">
+           :class="{ 'text-accent-yellow': e.kind === 'entry', 'text-accent-brass': e.kind === 'exit', 'text-accent-red-light': ['error','guardrail'].includes(e.kind), 'text-gray-400': !['entry','exit','error','guardrail'].includes(e.kind) }">
         {{ new Date(e.ts * 1000).toLocaleTimeString('pt-BR') }} [{{ e.kind }}] {{ e.text }}
       </div>
     </div>
