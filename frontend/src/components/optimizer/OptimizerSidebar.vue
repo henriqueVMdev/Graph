@@ -2,7 +2,7 @@
   <aside class="h-full bg-surface-800 border-r border-surface-500 overflow-y-auto p-4 space-y-4 text-sm">
     <!-- Estrategia -->
     <section>
-      <h3 class="sidebar-title">Estrategia</h3>
+      <h3 class="sidebar-section-title">Estrategia</h3>
       <div v-if="store.strategies.length === 0" class="text-xs text-gray-400 py-2">
         Nenhuma estrategia encontrada em strategies/
       </div>
@@ -11,7 +11,7 @@
           :value="store.selectedStrategy?.file"
           @change="onStrategyChange($event.target.value)"
           aria-label="Estrategia"
-          class="input-field mb-2"
+          class="form-select w-full mb-2"
         >
           <option
             v-for="s in store.strategies"
@@ -28,60 +28,60 @@
 
     <!-- Fonte de dados -->
     <section>
-      <h3 class="sidebar-title">Dados</h3>
+      <h3 class="sidebar-section-title">Dados</h3>
       <div class="flex gap-2 mb-3">
         <button
-          class="flex-1 btn-sm"
-          :class="store.dataSource === 'asset' ? 'btn-active' : 'btn-inactive'"
+          class="flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors"
+          :class="store.dataSource === 'asset' ? 'bg-accent-yellow text-black font-bold' : 'bg-surface-500 text-gray-400'"
           @click="store.dataSource = 'asset'"
         >Ativo</button>
         <button
-          class="flex-1 btn-sm"
-          :class="store.dataSource === 'csv' ? 'btn-active' : 'btn-inactive'"
+          class="flex-1 py-1.5 text-xs rounded-lg font-medium transition-colors"
+          :class="store.dataSource === 'csv' ? 'bg-accent-yellow text-black font-bold' : 'bg-surface-500 text-gray-400'"
           @click="store.dataSource = 'csv'"
         >CSV</button>
       </div>
 
       <template v-if="store.dataSource === 'asset'">
-        <label class="label" for="f-components-optimizer-optimizersidebar-vue-1">Categoria</label>
-        <select id="f-components-optimizer-optimizersidebar-vue-1" v-model="store.selectedCategory" class="input-field mb-2">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-1">Categoria</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-1" v-model="store.selectedCategory" class="form-select w-full mb-2">
           <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
         </select>
 
-        <label class="label" for="f-components-optimizer-optimizersidebar-vue-2">Ativo</label>
-        <select id="f-components-optimizer-optimizersidebar-vue-2" v-model="selectedAssetKey" class="input-field mb-2">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-2">Ativo</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-2" v-model="selectedAssetKey" class="form-select w-full mb-2">
           <option value="">Selecione...</option>
           <option v-for="(ticker, name) in categoryAssets" :key="ticker" :value="name">{{ name }}</option>
         </select>
 
-        <label class="label" for="f-components-optimizer-optimizersidebar-vue-3">Timeframe</label>
-        <select id="f-components-optimizer-optimizersidebar-vue-3" v-model="store.interval" class="input-field mb-2">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-3">Timeframe</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-3" v-model="store.interval" class="form-select w-full mb-2">
           <option v-for="tf in ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']" :key="tf" :value="tf">{{ tf }}</option>
         </select>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="label" for="f-components-optimizer-optimizersidebar-vue-4">Inicio</label>
-            <input id="f-components-optimizer-optimizersidebar-vue-4" type="date" v-model="store.startDate" class="input-field" />
+            <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-4">Inicio</label>
+            <input id="f-components-optimizer-optimizersidebar-vue-4" type="date" v-model="store.startDate" class="form-input w-full" />
           </div>
           <div>
-            <label class="label" for="f-components-optimizer-optimizersidebar-vue-5">Fim</label>
-            <input id="f-components-optimizer-optimizersidebar-vue-5" type="date" v-model="store.endDate" class="input-field" />
+            <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-5">Fim</label>
+            <input id="f-components-optimizer-optimizersidebar-vue-5" type="date" v-model="store.endDate" class="form-input w-full" />
           </div>
         </div>
       </template>
 
       <template v-else>
-        <label class="label" for="f-components-optimizer-optimizersidebar-vue-6">Upload CSV</label>
-        <input id="f-components-optimizer-optimizersidebar-vue-6" type="file" accept=".csv" @change="onFileChange" class="input-field text-xs" />
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-6">Upload CSV</label>
+        <input id="f-components-optimizer-optimizersidebar-vue-6" type="file" accept=".csv" @change="onFileChange" class="form-input w-full text-xs" />
       </template>
     </section>
 
     <!-- Grid -->
     <section>
-      <h3 class="sidebar-title">Grid de Parametros</h3>
-      <label class="label" for="f-components-optimizer-optimizersidebar-vue-7">Modo</label>
-      <select id="f-components-optimizer-optimizersidebar-vue-7" v-model="store.gridMode" class="input-field mb-2" @change="store.useCustomGrid = false">
+      <h3 class="sidebar-section-title">Grid de Parametros</h3>
+      <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-7">Modo</label>
+      <select id="f-components-optimizer-optimizersidebar-vue-7" v-model="store.gridMode" class="form-select w-full mb-2" @change="store.useCustomGrid = false">
         <option v-for="mode in gridModes" :key="mode" :value="mode">{{ mode }}</option>
       </select>
 
@@ -95,11 +95,11 @@
 
           <!-- select / checkbox: dropdown multi-select -->
           <template v-if="field.type === 'select' || field.type === 'checkbox'">
-            <label class="label">{{ field.label }}</label>
+            <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
             <div class="relative" v-click-outside="() => closeDropdown(field.key)">
               <button
                 @click="toggleDropdown(field.key)"
-                class="input-field text-left flex items-center justify-between cursor-pointer"
+                class="form-input w-full text-left flex items-center justify-between cursor-pointer"
               >
                 <span class="truncate text-xs">{{ dropdownLabel(field) }}</span>
                 <svg class="w-3 h-3 shrink-0 text-gray-400 transition-transform" :class="openDropdown === field.key ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,11 +129,11 @@
 
           <!-- number: min/max/step range -->
           <template v-else-if="field.type === 'number'">
-            <label class="label">{{ field.label }}</label>
+            <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
             <div class="grid grid-cols-3 gap-1">
-              <input type="number" v-model.number="ranges[field.key].min" class="input-field text-xs" placeholder="min" />
-              <input type="number" v-model.number="ranges[field.key].max" class="input-field text-xs" placeholder="max" />
-              <input type="number" v-model.number="ranges[field.key].step" class="input-field text-xs" placeholder="step" />
+              <input type="number" v-model.number="ranges[field.key].min" class="form-input w-full text-xs" placeholder="min" />
+              <input type="number" v-model.number="ranges[field.key].max" class="form-input w-full text-xs" placeholder="max" />
+              <input type="number" v-model.number="ranges[field.key].step" class="form-input w-full text-xs" placeholder="step" />
             </div>
             <div class="text-xs text-gray-500 mt-0.5">
               {{ (store.customGrid[field.key] || []).length }} valores
@@ -150,20 +150,20 @@
 
     <!-- Backtest config -->
     <section>
-      <h3 class="sidebar-title">Configuracao</h3>
-      <label class="label" for="f-components-optimizer-optimizersidebar-vue-8">Capital Inicial</label>
-      <input id="f-components-optimizer-optimizersidebar-vue-8" type="number" v-model.number="store.capital" class="input-field mb-2" />
+      <h3 class="sidebar-section-title">Configuracao</h3>
+      <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-8">Capital Inicial</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-8" type="number" v-model.number="store.capital" class="form-input w-full mb-2" />
 
-      <label class="label" for="f-components-optimizer-optimizersidebar-vue-9">Min Trades</label>
-      <input id="f-components-optimizer-optimizersidebar-vue-9" type="number" v-model.number="store.minTrades" class="input-field mb-2" />
+      <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-9">Min Trades</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-9" type="number" v-model.number="store.minTrades" class="form-input w-full mb-2" />
 
-      <label class="label" for="f-components-optimizer-optimizersidebar-vue-10">Rankear por</label>
-      <select id="f-components-optimizer-optimizersidebar-vue-10" v-model="store.rankBy" class="input-field mb-2">
+      <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-10">Rankear por</label>
+      <select id="f-components-optimizer-optimizersidebar-vue-10" v-model="store.rankBy" class="form-select w-full mb-2">
         <option v-for="r in ['Score','Retorno (%)','Sharpe','Sortino','Calmar','Omega','Sterling','Burke','Profit Factor','Win Rate (%)']" :key="r" :value="r">{{ r }}</option>
       </select>
 
-      <label class="label" for="f-components-optimizer-optimizersidebar-vue-11">Top-N</label>
-      <input id="f-components-optimizer-optimizersidebar-vue-11" type="number" v-model.number="store.topN" min="5" max="200" class="input-field mb-2" />
+      <label class="text-xs text-gray-400 block mb-1" for="f-components-optimizer-optimizersidebar-vue-11">Top-N</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-11" type="number" v-model.number="store.topN" min="5" max="200" class="form-input w-full mb-2" />
     </section>
 
     <!-- Ciclo Sazonal -->
@@ -492,24 +492,3 @@ onMounted(() => {
   store.updateComboCount()
 })
 </script>
-
-<style scoped>
-.sidebar-title {
-  @apply text-xs font-bold text-gray-400 uppercase tracking-wider mb-2;
-}
-.label {
-  @apply block text-xs text-gray-400 mb-1;
-}
-.input-field {
-  @apply w-full bg-surface-700 border border-surface-500 rounded-md px-2.5 py-1.5 text-sm text-gray-200 outline-none focus:border-accent-yellow/50 transition;
-}
-.btn-sm {
-  @apply px-3 py-1.5 rounded-md text-xs font-medium transition;
-}
-.btn-active {
-  @apply bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30;
-}
-.btn-inactive {
-  @apply bg-surface-700 text-gray-400 border border-surface-500 hover:text-gray-300;
-}
-</style>
