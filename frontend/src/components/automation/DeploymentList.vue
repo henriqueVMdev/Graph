@@ -3,7 +3,12 @@
     <div
       v-for="d in store.deployments"
       :key="d.id"
+      role="button"
+      tabindex="0"
+      :aria-pressed="store.selectedId === d.id"
       @click="store.select(d.id)"
+      @keydown.enter.prevent="store.select(d.id)"
+      @keydown.space.prevent="store.select(d.id)"
       class="p-3 rounded-xl border cursor-pointer transition-colors"
       :class="store.selectedId === d.id
         ? 'border-accent-yellow/50 bg-accent-yellow/5'

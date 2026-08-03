@@ -22,6 +22,13 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
 
+  /* O user-agent da 0.8em ao <small>, o que dentro de um bloco de 12px
+     resulta em 9.6px. Nenhuma classe do app aponta esse tamanho, entao ele
+     escapava do piso tipografico de 11px. */
+  small {
+    font-size: max(0.8em, 11px);
+  }
+
   body {
     /* Números tabulares em todo o app: colunas de preço/PnL alinham como
        em terminal — marca registrada de plataforma quant. */

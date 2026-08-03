@@ -680,7 +680,6 @@ function fmtN(v, dec = 2) {
   font-size: 2.4rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   animation: corr-pulse 1.4s ease-in-out infinite;
-  font-family: 'Inter', system-ui, sans-serif;
 }
 /* Garante que o tooltip não seja cortado pela tabela */
 :deep(table) { overflow: visible; }

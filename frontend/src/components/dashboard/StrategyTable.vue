@@ -92,7 +92,11 @@
             :key="i"
             class="table-row"
             :class="{ selected: store.selectedRank === row.rank }"
+            tabindex="0"
+            :aria-current="store.selectedRank === row.rank ? 'true' : undefined"
             @click="onRowClick(row)"
+            @keydown.enter.prevent="onRowClick(row)"
+            @keydown.space.prevent="onRowClick(row)"
           >
             <td v-for="col in columns" :key="col.key" class="px-3 py-2 whitespace-nowrap">
               <span v-if="col.key === 'return_pct'" :class="row.return_pct >= 0 ? 'badge-green' : 'badge-red'">

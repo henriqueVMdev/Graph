@@ -1,11 +1,15 @@
 <template><div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
- <div class="flex items-center gap-3"><div><h1 class="text-base font-semibold text-gray-100">Central de Inteligência</h1><p class="text-[11px] text-gray-500">sinais · validação · divergências · saúde dos dados</p></div><div class="flex-1"/><form @submit.prevent="load" class="flex gap-2"><input v-model="symbol" class="form-input !py-1.5 text-xs w-32 uppercase"/><button class="btn-secondary !py-1.5 text-xs">Analisar</button></form></div>
+ <div class="flex items-center gap-3"><div><h1 class="text-base font-semibold text-gray-100">Central de Inteligência</h1><p class="text-[11px] text-gray-500">sinais · validação · divergências · saúde dos dados</p></div><div class="flex-1"/><form @submit.prevent="load" class="flex gap-2"><input v-model="symbol" aria-label="Ativo a analisar" class="form-input !py-1.5 text-xs w-32 uppercase"/><button class="btn-secondary !py-1.5 text-xs">Analisar</button></form></div>
  <div v-if="error" class="card p-3 text-accent-red-light text-xs">{{error}}</div>
  <div class="card p-4 overflow-x-auto"><div class="flex items-center gap-3 mb-2"><div class="title !mb-0">Ranking do universo — onde estão os melhores setups</div>
   <span v-if="rank?.building" class="text-[11px] text-accent-yellow font-mono">calculando {{rank.done}}/{{rank.total}}…</span>
   <span v-else-if="rank?.ts" class="text-[11px] text-gray-500 font-mono">atualizado {{new Date(rank.ts).toLocaleTimeString('pt-BR')}}</span></div>
   <table class="w-full text-xs font-mono whitespace-nowrap"><thead><tr class="text-gray-500 text-left"><th scope="col" class="py-1">Ativo</th><th scope="col">Classe</th><th scope="col">Sinal</th><th scope="col" class="text-right">Score</th><th scope="col" class="text-right">Conf.</th><th scope="col" class="text-right">Cobertura</th><th scope="col" class="text-right">Fatores</th><th scope="col" class="text-left pl-3">Divergências</th></tr></thead>
-   <tbody><tr v-for="r in rank?.rows||[]" :key="r.symbol" @click="r.score!=null&&(symbol=r.symbol,load())"
+   <tbody><tr v-for="r in rank?.rows||[]" :key="r.symbol"
+     :tabindex="r.score!=null ? 0 : undefined"
+     @click="r.score!=null&&(symbol=r.symbol,load())"
+     @keydown.enter.prevent="r.score!=null&&(symbol=r.symbol,load())"
+     @keydown.space.prevent="r.score!=null&&(symbol=r.symbol,load())"
      class="border-t border-surface-600 cursor-pointer hover:bg-surface-600/30" :class="{'opacity-40':r.score==null}">
     <td class="py-1.5 text-gray-200">{{r.symbol}}</td><td class="text-gray-400">{{r.class}}</td>
     <td :class="r.label==='COMPRA'?'text-accent-yellow':r.label==='VENDA'?'text-accent-red-light':r.label==='ERRO'?'text-red-600':'text-gray-400'" class="font-semibold">{{r.label}}</td>

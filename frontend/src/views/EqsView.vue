@@ -81,9 +81,11 @@
               </div>
               <div class="flex gap-1">
                 <input v-model.number="ranges[m.key].min" type="number" step="any" placeholder="min"
+                       :aria-label="m.label + ' minimo'"
                        class="form-input !py-1 !px-1.5 text-[11px] w-full"
                        :class="hasValue(m.key) ? '!border-accent-yellow/60' : ''" />
                 <input v-model.number="ranges[m.key].max" type="number" step="any" placeholder="max"
+                       :aria-label="m.label + ' maximo'"
                        class="form-input !py-1 !px-1.5 text-[11px] w-full"
                        :class="hasValue(m.key) ? '!border-accent-yellow/60' : ''" />
               </div>
@@ -113,7 +115,12 @@
               <th scope="col" class="text-left px-3 py-2">#</th>
               <th scope="col" class="text-left px-3 py-2">Ativo</th>
               <th scope="col" class="text-left px-3 py-2">Empresa</th>
-              <th scope="col" v-for="c in EQ_COLS" :key="c.key" @click="sortBy(c.key)"
+              <th scope="col" v-for="c in EQ_COLS" :key="c.key"
+                  :aria-sort="sortKey === c.key ? (sortDir === -1 ? 'descending' : 'ascending') : 'none'"
+                  tabindex="0"
+                  @click="sortBy(c.key)"
+                  @keydown.enter.prevent="sortBy(c.key)"
+                  @keydown.space.prevent="sortBy(c.key)"
                   class="px-3 py-2 cursor-pointer hover:text-accent-yellow whitespace-nowrap">
                 {{ c.label }}
                 <span v-if="sortKey === c.key">{{ sortDir === -1 ? '▼' : '▲' }}</span>

@@ -8,7 +8,7 @@
           <h1 class="text-xl font-bold text-gray-100 tracking-tight">Diário de Operações</h1>
           <p class="text-sm text-gray-400 mt-0.5">Registre seus trades por estratégia e acompanhe o capital</p>
         </div>
-        <div class="flex items-end gap-3">
+        <div class="flex flex-wrap items-end gap-3">
           <!-- Sincronizar corretoras -->
           <button
             class="btn-primary flex items-center gap-2 whitespace-nowrap"
@@ -23,7 +23,7 @@
           </button>
 
           <!-- Capital inicial -->
-          <div class="card px-4 py-2.5 flex items-end gap-3">
+          <div class="card px-4 py-2.5 flex flex-wrap items-end gap-3">
             <div>
               <label class="metric-label block mb-1">Capital inicial</label>
               <div class="flex items-center gap-1.5">
@@ -33,7 +33,7 @@
                   type="number"
                   step="0.01"
                   aria-label="Capital inicial"
-                  class="form-input w-32 font-mono"
+                  class="form-input w-full max-w-32 font-mono"
                   @keyup.enter="saveCapital"
                 />
               </div>
