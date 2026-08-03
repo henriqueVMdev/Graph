@@ -9,6 +9,7 @@
 </template>
 
 <script setup>
+import { DIRECAO, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useChartStore } from '@/stores/chart.js'
 
@@ -17,10 +18,10 @@ const el = ref(null)
 const legend = ref(null)
 
 const COLORS = {
-  up: '#26a69a', down: '#ef5350',
-  ma: '#f5c518', maSlow: '#42a5f5',
+  up: DIRECAO.alta, down: DIRECAO.baixa,
+  ma: DIRECAO.mediaRapida, maSlow: DIRECAO.mediaLenta,
   upper: 'rgba(66,165,245,0.85)', lower: 'rgba(171,71,188,0.85)',
-  stop: '#ef5350', target: '#26a69a',
+  stop: DIRECAO.baixa, target: DIRECAO.alta,
 }
 
 let LW = null
@@ -89,17 +90,17 @@ function makeZonesPrimitive() {
               const w = Math.max(X2 - X1, 1)
               const Ye = yE * vr, Ys = yS * vr, Yt = yT * vr
               // zona de alvo (verde): entrada -> alvo
-              ctx.fillStyle = 'rgba(38,166,154,0.16)'
+              ctx.fillStyle = rgbaAlta(0.16)
               ctx.fillRect(X1, Math.min(Ye, Yt), w, Math.abs(Yt - Ye))
               // zona de stop (vermelha): entrada -> stop
-              ctx.fillStyle = 'rgba(239,83,80,0.16)'
+              ctx.fillStyle = rgbaBaixa(0.16)
               ctx.fillRect(X1, Math.min(Ye, Ys), w, Math.abs(Ys - Ye))
               // bordas de alvo e stop + linha de entrada
               ctx.lineWidth = Math.max(vr, 1)
               ctx.setLineDash([])
-              ctx.strokeStyle = 'rgba(38,166,154,0.9)'
+              ctx.strokeStyle = rgbaAlta(0.9)
               ctx.beginPath(); ctx.moveTo(X1, Yt); ctx.lineTo(X2, Yt); ctx.stroke()
-              ctx.strokeStyle = 'rgba(239,83,80,0.9)'
+              ctx.strokeStyle = rgbaBaixa(0.9)
               ctx.beginPath(); ctx.moveTo(X1, Ys); ctx.lineTo(X2, Ys); ctx.stroke()
               ctx.strokeStyle = 'rgba(220,220,220,0.85)'
               ctx.beginPath(); ctx.moveTo(X1, Ye); ctx.lineTo(X2, Ye); ctx.stroke()
@@ -168,7 +169,7 @@ function render(fit) {
   volumeSeries.setData(ov.volume && c.volume
     ? times.map((t, i) => ({
         time: t, value: c.volume[i] ?? 0,
-        color: (c.close[i] >= c.open[i]) ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+        color: (c.close[i] >= c.open[i]) ? rgbaAlta(0.4) : rgbaBaixa(0.4),
       }))
     : [])
 
@@ -212,7 +213,7 @@ function renderTrades(times) {
         const win = (tr.pnl_pct ?? 0) >= 0
         markers.push({
           time: snap(tr.exit_ts), position: 'aboveBar',
-          color: win ? 'rgba(38,166,154,0.9)' : 'rgba(239,83,80,0.9)', shape: 'circle',
+          color: win ? rgbaAlta(0.9) : rgbaBaixa(0.9), shape: 'circle',
           text: tr.pnl_pct != null ? `${tr.pnl_pct >= 0 ? '+' : ''}${tr.pnl_pct.toFixed(1)}%` : '',
         })
       }

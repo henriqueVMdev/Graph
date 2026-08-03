@@ -580,7 +580,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { TEMA, rgbaAlta } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, nextTick, onMounted } from 'vue'
@@ -735,7 +735,7 @@ async function drawIndicators() {
       type: 'scatter', mode: 'lines',
       x: i.history.ts.map((t) => new Date(t)), y: i.history.values,
       line: { color: '#f5c518', width: 1.5 },
-      fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.08)',
+      fill: 'tozeroy', fillcolor: rgbaAlta(0.08),
     }], LAYOUT(128), CFG)
   }
 }
@@ -778,7 +778,7 @@ async function drawOnchain() {
       type: 'scatter', mode: 'lines',
       x: fg.ts.map((t) => new Date(t)), y: fg.values,
       line: { color: '#f5c518', width: 1.5 },
-      fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.08)',
+      fill: 'tozeroy', fillcolor: rgbaAlta(0.08),
     }], {
       ...LAYOUT(224),
       yaxis: { gridcolor: TEMA.grade, range: [0, 100] },
@@ -856,7 +856,7 @@ async function loadCoin(sym) {
         type: 'scatter', mode: 'lines',
         x: t.ts.map((x) => new Date(x)), y: t.values,
         line: { color: '#f5c518', width: 1.5 },
-        fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.06)',
+        fill: 'tozeroy', fillcolor: rgbaAlta(0.06),
       }], LAYOUT(192), CFG)
     }
   } catch (e) {

@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
@@ -131,8 +131,8 @@ function renderPrice() {
     {
       type: 'candlestick', name: 'Preço', x: c.dates,
       open: c.open, high: c.high, low: c.low, close: c.close,
-      increasing: { line: { color: '#26a69a' } },
-      decreasing: { line: { color: '#ef5350' } },
+      increasing: { line: { color: DIRECAO.alta } },
+      decreasing: { line: { color: DIRECAO.baixa } },
     },
   ]
   if (ind.ma)      traces.push({ type: 'scatter', mode: 'lines', name: lbl.ma || 'MA', x: c.dates, y: ind.ma, line: { color: '#f5c518', width: 1.5 } })
@@ -156,12 +156,12 @@ function renderPrice() {
     if (t.target_price != null) tradeShapes.push({
       type: 'rect', xref: 'x', yref: 'y', layer: 'below',
       x0: ed, x1: xd, y0: t.entry_price, y1: t.target_price,
-      fillcolor: 'rgba(38,166,154,0.18)', line: { width: 0 },
+      fillcolor: rgbaAlta(0.18), line: { width: 0 },
     })
     if (t.stop_price != null) tradeShapes.push({
       type: 'rect', xref: 'x', yref: 'y', layer: 'below',
       x0: ed, x1: xd, y0: t.entry_price, y1: t.stop_price,
-      fillcolor: 'rgba(239,83,80,0.18)', line: { width: 0 },
+      fillcolor: rgbaBaixa(0.18), line: { width: 0 },
     })
     if (t.target_price != null || t.stop_price != null) tradeShapes.push({
       type: 'line', xref: 'x', yref: 'y',
@@ -169,8 +169,8 @@ function renderPrice() {
       line: { color: 'rgba(220,220,220,0.7)', width: 1, dash: 'dot' },
     })
   }
-  if (longX.length)  traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Long', x: longX, y: longY, marker: { symbol: 'triangle-up', size: 9, color: '#26a69a', line: { color: '#063', width: 1 } } })
-  if (shortX.length) traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Short', x: shortX, y: shortY, marker: { symbol: 'triangle-down', size: 9, color: '#ef5350', line: { color: '#600', width: 1 } } })
+  if (longX.length)  traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Long', x: longX, y: longY, marker: { symbol: 'triangle-up', size: 9, color: DIRECAO.alta, line: { color: DIRECAO.altaBorda, width: 1 } } })
+  if (shortX.length) traces.push({ type: 'scatter', mode: 'markers', name: 'Entrada Short', x: shortX, y: shortY, marker: { symbol: 'triangle-down', size: 9, color: DIRECAO.baixa, line: { color: DIRECAO.baixaBorda, width: 1 } } })
   if (exitX.length)  traces.push({ type: 'scatter', mode: 'markers', name: 'Saída', x: exitX, y: exitY, marker: { symbol: 'x', size: 7, color: 'rgba(200,200,200,0.7)' } })
 
   Plotly.react(priceChart.value, traces, {
@@ -198,7 +198,7 @@ function renderEquity() {
   ]
   if (eq.net) traces.push({
     type: 'scatter', mode: 'lines', name: 'Líquido (fees + funding)', x: eq.dates, y: eq.net,
-    line: { color: '#f5c518', width: 2 }, fill: 'tonexty', fillcolor: 'rgba(239,83,80,0.06)',
+    line: { color: '#f5c518', width: 2 }, fill: 'tonexty', fillcolor: rgbaBaixa(0.06),
   })
 
   Plotly.react(equityChart.value, traces, {
@@ -225,7 +225,7 @@ function renderFunding() {
   const pct = f.rates.map(r => r * 100)
   Plotly.react(fundingChart.value, [{
     type: 'bar', name: 'Funding', x: f.dates, y: pct,
-    marker: { color: pct.map(v => v >= 0 ? 'rgba(38,166,154,0.8)' : 'rgba(239,83,80,0.8)') },
+    marker: { color: pct.map(v => v >= 0 ? rgbaAlta(0.8) : rgbaBaixa(0.8)) },
     hovertemplate: '%{x}<br>%{y:.4f}%<extra></extra>',
   }], {
     ...BASE_LAYOUT, height: 360,

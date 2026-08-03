@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
@@ -233,7 +233,7 @@ async function renderSmile() {
   }] : []
   Plotly.react(smileChart.value, [
     mk(d.value.calls, 'Calls', '#f5c518'),
-    mk(d.value.puts, 'Puts', '#ef5350'),
+    mk(d.value.puts, 'Puts', DIRECAO.baixa),
   ], {
     template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 260,

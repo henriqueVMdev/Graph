@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, onBeforeUnmount, computed, nextTick } from 'vue'
@@ -120,20 +120,20 @@ const rollingChart = ref(null)
 let Plotly = null
 
 const REGIME_COLORS = {
-  bull: 'rgba(74,222,128,0.8)',
-  bear: 'rgba(239,83,80,0.8)',
-  sideways: 'rgba(245,197,24,0.8)',
+  bull: rgbaAlta(0.8),
+  bear: rgbaBaixa(0.8),
+  sideways: rgbaAlta(0.8),
   low_vol: 'rgba(96,165,250,0.8)',
-  mid_vol: 'rgba(245,197,24,0.8)',
-  high_vol: 'rgba(239,83,80,0.8)',
+  mid_vol: rgbaAlta(0.8),
+  high_vol: rgbaBaixa(0.8),
 }
 const REGIME_BG = {
-  bull: 'rgba(74,222,128,0.08)',
-  bear: 'rgba(239,83,80,0.08)',
-  sideways: 'rgba(245,197,24,0.06)',
+  bull: rgbaAlta(0.08),
+  bear: rgbaBaixa(0.08),
+  sideways: rgbaAlta(0.06),
   low_vol: 'rgba(96,165,250,0.06)',
-  mid_vol: 'rgba(245,197,24,0.06)',
-  high_vol: 'rgba(239,83,80,0.08)',
+  mid_vol: rgbaAlta(0.06),
+  high_vol: rgbaBaixa(0.08),
 }
 const REGIME_LABELS = {
   bull: 'Bull (Alta)',

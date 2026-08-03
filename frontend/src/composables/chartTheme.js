@@ -29,6 +29,33 @@ export const SERIE = [
   '#8ab4f8', '#a78bfa', '#5eead4', '#fb923c',
 ]
 
+// Direcao de preco. Era teal/vermelho do TradingView; agora acompanha a
+// mesma decisao do resto do app, onde ganho e ouro.
+//
+// Consequencia: a media rapida era ouro e passaria a sumir dentro do candle
+// de alta. Ela virou neutra clara, que e o que uma linha sobreposta deve
+// ser — o candle e o dado, a media e leitura sobre ele.
+export const DIRECAO = {
+  alta: TEMA.destaque,
+  baixa: TEMA.negativo,
+  altaBorda: TEMA.intermediario,   // contorno do marcador de entrada long
+  baixaBorda: '#dc2626',           // accent-red
+  mediaRapida: TEMA.texto,
+  mediaLenta: SERIE[3],
+}
+
+// Versoes translucidas, para preenchimento e barra de volume.
+export const rgbaAlta = (a) => `rgba(245, 197, 24, ${a})`
+export const rgbaBaixa = (a) => `rgba(248, 113, 113, ${a})`
+
+// Paleta de estudos sobrepostos ao candle. So tons frios: o candle e quente
+// (ouro e vermelho), entao a linha de estudo precisa recuar para o fundo em
+// vez de disputar atencao com o preco. Verde e laranja saem por isso, nao
+// por serem cores erradas.
+export const ESTUDOS = [
+  '#8ab4f8', '#5eead4', '#a78bfa', '#f472b6', '#93c5fd', '#67e8f9',
+]
+
 export const FONTE = { family: 'Inter, system-ui, sans-serif', size: 12, color: TEMA.texto }
 
 // Layout base. Passe o que for especifico do grafico como override.

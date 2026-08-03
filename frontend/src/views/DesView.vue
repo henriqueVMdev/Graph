@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
@@ -255,7 +255,7 @@ async function renderFunding() {
   const pct = fh.rates.map((r) => r * 100)
   Plotly.react(fundingChart.value, [{
     type: 'bar', x: fh.dates.map((t) => new Date(t)), y: pct,
-    marker: { color: pct.map((v) => (v >= 0 ? 'rgba(245,197,24,0.8)' : 'rgba(239,83,80,0.8)')) },
+    marker: { color: pct.map((v) => (v >= 0 ? rgbaAlta(0.8) : rgbaBaixa(0.8))) },
     hovertemplate: '%{x}<br>%{y:.4f}%<extra></extra>',
   }], {
     ...layoutBase,

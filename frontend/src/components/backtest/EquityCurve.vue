@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
@@ -57,8 +57,8 @@ async function render() {
   const values = props.equityCurve.values
   const profitable = values.length > 0 && values[values.length - 1] >= props.initialCapital
 
-  const lineColor = profitable ? '#26a69a' : '#ef5350'
-  const fillColor = profitable ? 'rgba(38,166,154,0.07)' : 'rgba(239,83,80,0.07)'
+  const lineColor = profitable ? DIRECAO.alta : DIRECAO.baixa
+  const fillColor = profitable ? rgbaAlta(0.07) : rgbaBaixa(0.07)
 
   traces.push({
     type: 'scatter',
@@ -74,7 +74,7 @@ async function render() {
 
   for (const trade of props.trades) {
     if (!trade.entry_date) continue
-    const color = trade.pnl_pct >= 0 ? '#26a69a' : '#ef5350'
+    const color = trade.pnl_pct >= 0 ? DIRECAO.alta : DIRECAO.baixa
 
     const idx = props.equityCurve.dates.indexOf(trade.entry_date)
     const eqVal = idx >= 0 ? props.equityCurve.values[idx] : null

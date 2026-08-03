@@ -3,6 +3,7 @@
 </template>
 
 <script setup>
+import { rgbaAlta } from '@/composables/chartTheme.js'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
 
@@ -38,7 +39,7 @@ async function build() {
     x,
     y,
     fill: 'tozeroy',
-    fillcolor: up ? 'rgba(245,197,24,0.08)' : 'rgba(248,113,113,0.08)',
+    fillcolor: up ? rgbaAlta(0.08) : 'rgba(248,113,113,0.08)',
     line: { color, width: 2, shape: 'spline', smoothing: 0.4 },
     hovertemplate: '<b>%{x}</b><br>$ %{y:,.2f}<extra></extra>',
   }

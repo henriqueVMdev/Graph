@@ -81,6 +81,7 @@
 </template>
 
 <script setup>
+import { DIRECAO } from '@/composables/chartTheme.js'
 import { ref, watch, onMounted, onBeforeUnmount, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'
@@ -159,7 +160,7 @@ const Sparkline = (props) => {
   return h('svg', { width: w, height: hgt, class: 'block ml-auto' }, [
     h('polyline', {
       points: d, fill: 'none',
-      stroke: up ? '#f5c518' : '#ef5350', 'stroke-width': 1.2,
+      stroke: up ? '#f5c518' : DIRECAO.baixa, 'stroke-width': 1.2,
     }),
   ])
 }

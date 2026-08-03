@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, TEMA } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
@@ -175,7 +175,7 @@ async function render() {
   if (creditChart.value && c?.source === 'fred') {
     Plotly.react(creditChart.value, [
       { type: 'scatter', mode: 'lines', x: c.hy.dates, y: c.hy.values,
-        name: 'High Yield OAS', line: { color: '#ef5350', width: 1.5 } },
+        name: 'High Yield OAS', line: { color: DIRECAO.baixa, width: 1.5 } },
       { type: 'scatter', mode: 'lines', x: c.ig.dates, y: c.ig.values,
         name: 'IG OAS', line: { color: '#f5c518', width: 1.5 } },
     ], {

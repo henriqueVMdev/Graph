@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { TEMA, rgbaAlta } from '@/composables/chartTheme.js'
 
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
@@ -116,7 +116,7 @@ async function buildChart() {
     r: values,
     theta: labels,
     fill: 'toself',
-    fillcolor: 'rgba(245, 197, 24, 0.15)',
+    fillcolor: rgbaAlta(0.15),
     line: { color: '#f5c518', width: 2 },
     marker: { color: '#f5c518', size: 5 },
     text: hoverText,

@@ -202,7 +202,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, ESTUDOS, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, reactive, nextTick, onMounted, onBeforeUnmount } from 'vue'
@@ -225,7 +225,8 @@ const loading = ref(false)
 const error = ref(null)
 let Plotly = null
 
-const PALETTE = ['#f5c518', '#4dabf7', '#69db7c', '#ef5350', '#b197fc', '#ffa94d', '#63e6be', '#f783ac']
+// Estudos usam tons frios; ver ESTUDOS em chartTheme.
+const PALETTE = ESTUDOS
 const LAYOUT = (h) => ({
   template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', size: 10 }, height: h,
@@ -313,19 +314,19 @@ async function renderSingle() {
   const x = d.ts.map((t) => new Date(t))
   const traces = [{
     type: 'candlestick', x, open: d.open, high: d.high, low: d.low, close: d.close,
-    name: d.symbol, increasing: { line: { color: '#f5c518' } },
-    decreasing: { line: { color: '#ef5350' } },
+    name: d.symbol, increasing: { line: { color: DIRECAO.alta } },
+    decreasing: { line: { color: DIRECAO.baixa } },
   }]
   d.overlays.forEach((o, i) => traces.push({
     type: 'scatter', mode: 'lines', x, y: o.values, name: o.name,
-    line: { width: 1.2, color: PALETTE[(i + 1) % PALETTE.length], dash: o.dash || 'solid' },
+    line: { width: 1.2, color: PALETTE[i % PALETTE.length], dash: o.dash || 'solid' },
   }))
   Plotly.react(mainChart.value, traces, LAYOUT(380), CFG)
 
   if (volChart.value) {
     Plotly.react(volChart.value, [{
       type: 'bar', x, y: d.vol_fin, name: 'Vol $',
-      marker: { color: d.close.map((c, i) => (i > 0 && c >= d.close[i - 1] ? 'rgba(245,197,24,0.55)' : 'rgba(239,83,80,0.55)')) },
+      marker: { color: d.close.map((c, i) => (i > 0 && c >= d.close[i - 1] ? rgbaAlta(0.55) : rgbaBaixa(0.55))) },
     }], LAYOUT(130), CFG)
   }
 
@@ -335,7 +336,7 @@ async function renderSingle() {
     if (!el) return
     const tr = p.series.map((s, j) => (s.bar
       ? { type: 'bar', x, y: s.values, name: s.name,
-          marker: { color: s.values.map((v) => ((v ?? 0) >= 0 ? 'rgba(245,197,24,0.6)' : 'rgba(239,83,80,0.6)')) } }
+          marker: { color: s.values.map((v) => ((v ?? 0) >= 0 ? rgbaAlta(0.6) : rgbaBaixa(0.6))) } }
       : { type: 'scatter', mode: 'lines', x, y: s.values, name: s.name,
           line: { width: 1.2, color: PALETTE[j % PALETTE.length] } }))
     const ly = LAYOUT(150)
@@ -400,7 +401,7 @@ async function renderCompare() {
     Plotly.react(corrChart.value, [{
       type: 'heatmap', x: m.labels, y: m.labels, z: m.matrix,
       zmin: -1, zmax: 1,
-      colorscale: [[0, '#ef5350'], [0.5, '#101010'], [1, '#f5c518']],
+      colorscale: [[0, DIRECAO.baixa], [0.5, '#101010'], [1, '#f5c518']],
       texttemplate: '%{z}', textfont: { size: 11 },
       hovertemplate: '%{y} × %{x}: %{z}<extra></extra>',
     }], { ...LAYOUT(280), xaxis: {}, yaxis: { autorange: 'reversed' }, margin: { t: 8, r: 10, b: 40, l: 90 } }, CFG)
@@ -456,7 +457,7 @@ async function renderSpread() {
   if (spDiffChart.value) {
     Plotly.react(spDiffChart.value, [{
       type: 'scatter', mode: 'lines', x: xs, y: d.spread.diff, name: 'A−B',
-      line: { width: 1.4, color: '#f5c518' }, fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.08)',
+      line: { width: 1.4, color: '#f5c518' }, fill: 'tozeroy', fillcolor: rgbaAlta(0.08),
     }], { ...LAYOUT(220), yaxis: { gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.linhaZero } }, CFG)
   }
   if (spRatioChart.value) {

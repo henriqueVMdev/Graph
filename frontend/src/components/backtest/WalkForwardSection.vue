@@ -234,7 +234,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
@@ -365,7 +365,7 @@ function renderOosEquity() {
     type: 'scatter', mode: 'lines', name: 'Equity OOS',
     x: curve.dates, y: curve.values,
     line: { color: '#f5c518', width: 2 },
-    fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.05)',
+    fill: 'tozeroy', fillcolor: rgbaAlta(0.05),
     hovertemplate: '<b>%{x}</b><br>$%{y:,.2f}<extra></extra>',
   }
 
@@ -400,7 +400,7 @@ function renderSharpeScatter() {
   const colors = windows.map(w => {
     const oosS = w.oos_sharpe ?? 0
     const isS  = w.is_sharpe  ?? 0
-    return oosS > 0 && oosS >= isS ? 'rgba(74,222,128,0.85)' : 'rgba(239,83,80,0.85)'
+    return oosS > 0 && oosS >= isS ? rgbaAlta(0.85) : rgbaBaixa(0.85)
   })
 
   const allVals = [...isSh, ...oosSh].filter(isFinite)
@@ -460,7 +460,7 @@ function renderComparison() {
       {
         type: 'bar', name: 'OOS Líquido (fees+funding)',
         x: xLabels, y: windows.map(w => w.oos_net_return),
-        marker: { color: windows.map(w => (w.oos_net_return ?? 0) >= 0 ? 'rgba(245,197,24,0.85)' : 'rgba(239,83,80,0.85)') },
+        marker: { color: windows.map(w => (w.oos_net_return ?? 0) >= 0 ? rgbaAlta(0.85) : rgbaBaixa(0.85)) },
         hovertemplate: '<b>Líquido %{x}</b><br>%{y:.2f}%<extra></extra>',
       },
     ], {
@@ -484,13 +484,13 @@ function renderComparison() {
     {
       type: 'bar', name: 'In-Sample',
       x: xLabels, y: windows.map(w => w[isKey]),
-      marker: { color: 'rgba(38,166,154,0.75)' },
+      marker: { color: rgbaAlta(0.75) },
       hovertemplate: '<b>IS %{x}</b><br>%{y:.2f}<extra></extra>',
     },
     {
       type: 'bar', name: 'Out-of-Sample',
       x: xLabels, y: windows.map(w => w[oosKey]),
-      marker: { color: windows.map(w => (w[oosKey] ?? 0) >= 0 ? 'rgba(245,197,24,0.8)' : 'rgba(239,83,80,0.8)') },
+      marker: { color: windows.map(w => (w[oosKey] ?? 0) >= 0 ? rgbaAlta(0.8) : rgbaBaixa(0.8)) },
       hovertemplate: '<b>OOS %{x}</b><br>%{y:.2f}<extra></extra>',
     },
   ], {
@@ -512,12 +512,12 @@ function renderTimeline() {
     shapes.push({
       type: 'rect', xref: 'x', yref: 'paper',
       x0: w.is_start, x1: w.is_end, y0: 0, y1: 1,
-      fillcolor: 'rgba(38,166,154,0.09)', line: { width: 0 },
+      fillcolor: rgbaAlta(0.09), line: { width: 0 },
     })
     shapes.push({
       type: 'rect', xref: 'x', yref: 'paper',
       x0: w.oos_start, x1: w.oos_end, y0: 0, y1: 1,
-      fillcolor: 'rgba(245,197,24,0.07)', line: { width: 0 },
+      fillcolor: rgbaAlta(0.07), line: { width: 0 },
     })
   })
 
@@ -534,7 +534,7 @@ function renderTimeline() {
       legendgroup: 'is',
       x: w.is_dates,
       y: w.is_equity.map(v => v != null ? v / isBase * 100 : null),
-      line: { color: 'rgba(38,166,154,0.55)', width: 1, dash: 'dot' },
+      line: { color: rgbaAlta(0.55), width: 1, dash: 'dot' },
       hovertemplate: `<b>IS J${w.window_idx + 1}</b> %{x}<br>%{y:.1f}<extra></extra>`,
     })
 
@@ -545,7 +545,7 @@ function renderTimeline() {
       legendgroup: 'oos',
       x: w.oos_dates,
       y: w.oos_equity.map(v => v != null ? v / oosBase * 100 : null),
-      line: { color: 'rgba(245,197,24,0.8)', width: 1.5 },
+      line: { color: rgbaAlta(0.8), width: 1.5 },
       hovertemplate: `<b>OOS J${w.window_idx + 1}</b> %{x}<br>%{y:.1f}<extra></extra>`,
     })
   })

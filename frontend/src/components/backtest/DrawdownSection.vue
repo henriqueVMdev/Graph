@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { TEMA } from '@/composables/chartTheme.js'
+import { DIRECAO, TEMA, rgbaAlta, rgbaBaixa } from '@/composables/chartTheme.js'
 
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
@@ -154,8 +154,8 @@ async function buildChart() {
     x: props.drawdown.dates,
     y: props.drawdown.values,
     fill: 'tozeroy',
-    fillcolor: 'rgba(239,83,80,0.15)',
-    line: { color: 'rgba(239,83,80,0.8)', width: 1.5 },
+    fillcolor: rgbaBaixa(0.15),
+    line: { color: rgbaBaixa(0.8), width: 1.5 },
     hovertemplate: '<b>%{x}</b><br>%{y:.2f}%<extra></extra>',
   }
 
@@ -170,13 +170,13 @@ async function buildChart() {
     shapes.push({
       type: 'line', xref: 'paper', yref: 'y',
       x0: 0, x1: 1, y0: maxVal, y1: maxVal,
-      line: { color: 'rgba(239,83,80,0.5)', dash: 'dot', width: 1 },
+      line: { color: rgbaBaixa(0.5), dash: 'dot', width: 1 },
     })
     annotations.push({
       xref: 'paper', x: 0.01, yref: 'y', y: maxVal,
       text: `Max DD ${maxVal.toFixed(2)}%`,
       showarrow: false,
-      font: { size: 9, color: 'rgba(239,83,80,0.7)' },
+      font: { size: 9, color: rgbaBaixa(0.7) },
       xanchor: 'left', yanchor: 'top',
     })
   }
@@ -185,13 +185,13 @@ async function buildChart() {
     shapes.push({
       type: 'line', xref: 'paper', yref: 'y',
       x0: 0, x1: 1, y0: avgVal, y1: avgVal,
-      line: { color: 'rgba(245,197,24,0.45)', dash: 'dash', width: 1 },
+      line: { color: rgbaAlta(0.45), dash: 'dash', width: 1 },
     })
     annotations.push({
       xref: 'paper', x: 0.01, yref: 'y', y: avgVal,
       text: `DD Medio ${avgVal.toFixed(2)}%`,
       showarrow: false,
-      font: { size: 9, color: 'rgba(245,197,24,0.6)' },
+      font: { size: 9, color: rgbaAlta(0.6) },
       xanchor: 'left', yanchor: 'top',
     })
   }
@@ -219,7 +219,7 @@ async function buildChart() {
     name: 'Fundo do episodio',
     x: epX,
     y: epY,
-    marker: { color: '#ef5350', size: 6, symbol: 'triangle-down', line: { color: '#111', width: 1 } },
+    marker: { color: DIRECAO.baixa, size: 6, symbol: 'triangle-down', line: { color: '#111', width: 1 } },
     hovertemplate: '<b>Fundo</b> %{x}<br>%{y:.2f}%<extra></extra>',
   }
 
@@ -247,7 +247,7 @@ async function buildChart() {
       ticksuffix: '%',
     },
     hovermode: 'x unified',
-    hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#ef5350', font: { color: '#e0e0e0' } },
+    hoverlabel: { bgcolor: '#0f0f0f', bordercolor: DIRECAO.baixa, font: { color: '#e0e0e0' } },
     legend: { bgcolor: 'transparent', font: { size: 11, color: '#a0a0a0' }, orientation: 'h', x: 0, y: 1.06 },
   }
 
