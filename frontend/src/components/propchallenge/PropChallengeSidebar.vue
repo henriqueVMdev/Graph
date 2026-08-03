@@ -195,19 +195,19 @@
         <div class="space-y-2 text-xs">
           <div class="flex items-center justify-between p-2 bg-surface-700 rounded-lg border border-surface-500">
             <span class="text-gray-400">Fase 1 - Meta</span>
-            <span class="text-green-400 font-bold">+10%</span>
+            <span class="text-accent-yellow font-bold">+10%</span>
           </div>
           <div class="flex items-center justify-between p-2 bg-surface-700 rounded-lg border border-surface-500">
             <span class="text-gray-400">Fase 2 - Meta</span>
-            <span class="text-green-400 font-bold">+5%</span>
+            <span class="text-accent-yellow font-bold">+5%</span>
           </div>
           <div class="flex items-center justify-between p-2 bg-surface-700 rounded-lg border border-surface-500">
             <span class="text-gray-400">Perda Max Total</span>
-            <span class="text-red-400 font-bold">-10%</span>
+            <span class="text-accent-red-light font-bold">-10%</span>
           </div>
           <div class="flex items-center justify-between p-2 bg-surface-700 rounded-lg border border-surface-500">
             <span class="text-gray-400">Perda Max Diaria</span>
-            <span class="text-red-400 font-bold">-5%</span>
+            <span class="text-accent-red-light font-bold">-5%</span>
           </div>
         </div>
       </div>

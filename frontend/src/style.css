@@ -39,9 +39,11 @@
     color: #fff;
   }
 
+  /* 2px e o minimo do WCAG 2.4.13 (Focus Appearance). Alpha cheio porque a
+     0.6 sobre preto o anel caia perto do limite de 3:1 contra a vizinhanca. */
   :focus-visible {
-    outline: 1px solid rgba(245, 197, 24, 0.6);
-    outline-offset: 1px;
+    outline: 2px solid rgba(245, 197, 24, 0.9);
+    outline-offset: 2px;
   }
 
   ::-webkit-scrollbar {
@@ -259,4 +261,40 @@
 
 @keyframes ring-spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Motion reduzida ───────────────────────────────────────────────────
+   Nao e um "desliga tudo" com 0.01ms: isso mataria o feedback de que algo
+   esta carregando. O que sai e o deslocamento espacial, que e o que causa
+   desconforto vestibular. O que fica: opacidade, cor, e o giro do loader,
+   desacelerado — sem ele nao ha sinal nenhum de processamento em curso. */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: opacity 0.15s ease;
+  }
+  .page-enter-from,
+  .page-leave-to {
+    transform: none;
+  }
+
+  .metric-card:hover {
+    transform: none;
+  }
+
+  /* O brilho varre sem deslizar: vira pulso de opacidade no lugar. */
+  .skeleton::after {
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+    background: rgba(245, 197, 24, 0.05);
+  }
+
+  .dollar-loader,
+  .dollar-loader-sm {
+    animation-duration: 1.6s;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
 }

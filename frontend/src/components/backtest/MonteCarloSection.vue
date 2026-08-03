@@ -49,7 +49,7 @@
         <span class="dollar-loader-sm">$</span>
         Calculando simulacoes...
       </div>
-      <div v-else-if="gbmError" class="text-red-400 text-xs p-3 bg-red-400/10 rounded-lg">{{ gbmError }}</div>
+      <div v-else-if="gbmError" class="text-accent-red-light text-xs p-3 bg-accent-red/10 rounded-lg">{{ gbmError }}</div>
       <div v-show="!gbmLoading && !gbmError" ref="gbmChart" style="min-height:520px;" class="w-full"></div>
       <div v-if="gbmData && !gbmLoading" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div class="card p-3 text-center">
@@ -58,16 +58,16 @@
         </div>
         <div class="card p-3 text-center">
           <div class="text-xs text-gray-400 mb-0.5">P10 · pessimista</div>
-          <div class="text-sm font-semibold text-red-400">{{ fmtMoney(gbmData.stats.p10_final) }}</div>
+          <div class="text-sm font-semibold text-accent-red-light">{{ fmtMoney(gbmData.stats.p10_final) }}</div>
         </div>
         <div class="card p-3 text-center">
           <div class="text-xs text-gray-400 mb-0.5">P90 · otimista</div>
-          <div class="text-sm font-semibold text-green-400">{{ fmtMoney(gbmData.stats.p90_final) }}</div>
+          <div class="text-sm font-semibold text-accent-yellow">{{ fmtMoney(gbmData.stats.p90_final) }}</div>
         </div>
         <div class="card p-3 text-center">
           <div class="text-xs text-gray-400 mb-0.5">Prob. de Lucro</div>
           <div class="text-sm font-semibold"
-            :class="gbmData.stats.prob_profit >= 50 ? 'text-green-400' : 'text-red-400'"
+            :class="gbmData.stats.prob_profit >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'"
           >{{ gbmData.stats.prob_profit?.toFixed(1) }}%</div>
         </div>
       </div>
@@ -119,7 +119,7 @@
         </button>
       </div>
 
-      <div v-if="valError" class="text-red-400 text-xs p-3 bg-red-400/10 rounded-lg">{{ valError }}</div>
+      <div v-if="valError" class="text-accent-red-light text-xs p-3 bg-accent-red/10 rounded-lg">{{ valError }}</div>
 
       <!-- Placeholder before first run -->
       <div v-if="!valData && !valLoading" class="flex flex-col items-center justify-center text-center text-gray-400 text-sm" style="min-height:520px;">
@@ -176,7 +176,7 @@
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Retorno percentual da equity curve na simulação mediana (P50). Metade das simulações ficou acima, metade abaixo desse valor.</div></span>
               </div>
               <div class="text-sm font-semibold"
-                :class="currentMc.final_equity_pct.p50 >= 0 ? 'text-green-400' : 'text-red-400'"
+                :class="currentMc.final_equity_pct.p50 >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'"
               >{{ currentMc.final_equity_pct.p50?.toFixed(1) }}%</div>
             </div>
             <!-- DD P95 -->
@@ -185,7 +185,7 @@
                 DD P95 · pior cenário
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Drawdown máximo no percentil 95 das simulações. Ou seja, em 95% dos cenários o drawdown não passou desse valor — representa o pior cenário plausível da estratégia.</div></span>
               </div>
-              <div class="text-sm font-semibold text-red-400">{{ currentMc.max_drawdown.p95?.toFixed(1) }}%</div>
+              <div class="text-sm font-semibold text-accent-red-light">{{ currentMc.max_drawdown.p95?.toFixed(1) }}%</div>
             </div>
             <!-- Rank Sharpe -->
             <div class="card p-3 text-center group relative">
@@ -194,7 +194,7 @@
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Posição percentual do Sharpe original em relação às simulações. Se está no 80º percentil, significa que o backtest real teve Sharpe melhor que 80% das simulações — quanto maior, mais robusta é a estratégia.</div></span>
               </div>
               <div class="text-sm font-semibold"
-                :class="currentMc.backtest_rank_sharpe >= 50 ? 'text-green-400' : 'text-red-400'"
+                :class="currentMc.backtest_rank_sharpe >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'"
               >{{ currentMc.backtest_rank_sharpe?.toFixed(0) }}º percentil</div>
             </div>
             <!-- Prob. Ruína -->
@@ -204,7 +204,7 @@
                 <span class="mc-info-wrap"><span class="mc-info-icon">?</span><div class="mc-tooltip">Percentual de simulações em que o capital final ficou abaixo de 50% do capital inicial. Indica a probabilidade da estratégia sofrer uma perda catastrófica — abaixo de 5% é considerado seguro.</div></span>
               </div>
               <div class="text-sm font-semibold"
-                :class="currentMc.ruin_prob < 5 ? 'text-green-400' : 'text-red-400'"
+                :class="currentMc.ruin_prob < 5 ? 'text-accent-yellow' : 'text-accent-red-light'"
               >{{ currentMc.ruin_prob?.toFixed(1) }}%</div>
             </div>
           </template>
@@ -227,7 +227,7 @@
           </button>
           <div v-show="showMethodsLegend" class="px-4 pb-4 grid sm:grid-cols-2 gap-3 border-t border-surface-600">
             <div class="flex gap-3 pt-3">
-              <span class="mt-0.5 w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0"></span>
+              <span class="mt-0.5 w-2 h-2 rounded-full bg-accent-yellow flex-shrink-0"></span>
               <div>
                 <div class="text-xs font-semibold text-gray-300">Reshuffle (sem reposição)</div>
                 <div class="text-xs text-gray-400 leading-relaxed">Embaralha a ordem dos trades sem repetição. Preserva exatamente os mesmos resultados individuais de cada trade, mas testa se a ordem de entrada/saída importa. Ideal para verificar se os lucros dependem de timing específico.</div>
@@ -270,14 +270,14 @@
         <!-- p-value banner -->
         <div class="rounded-xl p-4 border"
           :class="valData.permutation_test.approved
-            ? 'border-green-500/40 bg-green-500/5'
-            : 'border-red-500/40 bg-red-500/5'"
+            ? 'border-accent-yellow/40 bg-accent-yellow/5'
+            : 'border-accent-red/40 bg-accent-red/5'"
         >
           <div class="flex items-center justify-between">
             <div>
               <div class="text-xs text-gray-400 mb-1">Resultado do Permutation Test (Timothy Masters)</div>
               <div class="text-2xl font-bold"
-                :class="valData.permutation_test.approved ? 'text-green-400' : 'text-red-400'"
+                :class="valData.permutation_test.approved ? 'text-accent-yellow' : 'text-accent-red-light'"
               >{{ valData.permutation_test.conclusion }}</div>
               <div class="text-xs text-gray-400 mt-1">
                 p-value = {{ valData.permutation_test.p_value?.toFixed(4) }}
@@ -300,7 +300,7 @@
           <div class="card p-3 text-center">
             <div class="text-xs text-gray-400 mb-0.5">p-value</div>
             <div class="text-base font-semibold"
-              :class="valData.permutation_test.p_value < 0.05 ? 'text-green-400' : 'text-red-400'"
+              :class="valData.permutation_test.p_value < 0.05 ? 'text-accent-yellow' : 'text-accent-red-light'"
             >{{ valData.permutation_test.p_value?.toFixed(4) }}</div>
           </div>
           <div class="card p-3 text-center">
@@ -349,10 +349,10 @@
         <div v-if="valData.permutation_test" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div v-for="v in verdicts" :key="v.label"
             class="rounded-lg p-3 border text-center"
-            :class="v.ok ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'"
+            :class="v.ok ? 'border-accent-yellow/30 bg-accent-yellow/5' : 'border-accent-red/30 bg-accent-red/5'"
           >
             <div class="text-base mb-0.5">{{ v.ok ? '✓' : '✗' }}</div>
-            <div class="text-xs" :class="v.ok ? 'text-green-400' : 'text-red-400'">{{ v.label }}</div>
+            <div class="text-xs" :class="v.ok ? 'text-accent-yellow' : 'text-accent-red-light'">{{ v.label }}</div>
           </div>
         </div>
       </template>
@@ -362,6 +362,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { purgeChart } from '@/composables/useCharts.js'
 import { runMonteCarlo, runValidation as apiRunValidation } from '@/api/client.js'
@@ -418,7 +421,7 @@ async function fetchGbm() {
 
 async function renderGbmChart(d) {
   if (!gbmChart.value) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
   const lastDate = d.proj_dates[0]
   const traces = []
 
@@ -452,11 +455,11 @@ async function renderGbmChart(d) {
     hovertemplate: 'Regressão: $%{y:,.0f}<extra></extra>' })
 
   const layout = {
-    template: 'plotly_dark', paper_bgcolor: '#000000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
     height: 520, autosize: true, margin: { t: 30, r: 20, b: 50, l: 75 },
-    xaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
-    yaxis: { title: 'Capital ($)', gridcolor: '#1e1e1e', linecolor: '#2a2a2a',
+    xaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
+    yaxis: { title: 'Capital ($)', gridcolor: TEMA.grade, linecolor: TEMA.eixo,
       tickprefix: '$', tickfont: { color: '#707070' } },
     shapes: [{ type: 'line', xref: 'x', x0: lastDate, x1: lastDate,
       yref: 'paper', y0: 0, y1: 1, line: { color: '#f5c518', dash: 'dot', width: 1 } }],
@@ -561,7 +564,7 @@ const GREEN = '#1D9E75'
 const RED   = '#E24B4A'
 const GRAY  = '#888888'
 const WHITE = '#d0d0d0'
-const PANEL = { paper_bgcolor: '#000000', plot_bgcolor: '#080808' }
+const PANEL = { paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot }
 const FONT  = { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 }
 const AXIS  = { gridcolor: '#1a1a1a', linecolor: '#252525', tickfont: { color: '#606060' } }
 
@@ -569,7 +572,7 @@ async function renderMcCharts() {
   if (!valData.value) return
   const mc = currentMc.value
   if (!mc) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
 
   // Broom chart
   if (boomEl.value) {
@@ -677,7 +680,7 @@ async function renderMcCharts() {
 
 async function renderPermChart() {
   if (!valData.value?.permutation_test || !permEl.value) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
   const pt = valData.value.permutation_test
   const origS = pt.original_sharpe ?? 0
   const color = pt.approved ? GREEN : RED

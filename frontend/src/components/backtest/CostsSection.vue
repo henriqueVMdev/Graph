@@ -61,23 +61,23 @@
       {{ store.costsError }}
     </div>
 
-    <div v-for="w in store.costsWarnings" :key="w" class="text-xs text-amber-400">⚠ {{ w }}</div>
+    <div v-for="w in store.costsWarnings" :key="w" class="text-xs text-accent-brass">⚠ {{ w }}</div>
 
     <!-- Tabela bruto vs líquido -->
     <div v-if="store.costsResult && store.costsResult.length" class="overflow-x-auto">
       <table class="w-full text-xs">
         <thead>
           <tr class="text-gray-400 border-b border-surface-500">
-            <th class="text-left py-2 px-2">Exchange</th>
-            <th class="text-left py-2 px-2">Cenário</th>
-            <th class="text-right py-2 px-2">PnL Bruto</th>
-            <th class="text-right py-2 px-2">PnL Líquido</th>
-            <th class="text-right py-2 px-2">Fees</th>
-            <th class="text-right py-2 px-2">Funding</th>
-            <th class="text-right py-2 px-2">Sharpe Bruto</th>
-            <th class="text-right py-2 px-2">Sharpe Líq.</th>
-            <th class="text-right py-2 px-2">Δ Sharpe</th>
-            <th class="text-center py-2 px-2">Sobrevive?</th>
+            <th scope="col" class="text-left py-2 px-2">Exchange</th>
+            <th scope="col" class="text-left py-2 px-2">Cenário</th>
+            <th scope="col" class="text-right py-2 px-2">PnL Bruto</th>
+            <th scope="col" class="text-right py-2 px-2">PnL Líquido</th>
+            <th scope="col" class="text-right py-2 px-2">Fees</th>
+            <th scope="col" class="text-right py-2 px-2">Funding</th>
+            <th scope="col" class="text-right py-2 px-2">Sharpe Bruto</th>
+            <th scope="col" class="text-right py-2 px-2">Sharpe Líq.</th>
+            <th scope="col" class="text-right py-2 px-2">Δ Sharpe</th>
+            <th scope="col" class="text-center py-2 px-2">Sobrevive?</th>
           </tr>
         </thead>
         <tbody>
@@ -87,15 +87,15 @@
           >
             <td class="py-2 px-2 text-gray-200 capitalize">{{ r.Exchange }}</td>
             <td class="py-2 px-2 text-gray-400 capitalize">{{ r['Cenário'] }}</td>
-            <td class="py-2 px-2 text-right" :class="num(r['PnL Bruto']) >= 0 ? 'text-green-400' : 'text-red-400'">{{ money(r['PnL Bruto']) }}</td>
-            <td class="py-2 px-2 text-right font-semibold" :class="num(r['PnL Líquido']) >= 0 ? 'text-green-400' : 'text-red-400'">{{ money(r['PnL Líquido']) }}</td>
-            <td class="py-2 px-2 text-right text-red-400">−{{ money(Math.abs(num(r.Fees))) }}</td>
-            <td class="py-2 px-2 text-right" :class="num(r.Funding) >= 0 ? 'text-green-400' : 'text-red-400'">{{ money(r.Funding) }}</td>
+            <td class="py-2 px-2 text-right" :class="num(r['PnL Bruto']) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ money(r['PnL Bruto']) }}</td>
+            <td class="py-2 px-2 text-right font-semibold" :class="num(r['PnL Líquido']) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ money(r['PnL Líquido']) }}</td>
+            <td class="py-2 px-2 text-right text-accent-red-light">−{{ money(Math.abs(num(r.Fees))) }}</td>
+            <td class="py-2 px-2 text-right" :class="num(r.Funding) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ money(r.Funding) }}</td>
             <td class="py-2 px-2 text-right text-gray-300">{{ fmt2(r['Sharpe Bruto']) }}</td>
             <td class="py-2 px-2 text-right text-gray-200">{{ fmt2(r['Sharpe Líquido']) }}</td>
-            <td class="py-2 px-2 text-right" :class="num(r['Δ Sharpe']) >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmt2(r['Δ Sharpe']) }}</td>
+            <td class="py-2 px-2 text-right" :class="num(r['Δ Sharpe']) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ fmt2(r['Δ Sharpe']) }}</td>
             <td class="py-2 px-2 text-center">
-              <span :class="r['Sobrevive?'] ? 'text-green-400' : 'text-red-400 font-semibold'">
+              <span :class="r['Sobrevive?'] ? 'text-accent-yellow' : 'text-accent-red-light font-semibold'">
                 {{ r['Sobrevive?'] ? 'Sim' : 'Não' }}
               </span>
             </td>

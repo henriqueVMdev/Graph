@@ -3,6 +3,7 @@
 </template>
 
 <script setup>
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { initChart, updateChart, purgeChart, onPointClick } from '@/composables/useCharts.js'
 
@@ -35,7 +36,7 @@ watch(() => props.chartJson, (newJson) => {
 
 async function resize() {
   if (!chartEl.value) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
   Plotly.Plots.resize(chartEl.value)
 }
 

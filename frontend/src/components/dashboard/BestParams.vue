@@ -76,7 +76,7 @@
           <p class="sidebar-section-title">Faixas Recomendadas</p>
           <button
             @click="sendToOptimizer()"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/30 hover:bg-accent-yellow/20 transition"
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -88,10 +88,10 @@
           <table class="w-full text-xs">
             <thead>
               <tr class="bg-surface-600 text-gray-400 text-left">
-                <th class="px-3 py-2 font-medium">Parâmetro</th>
-                <th class="px-3 py-2 font-medium">Melhor Valor</th>
-                <th class="px-3 py-2 font-medium">Frequência no Top</th>
-                <th class="px-3 py-2 font-medium">Faixa Sugerida</th>
+                <th scope="col" class="px-3 py-2 font-medium">Parâmetro</th>
+                <th scope="col" class="px-3 py-2 font-medium">Melhor Valor</th>
+                <th scope="col" class="px-3 py-2 font-medium">Frequência no Top</th>
+                <th scope="col" class="px-3 py-2 font-medium">Faixa Sugerida</th>
               </tr>
             </thead>
             <tbody>
@@ -118,6 +118,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDashboardStore } from '@/stores/dashboard.js'
 import { useOptimizerStore } from '@/stores/optimizer.js'
+import { maxOf, minOf } from '@/utils.js'
 
 const store = useDashboardStore()
 const optimizerStore = useOptimizerStore()
@@ -140,7 +141,7 @@ function sortedCounts(counts) {
 }
 
 function barWidth(count, counts) {
-  const max = Math.max(...Object.values(counts))
+  const max = maxOf(Object.values(counts))
   const pct = max > 0 ? Math.round((count / max) * 100) : 0
   return `${Math.max(pct, 4)}%`
 }
@@ -154,8 +155,8 @@ function histBuckets(values, n = 8) {
   if (!values || values.length === 0) return Array(n).fill(0)
   const clean = values.filter(v => v != null)
   if (clean.length === 0) return Array(n).fill(0)
-  const min = Math.min(...clean)
-  const max = Math.max(...clean)
+  const min = minOf(clean)
+  const max = maxOf(clean)
   if (min === max) return Array(n).fill(50)
   const size = (max - min) / n
   const buckets = Array(n).fill(0)
@@ -163,7 +164,7 @@ function histBuckets(values, n = 8) {
     const i = Math.min(Math.floor((v - min) / size), n - 1)
     buckets[i]++
   }
-  const maxB = Math.max(...buckets)
+  const maxB = maxOf(buckets)
   return buckets.map(b => maxB > 0 ? Math.max(Math.round((b / maxB) * 100), 5) : 5)
 }
 </script>

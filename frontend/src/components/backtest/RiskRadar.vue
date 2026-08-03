@@ -27,6 +27,8 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
 
@@ -56,18 +58,18 @@ function valueClass(key) {
   const v = props.metrics[key]
   if (v == null) return 'text-gray-400'
   const t = THRESHOLDS[key]
-  if (v >= t.good) return 'text-green-400'
+  if (v >= t.good) return 'text-accent-yellow'
   if (v >= t.ok)   return 'text-accent-yellow'
-  return 'text-red-400'
+  return 'text-accent-red-light'
 }
 
 function barColor(key) {
   const v = props.metrics[key]
   if (v == null) return 'bg-surface-500'
   const t = THRESHOLDS[key]
-  if (v >= t.good) return 'bg-green-500'
-  if (v >= t.ok)   return 'bg-accent-yellow'
-  return 'bg-red-500'
+  if (v >= t.good) return 'bg-accent-yellow'
+  if (v >= t.ok)   return 'bg-accent-brass'
+  return 'bg-accent-red-light'
 }
 
 function barWidth(key) {
@@ -129,16 +131,16 @@ async function buildChart() {
         visible: true,
         range: [0, 100],
         showticklabels: false,
-        gridcolor: '#1e1e1e',
-        linecolor: '#2a2a2a',
+        gridcolor: TEMA.grade,
+        linecolor: TEMA.eixo,
       },
       angularaxis: {
-        gridcolor: '#1e1e1e',
-        linecolor: '#2a2a2a',
+        gridcolor: TEMA.grade,
+        linecolor: TEMA.eixo,
         tickfont: { color: '#d0d0d0', size: 12 },
       },
     },
-    paper_bgcolor: '#000000',
+    paper_bgcolor: TEMA.fundoPapel,
     font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif' },
     margin: { t: 30, r: 40, b: 30, l: 40 },
     showlegend: false,

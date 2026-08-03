@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getDegenChains, getDegenTokens, getDegenHype } from '@/api/client.js'
+import { quandoVisivel } from '@/composables/visibilidade.js'
 
 export const useDegenStore = defineStore('degen', () => {
   const chains = ref({})
@@ -56,7 +57,7 @@ export const useDegenStore = defineStore('degen', () => {
   function startAutoRefresh() {
     stopAutoRefresh()
     if (autoRefresh.value) {
-      timer = setInterval(fetchTokens, 60000)
+      timer = setInterval(quandoVisivel(fetchTokens), 60000)
     }
   }
 

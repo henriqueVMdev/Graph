@@ -34,7 +34,7 @@
 
     <div v-if="store.chartData">
       <!-- Avisos (ex.: funding indisponível na rede) -->
-      <div v-if="store.chartData.cost_warnings?.length" class="text-xs text-amber-300 bg-amber-900/20 rounded-lg p-2 border border-amber-800/50 mb-3">
+      <div v-if="store.chartData.cost_warnings?.length" class="text-xs text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50 mb-3">
         <div v-for="(w, i) in store.chartData.cost_warnings" :key="i">⚠ {{ w }}</div>
       </div>
 
@@ -64,7 +64,7 @@
       <p class="text-gray-400 text-sm">Buscando candles e indicadores...</p>
     </div>
 
-    <div v-else-if="store.chartError" class="text-sm text-red-400 bg-red-900/20 rounded-lg p-3 border border-red-800">
+    <div v-else-if="store.chartError" class="text-sm text-accent-red-light bg-accent-red/15 rounded-lg p-3 border border-accent-red/40">
       {{ store.chartError }}
     </div>
 
@@ -75,6 +75,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { purgeChart } from '@/composables/useCharts.js'
@@ -92,12 +95,12 @@ let Plotly = null
 
 const BASE_LAYOUT = {
   template: 'plotly_dark',
-  paper_bgcolor: '#000000',
-  plot_bgcolor: '#080808',
+  paper_bgcolor: TEMA.fundoPapel,
+  plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
   margin: { t: 20, r: 20, b: 50, l: 75 },
-  xaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
-  yaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
+  xaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
+  yaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
   hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
   legend: { bgcolor: 'transparent', font: { size: 11, color: '#a0a0a0' }, orientation: 'h', x: 0, y: 1.08 },
 }
@@ -227,12 +230,12 @@ function renderFunding() {
   }], {
     ...BASE_LAYOUT, height: 360,
     xaxis: { ...BASE_LAYOUT.xaxis, type: 'date', title: 'Data' },
-    yaxis: { ...BASE_LAYOUT.yaxis, title: 'Funding rate (%)', zeroline: true, zerolinecolor: '#333' },
+    yaxis: { ...BASE_LAYOUT.yaxis, title: 'Funding rate (%)', zeroline: true, zerolinecolor: TEMA.linhaZero },
   }, PLOT_CFG)
 }
 
 async function renderAll() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   renderPrice()
   renderEquity()

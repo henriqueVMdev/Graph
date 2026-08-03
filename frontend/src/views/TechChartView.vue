@@ -114,12 +114,12 @@
         <button @click="addCustom" class="btn-secondary !py-1 text-[11px]">+ Estudo</button>
         <span v-for="(c, i) in customs" :key="i"
               class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface-600/60 text-gray-300">
-          {{ c.expr.slice(0, 28) }} <button @click="customs.splice(i, 1); runSingle()" class="text-gray-400 hover:text-red-400 ml-1">✕</button></span>
+          {{ c.expr.slice(0, 28) }} <button @click="customs.splice(i, 1); runSingle()" class="text-gray-400 hover:text-accent-red-light ml-1">✕</button></span>
       </div>
       <p class="text-[11px] text-gray-500 font-mono">
         funções: SMA EMA RSI STD MAX MIN ROC SHIFT ABS LOG DIFF · variáveis: open high low close volume
       </p>
-      <p v-if="studyErrors.length" class="text-xs text-red-400">{{ studyErrors.join(' · ') }}</p>
+      <p v-if="studyErrors.length" class="text-xs text-accent-red-light">{{ studyErrors.join(' · ') }}</p>
     </div>
 
     <!-- chips da comparação -->
@@ -127,10 +127,10 @@
       <span v-for="(a, i) in cmpList" :key="i"
             class="text-[11px] font-mono px-2 py-0.5 rounded border border-surface-500 text-gray-300">
         {{ a.s }} <span class="text-gray-500">· {{ a.market === 'crypto' ? 'cripto' : 'trad' }}</span>
-        <button @click="cmpList.splice(i, 1)" class="text-gray-400 hover:text-red-400 ml-1">✕</button></span>
+        <button @click="cmpList.splice(i, 1)" class="text-gray-400 hover:text-accent-red-light ml-1">✕</button></span>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
     <div v-if="loading" class="flex flex-col items-center py-12">
       <div class="dollar-loader mb-3">$</div>
       <p class="text-gray-400 text-sm">Calculando...</p>
@@ -202,6 +202,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, reactive, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { postChart, getCdtyCurves, getCdtyCurve } from '@/api/client.js'
@@ -224,11 +227,11 @@ let Plotly = null
 
 const PALETTE = ['#f5c518', '#4dabf7', '#69db7c', '#ef5350', '#b197fc', '#ffa94d', '#63e6be', '#f783ac']
 const LAYOUT = (h) => ({
-  template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+  template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', size: 10 }, height: h,
   margin: { t: 8, r: 10, b: 30, l: 50 },
-  xaxis: { type: 'date', gridcolor: '#1e1e1e', rangeslider: { visible: false } },
-  yaxis: { gridcolor: '#1e1e1e' },
+  xaxis: { type: 'date', gridcolor: TEMA.grade, rangeslider: { visible: false } },
+  yaxis: { gridcolor: TEMA.grade },
   legend: { orientation: 'h', y: 1.08 },
 })
 const CFG = { responsive: true, displaylogo: false, displayModeBar: false }
@@ -303,7 +306,7 @@ async function runSingle() {
 }
 
 async function renderSingle() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   const d = singleData.value
   if (!mainChart.value || !d) return
@@ -382,7 +385,7 @@ async function runCompare() {
 }
 
 async function renderCompare() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   const d = cmpData.value
   if (!cumChart.value || !d) return
@@ -390,7 +393,7 @@ async function renderCompare() {
   Plotly.react(cumChart.value, d.names.map((n, i) => ({
     type: 'scatter', mode: 'lines', x, y: d.cumret[n], name: n,
     line: { width: 1.6, color: PALETTE[i % PALETTE.length] },
-  })), { ...LAYOUT(320), yaxis: { gridcolor: '#1e1e1e', title: '%', zeroline: true, zerolinecolor: '#445' } }, CFG)
+  })), { ...LAYOUT(320), yaxis: { gridcolor: TEMA.grade, title: '%', zeroline: true, zerolinecolor: TEMA.linhaZero } }, CFG)
 
   if (corrChart.value) {
     const m = d.corr_matrix
@@ -437,7 +440,7 @@ function runSpread() {
 }
 
 async function renderSpread() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   const d = spreadData.value
   if (!d?.spread) return
@@ -448,13 +451,13 @@ async function renderSpread() {
     Plotly.react(spCumChart.value, d.names.map((n, i) => ({
       type: 'scatter', mode: 'lines', x: xc, y: d.cumret[n], name: n,
       line: { width: 1.6, color: PALETTE[i % PALETTE.length] },
-    })), { ...LAYOUT(260), yaxis: { gridcolor: '#1e1e1e', title: '%', zeroline: true, zerolinecolor: '#445' } }, CFG)
+    })), { ...LAYOUT(260), yaxis: { gridcolor: TEMA.grade, title: '%', zeroline: true, zerolinecolor: TEMA.linhaZero } }, CFG)
   }
   if (spDiffChart.value) {
     Plotly.react(spDiffChart.value, [{
       type: 'scatter', mode: 'lines', x: xs, y: d.spread.diff, name: 'A−B',
       line: { width: 1.4, color: '#f5c518' }, fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.08)',
-    }], { ...LAYOUT(220), yaxis: { gridcolor: '#1e1e1e', zeroline: true, zerolinecolor: '#445' } }, CFG)
+    }], { ...LAYOUT(220), yaxis: { gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.linhaZero } }, CFG)
   }
   if (spRatioChart.value) {
     Plotly.react(spRatioChart.value, [{
@@ -466,7 +469,7 @@ async function renderSpread() {
     Plotly.react(spCorrChart.value, [{
       type: 'scatter', mode: 'lines', x: xc, y: d.roll_corr.values, name: 'corr',
       line: { width: 1.4, color: '#69db7c' },
-    }], { ...LAYOUT(180), yaxis: { gridcolor: '#1e1e1e', range: [-1, 1], zeroline: true, zerolinecolor: '#445' } }, CFG)
+    }], { ...LAYOUT(180), yaxis: { gridcolor: TEMA.grade, range: [-1, 1], zeroline: true, zerolinecolor: TEMA.linhaZero } }, CFG)
   }
 }
 

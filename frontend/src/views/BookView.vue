@@ -17,21 +17,21 @@
       </form>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <!-- tradfi: top-of-book -->
     <template v-if="d && d.market === 'tradfi'">
       <div class="card p-5">
         <div class="text-xs text-gray-400 font-mono mb-3">{{ d.yf_symbol }} · último {{ fmt(d.last) }}</div>
         <div class="grid grid-cols-2 gap-4 max-w-xl">
-          <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-green-800/40">
+          <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-accent-yellow/40/40">
             <div class="text-[11px] text-gray-400 uppercase">Bid</div>
-            <div class="text-3xl font-bold font-mono text-green-400">{{ fmt(d.bid) }}</div>
+            <div class="text-3xl font-bold font-mono text-accent-yellow">{{ fmt(d.bid) }}</div>
             <div class="text-xs text-gray-400 font-mono mt-1">{{ d.bid_size != null ? d.bid_size + ' lotes' : '' }}</div>
           </div>
-          <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-red-800/40">
+          <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-accent-red/40/40">
             <div class="text-[11px] text-gray-400 uppercase">Ask</div>
-            <div class="text-3xl font-bold font-mono text-red-400">{{ fmt(d.ask) }}</div>
+            <div class="text-3xl font-bold font-mono text-accent-red-light">{{ fmt(d.ask) }}</div>
             <div class="text-xs text-gray-400 font-mono mt-1">{{ d.ask_size != null ? d.ask_size + ' lotes' : '' }}</div>
           </div>
         </div>
@@ -56,23 +56,23 @@
           <div class="grid grid-cols-2 gap-3">
             <!-- bids -->
             <div>
-              <div class="text-[11px] text-green-400 uppercase font-semibold mb-1 text-right">Compra (bids)</div>
+              <div class="text-[11px] text-accent-yellow uppercase font-semibold mb-1 text-right">Compra (bids)</div>
               <div v-for="[p, q] in d.bids" :key="'b' + p"
                    class="relative flex justify-between text-xs font-mono py-0.5 px-1">
-                <div class="absolute inset-y-0 right-0 bg-green-900/30"
+                <div class="absolute inset-y-0 right-0 bg-accent-yellow/10"
                      :style="{ width: depthPct(q, maxBid) }"></div>
                 <span class="relative text-gray-400">{{ fmtQty(q) }}</span>
-                <span class="relative text-green-400 font-semibold">{{ fmt(p) }}</span>
+                <span class="relative text-accent-yellow font-semibold">{{ fmt(p) }}</span>
               </div>
             </div>
             <!-- asks -->
             <div>
-              <div class="text-[11px] text-red-400 uppercase font-semibold mb-1">Venda (asks)</div>
+              <div class="text-[11px] text-accent-red-light uppercase font-semibold mb-1">Venda (asks)</div>
               <div v-for="[p, q] in d.asks" :key="'a' + p"
                    class="relative flex justify-between text-xs font-mono py-0.5 px-1">
-                <div class="absolute inset-y-0 left-0 bg-red-900/30"
+                <div class="absolute inset-y-0 left-0 bg-accent-red/15"
                      :style="{ width: depthPct(q, maxAsk) }"></div>
-                <span class="relative text-red-400 font-semibold">{{ fmt(p) }}</span>
+                <span class="relative text-accent-red-light font-semibold">{{ fmt(p) }}</span>
                 <span class="relative text-gray-400">{{ fmtQty(q) }}</span>
               </div>
             </div>
@@ -89,7 +89,7 @@
             <div v-for="(t, i) in d.trades" :key="i"
                  class="flex justify-between text-[11px] font-mono py-0.5 border-b border-surface-600/30">
               <span class="text-gray-500 w-14">{{ tsFmt(t.ts) }}</span>
-              <span :class="t.side === 'buy' ? 'text-green-400' : 'text-red-400'" class="w-10">
+              <span :class="t.side === 'buy' ? 'text-accent-yellow' : 'text-accent-red-light'" class="w-10">
                 {{ t.side === 'buy' ? 'COMPRA' : 'VENDA' }}</span>
               <span class="text-gray-300">{{ fmt(t.price) }}</span>
               <span class="text-gray-400">{{ fmtQty(t.qty) }}</span>
@@ -106,9 +106,11 @@
 </template>
 
 <script setup>
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { getBook } from '@/api/client.js'
+import { maxOf } from '@/utils.js'
 
 const route = useRoute()
 const symbolInput = ref('')
@@ -131,8 +133,8 @@ const spreadTradfi = computed(() => {
   if (d.value?.bid == null || d.value?.ask == null) return '—'
   return fmt(d.value.ask - d.value.bid)
 })
-const maxBid = computed(() => Math.max(...(d.value?.bids || [[0, 0]]).map((x) => x[1])))
-const maxAsk = computed(() => Math.max(...(d.value?.asks || [[0, 0]]).map((x) => x[1])))
+const maxBid = computed(() => maxOf((d.value?.bids || [[0, 0]]).map((x) => x[1])))
+const maxAsk = computed(() => maxOf((d.value?.asks || [[0, 0]]).map((x) => x[1])))
 const buyPressure = computed(() => {
   const b = (d.value?.bids || []).reduce((s, x) => s + x[1], 0)
   const a = (d.value?.asks || []).reduce((s, x) => s + x[1], 0)
@@ -162,7 +164,7 @@ function start() {
   loading.value = true
   fetchBook().finally(() => { loading.value = false })
   // tradfi é ~15min atrasado; poll só faz sentido p/ cripto
-  if (market.value === 'crypto') timer = setInterval(fetchBook, 3000)
+  if (market.value === 'crypto') timer = setInterval(quandoVisivel(fetchBook), 3000)
 }
 
 function stop() {

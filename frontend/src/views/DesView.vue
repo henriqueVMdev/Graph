@@ -20,7 +20,7 @@
       <p class="text-gray-400 text-sm">Carregando {{ symbolInput.toUpperCase() }}...</p>
     </div>
 
-    <div v-else-if="terminal.desError" class="card p-3 text-xs text-red-400">
+    <div v-else-if="terminal.desError" class="card p-3 text-xs text-accent-red-light">
       {{ terminal.desError }}
     </div>
 
@@ -72,7 +72,7 @@
         <div class="metric-card"><span class="metric-label">ATR14 (1d)</span>
           <span class="metric-value text-gray-200">{{ d.atr_pct != null ? d.atr_pct.toFixed(2) + '%' : '—' }}</span></div>
         <div v-if="!isTradfi" class="metric-card"><span class="metric-label">Funding atual</span>
-          <span class="metric-value" :class="(d.funding ?? 0) >= 0 ? 'text-gray-200' : 'text-red-400'">
+          <span class="metric-value" :class="(d.funding ?? 0) >= 0 ? 'text-gray-200' : 'text-accent-red-light'">
             {{ d.funding != null ? (d.funding * 100).toFixed(4) + '%' : '—' }}</span></div>
         <div v-else class="metric-card"><span class="metric-label">52 semanas</span>
           <span class="metric-value text-gray-200 !text-xs">
@@ -136,6 +136,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'
@@ -217,7 +220,7 @@ function toMonitor() {
 }
 
 async function renderFunding() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   // o watch dispara antes do DOM trocar o loader pelo conteúdo; só depois
   // do nextTick a div do gráfico existe — checar o ref antes disso fazia
   // o render abortar e o funding ficar em branco
@@ -225,10 +228,10 @@ async function renderFunding() {
   if (!fundingChart.value) return
 
   const layoutBase = {
-    template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 260,
     margin: { t: 10, r: 10, b: 40, l: 55 },
-    xaxis: { type: 'date', gridcolor: '#1e1e1e' },
+    xaxis: { type: 'date', gridcolor: TEMA.grade },
   }
   const cfg = { responsive: true, displaylogo: false, displayModeBar: false }
 
@@ -242,7 +245,7 @@ async function renderFunding() {
       hovertemplate: '%{x}<br>%{y:,.2f}<extra></extra>',
     }], {
       ...layoutBase,
-      yaxis: { title: 'Preço', gridcolor: '#1e1e1e', autorange: true },
+      yaxis: { title: 'Preço', gridcolor: TEMA.grade, autorange: true },
     }, cfg)
     return
   }
@@ -256,7 +259,7 @@ async function renderFunding() {
     hovertemplate: '%{x}<br>%{y:.4f}%<extra></extra>',
   }], {
     ...layoutBase,
-    yaxis: { title: 'Funding (%)', gridcolor: '#1e1e1e', zeroline: true, zerolinecolor: '#333' },
+    yaxis: { title: 'Funding (%)', gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.linhaZero },
   }, cfg)
 }
 
@@ -287,7 +290,7 @@ watch(() => route.query.symbol, (q) => {
 onBeforeUnmount(() => purgeChart(fundingChart.value))
 
 function pctClass(v) {
-  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'
+  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function fmt(v) {
   if (v == null) return '—'

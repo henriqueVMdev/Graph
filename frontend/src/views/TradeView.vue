@@ -13,7 +13,7 @@
         </option>
       </select>
       <span class="text-[11px] font-bold px-2 py-1 rounded font-mono"
-            :class="accountKind === 'real' ? 'bg-red-900/60 text-red-300'
+            :class="accountKind === 'real' ? 'bg-accent-red/15 text-accent-red-light'
               : accountKind === 'demo' ? 'bg-blue-900/60 text-blue-300'
               : 'bg-surface-600 text-gray-400'">
         {{ accountKind === 'real' ? 'DINHEIRO REAL' : accountKind === 'demo' ? 'DEMO' : 'PAPER' }}
@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
       <!-- ══ Ticket + pré-trade ══ -->
@@ -71,14 +71,14 @@
             <button @click="ticket.side = 'buy'" :aria-pressed="ticket.side === 'buy'"
                     class="py-2 rounded-lg text-xs font-bold border transition-colors"
                     :class="ticket.side === 'buy'
-                      ? 'bg-green-900/50 border-green-600 text-green-300'
+                      ? 'bg-accent-yellow/10 border-accent-yellow/40 text-accent-yellow'
                       : 'bg-surface-700 border-surface-500 text-gray-400 hover:text-gray-300'">
               COMPRA
             </button>
             <button @click="ticket.side = 'sell'" :aria-pressed="ticket.side === 'sell'"
                     class="py-2 rounded-lg text-xs font-bold border transition-colors"
                     :class="ticket.side === 'sell'
-                      ? 'bg-red-900/50 border-red-600 text-red-300'
+                      ? 'bg-accent-red/15 border-accent-red/40 text-accent-red-light'
                       : 'bg-surface-700 border-surface-500 text-gray-400 hover:text-gray-300'">
               VENDA
             </button>
@@ -97,7 +97,7 @@
           </div>
 
           <label v-if="accountKind === 'real'"
-                 class="flex items-center gap-2 text-xs text-red-300 bg-red-900/20 border border-red-800/50 rounded-lg p-2">
+                 class="flex items-center gap-2 text-xs text-accent-red-light bg-accent-red/15 border border-accent-red/40/50 rounded-lg p-2">
             <input type="checkbox" v-model="ticket.confirm" class="accent-red-500" />
             Confirmo o envio de ordem com <b>dinheiro real</b>
           </label>
@@ -109,8 +109,8 @@
             <button @click="sendOrder" :disabled="busy || (accountKind === 'real' && !ticket.confirm)"
                     class="!py-2 text-xs font-bold rounded-lg border transition-colors disabled:opacity-40"
                     :class="ticket.side === 'buy'
-                      ? 'bg-green-800/60 border-green-600 text-green-200 hover:bg-green-800'
-                      : 'bg-red-800/60 border-red-600 text-red-200 hover:bg-red-800'">
+                      ? 'bg-green-800/60 border-accent-yellow/40 text-green-200 hover:bg-green-800'
+                      : 'bg-red-800/60 border-accent-red/40 text-red-200 hover:bg-red-800'">
               {{ busy === 'send' ? 'Enviando…' : `Enviar ${ticket.side === 'buy' ? 'COMPRA' : 'VENDA'}` }}
             </button>
           </div>
@@ -120,13 +120,13 @@
         <div v-if="pre" class="card p-4 space-y-2">
           <div class="flex items-center gap-2">
             <div class="text-[11px] text-gray-400 uppercase font-semibold">Pré-trade · {{ pre.resolved }}</div>
-            <span v-if="pre.delayed" class="text-[11px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 font-mono">
+            <span v-if="pre.delayed" class="text-[11px] px-1.5 py-0.5 rounded bg-accent-brass/15 text-accent-brass font-mono">
               atrasado ~15min</span>
           </div>
           <div class="grid grid-cols-3 gap-2 font-mono text-xs">
-            <div><span class="text-gray-500">bid</span> <span class="text-green-400">{{ fmt(pre.bid) }}</span></div>
+            <div><span class="text-gray-500">bid</span> <span class="text-accent-yellow">{{ fmt(pre.bid) }}</span></div>
             <div><span class="text-gray-500">mid</span> <span class="text-gray-200">{{ fmt(pre.mid) }}</span></div>
-            <div><span class="text-gray-500">ask</span> <span class="text-red-400">{{ fmt(pre.ask) }}</span></div>
+            <div><span class="text-gray-500">ask</span> <span class="text-accent-red-light">{{ fmt(pre.ask) }}</span></div>
           </div>
           <table class="w-full text-xs font-mono">
             <tbody>
@@ -137,7 +137,7 @@
             </tbody>
           </table>
           <div v-for="(w, i) in pre.warnings" :key="i"
-               class="text-[11px] text-amber-400/90 flex gap-1.5">
+               class="text-[11px] text-accent-brass/90 flex gap-1.5">
             <span>⚠</span><span>{{ w }}</span>
           </div>
         </div>
@@ -162,17 +162,17 @@
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-left">
-                <th class="py-1.5 pr-3">Hora</th><th class="pr-3">Ativo</th><th class="pr-3">Lado</th>
-                <th class="pr-3">Tipo</th><th class="pr-3 text-right">Qtd</th>
-                <th class="pr-3 text-right">Limite</th><th class="pr-3 text-right">Preço médio</th>
-                <th class="pr-3">Status</th><th></th>
+                <th scope="col" class="py-1.5 pr-3">Hora</th><th scope="col" class="pr-3">Ativo</th><th scope="col" class="pr-3">Lado</th>
+                <th scope="col" class="pr-3">Tipo</th><th scope="col" class="pr-3 text-right">Qtd</th>
+                <th scope="col" class="pr-3 text-right">Limite</th><th scope="col" class="pr-3 text-right">Preço médio</th>
+                <th scope="col" class="pr-3">Status</th><th scope="col"></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="o in blot?.orders || []" :key="o.id" class="border-t border-surface-600/30">
                 <td class="py-1.5 pr-3 text-gray-400">{{ tsFmt(o.ts) }}</td>
                 <td class="pr-3 text-gray-200">{{ o.symbol }}<span class="text-gray-500 text-[11px]"> {{ o.market === 'crypto' ? '· cripto' : '· tradfi' }}</span></td>
-                <td class="pr-3" :class="o.side === 'buy' ? 'text-green-400' : 'text-red-400'">
+                <td class="pr-3" :class="o.side === 'buy' ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ o.side === 'buy' ? 'COMPRA' : 'VENDA' }}</td>
                 <td class="pr-3 text-gray-400">{{ o.type === 'market' ? 'mercado' : 'limite' }}</td>
                 <td class="pr-3 text-right text-gray-300">{{ fmtQty(o.qty) }}<span v-if="o.status === 'partial'" class="text-gray-500"> ({{ fmtQty(o.filled_qty) }})</span></td>
@@ -181,7 +181,7 @@
                 <td class="pr-3"><span class="px-1.5 py-0.5 rounded text-[11px]" :class="statusClass(o.status)">{{ statusLabel(o.status) }}</span></td>
                 <td class="text-right">
                   <button v-if="['working', 'partial'].includes(o.status)" @click="cancel(o.id)"
-                          class="text-[11px] text-red-400 hover:text-red-300 underline">cancelar</button>
+                          class="text-[11px] text-accent-red-light hover:text-accent-red-light underline">cancelar</button>
                 </td>
               </tr>
               <tr v-if="!(blot?.orders || []).length">
@@ -197,10 +197,10 @@
             <table class="w-full text-xs font-mono whitespace-nowrap">
               <thead>
                 <tr class="text-[11px] text-gray-400 uppercase text-left">
-                  <th class="py-1.5 pr-3">Ativo</th><th class="pr-3 text-right">Qtd</th>
-                  <th class="pr-3 text-right">Preço médio</th><th class="pr-3 text-right">Mark</th>
-                  <th class="pr-3 text-right">Notional</th><th class="pr-3 text-right">PnL aberto</th>
-                  <th class="pr-3 text-right">PnL realizado</th><th class="pr-3 text-right">Fees</th><th></th>
+                  <th scope="col" class="py-1.5 pr-3">Ativo</th><th scope="col" class="pr-3 text-right">Qtd</th>
+                  <th scope="col" class="pr-3 text-right">Preço médio</th><th scope="col" class="pr-3 text-right">Mark</th>
+                  <th scope="col" class="pr-3 text-right">Notional</th><th scope="col" class="pr-3 text-right">PnL aberto</th>
+                  <th scope="col" class="pr-3 text-right">PnL realizado</th><th scope="col" class="pr-3 text-right">Fees</th><th scope="col"></th>
                 </tr>
               </thead>
               <tbody>
@@ -208,7 +208,7 @@
                   <td class="py-1.5 pr-3 text-gray-200">{{ p.symbol }}
                     <span class="text-gray-500 text-[11px]">{{ p.market === 'crypto' ? '· cripto' : '· tradfi' }}</span>
                     <span v-if="p.delayed" class="text-amber-500/80 text-[11px]"> ~15min</span></td>
-                  <td class="pr-3 text-right" :class="p.qty > 0 ? 'text-green-400' : p.qty < 0 ? 'text-red-400' : 'text-gray-400'">{{ fmtQty(p.qty) }}</td>
+                  <td class="pr-3 text-right" :class="p.qty > 0 ? 'text-accent-yellow' : p.qty < 0 ? 'text-accent-red-light' : 'text-gray-400'">{{ fmtQty(p.qty) }}</td>
                   <td class="pr-3 text-right text-gray-300">{{ fmt(p.avg_price) }}</td>
                   <td class="pr-3 text-right text-gray-300">{{ fmt(p.mark) }}</td>
                   <td class="pr-3 text-right text-gray-400">{{ fmtUsd(p.notional) }}</td>
@@ -217,7 +217,7 @@
                   <td class="pr-3 text-right text-gray-400">{{ fmtUsd(p.fees) }}</td>
                   <td class="text-right">
                     <button v-if="Math.abs(p.qty) > 1e-12" @click="flatten(p)"
-                            class="text-[11px] text-amber-400 hover:text-amber-300 underline">zerar</button>
+                            class="text-[11px] text-accent-brass hover:text-accent-brass underline">zerar</button>
                   </td>
                 </tr>
                 <tr v-if="!(blot?.positions || []).length">
@@ -231,10 +231,10 @@
             <table class="w-full text-xs font-mono">
               <tbody>
                 <tr v-for="(p, i) in blot.exchange_positions" :key="i" class="border-t border-surface-600/30">
-                  <td v-if="p.error" colspan="6" class="py-1.5 text-red-400">{{ p.error }}</td>
+                  <td v-if="p.error" colspan="6" class="py-1.5 text-accent-red-light">{{ p.error }}</td>
                   <template v-else>
                     <td class="py-1.5 pr-3 text-gray-200">{{ p.symbol }}</td>
-                    <td class="pr-3" :class="p.side === 'long' ? 'text-green-400' : 'text-red-400'">{{ p.side }}</td>
+                    <td class="pr-3" :class="p.side === 'long' ? 'text-accent-yellow' : 'text-accent-red-light'">{{ p.side }}</td>
                     <td class="pr-3 text-right text-gray-300">{{ fmtQty(p.qty) }}</td>
                     <td class="pr-3 text-right text-gray-400">entrada {{ fmt(p.entry) }}</td>
                     <td class="pr-3 text-right text-gray-400">mark {{ fmt(p.mark) }}</td>
@@ -251,22 +251,22 @@
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-left">
-                <th class="py-1.5 pr-3">Hora</th><th class="pr-3">Ativo</th><th class="pr-3">Lado</th>
-                <th class="pr-3 text-right">Qtd</th><th class="pr-3 text-right">Preço</th>
-                <th class="pr-3 text-right">Mid chegada</th><th class="pr-3 text-right">Slippage</th>
-                <th class="pr-3 text-right">Fee</th><th class="pr-3 text-right">Latência</th>
+                <th scope="col" class="py-1.5 pr-3">Hora</th><th scope="col" class="pr-3">Ativo</th><th scope="col" class="pr-3">Lado</th>
+                <th scope="col" class="pr-3 text-right">Qtd</th><th scope="col" class="pr-3 text-right">Preço</th>
+                <th scope="col" class="pr-3 text-right">Mid chegada</th><th scope="col" class="pr-3 text-right">Slippage</th>
+                <th scope="col" class="pr-3 text-right">Fee</th><th scope="col" class="pr-3 text-right">Latência</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="f in blot?.fills || []" :key="f.id" class="border-t border-surface-600/30">
                 <td class="py-1.5 pr-3 text-gray-400">{{ tsFmt(f.ts) }}</td>
                 <td class="pr-3 text-gray-200">{{ f.symbol }}</td>
-                <td class="pr-3" :class="f.side === 'buy' ? 'text-green-400' : 'text-red-400'">
+                <td class="pr-3" :class="f.side === 'buy' ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ f.side === 'buy' ? 'COMPRA' : 'VENDA' }}</td>
                 <td class="pr-3 text-right text-gray-300">{{ fmtQty(f.qty) }}</td>
                 <td class="pr-3 text-right text-gray-200">{{ fmt(f.price) }}</td>
                 <td class="pr-3 text-right text-gray-400">{{ fmt(f.arrival_mid) }}</td>
-                <td class="pr-3 text-right" :class="(f.slippage_bps || 0) > 5 ? 'text-red-400' : 'text-gray-300'">
+                <td class="pr-3 text-right" :class="(f.slippage_bps || 0) > 5 ? 'text-accent-red-light' : 'text-gray-300'">
                   {{ f.slippage_bps != null ? f.slippage_bps.toFixed(2) + ' bps' : '—' }}</td>
                 <td class="pr-3 text-right text-gray-400">{{ fmtUsd(f.fee) }}</td>
                 <td class="pr-3 text-right text-gray-500">{{ f.latency_ms }} ms</td>
@@ -341,15 +341,15 @@
                   <tr v-for="f in tcaD.worst_fills" :key="f.id" class="border-t border-surface-600/30">
                     <td class="py-1.5 pr-3 text-gray-400">{{ tsFmt(f.ts) }}</td>
                     <td class="pr-3 text-gray-200">{{ f.symbol }}</td>
-                    <td class="pr-3" :class="f.side === 'buy' ? 'text-green-400' : 'text-red-400'">
+                    <td class="pr-3" :class="f.side === 'buy' ? 'text-accent-yellow' : 'text-accent-red-light'">
                       {{ f.side === 'buy' ? 'COMPRA' : 'VENDA' }}</td>
                     <td class="pr-3 text-right text-gray-300">{{ fmtQty(f.qty) }} @ {{ fmt(f.price) }}</td>
-                    <td class="pr-3 text-right text-red-400">{{ bps(f.slippage_bps) }}</td>
+                    <td class="pr-3 text-right text-accent-red-light">{{ bps(f.slippage_bps) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <p v-if="tcaD.note" class="text-[11px] text-amber-400/80">⚠ {{ tcaD.note }}</p>
+            <p v-if="tcaD.note" class="text-[11px] text-accent-brass/80">⚠ {{ tcaD.note }}</p>
           </template>
         </div>
       </div>
@@ -358,6 +358,7 @@
 </template>
 
 <script setup>
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import { ref, computed, onMounted, onBeforeUnmount, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import {
@@ -497,14 +498,14 @@ function statusLabel(s) {
 }
 function statusClass(s) {
   return { working: 'bg-blue-900/50 text-blue-300',
-           partial: 'bg-amber-900/50 text-amber-300',
-           filled: 'bg-green-900/50 text-green-300',
+           partial: 'bg-accent-brass/15 text-accent-brass',
+           filled: 'bg-accent-yellow/10 text-accent-yellow',
            cancelled: 'bg-surface-600 text-gray-400',
-           rejected: 'bg-red-900/50 text-red-300' }[s] || 'bg-surface-600 text-gray-400'
+           rejected: 'bg-accent-red/15 text-accent-red-light' }[s] || 'bg-surface-600 text-gray-400'
 }
 function pnlClass(v) {
   if (v == null || Math.abs(v) < 1e-9) return 'text-gray-300'
-  return v > 0 ? 'text-green-400' : 'text-red-400'
+  return v > 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function fmt(v) {
   if (v == null) return '—'
@@ -539,7 +540,7 @@ onMounted(async () => {
     if (String(route.query.market || '') === 'tradfi') ticket.market = 'tradfi'
   }
   await refresh()
-  timer = setInterval(refresh, 5000)
+  timer = setInterval(quandoVisivel(refresh), 5000)
 })
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>

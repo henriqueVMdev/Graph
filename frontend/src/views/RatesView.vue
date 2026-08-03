@@ -7,7 +7,7 @@
       <button @click="load" class="btn-secondary !py-1.5 text-xs">↻ Atualizar</button>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <div v-if="loading" class="flex flex-col items-center py-16">
       <div class="dollar-loader mb-3">$</div>
@@ -20,13 +20,13 @@
         <div v-for="p in d.points" :key="p.label" class="metric-card">
           <span class="metric-label">Treasury {{ p.label }}</span>
           <span class="metric-value text-gray-200">{{ p.now?.toFixed(2) }}%</span>
-          <span class="text-[11px] font-mono" :class="delta(p) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+          <span class="text-[11px] font-mono" :class="delta(p) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ delta(p) >= 0 ? '+' : '' }}{{ delta(p).toFixed(0) }} bps 1m
           </span>
         </div>
         <div class="metric-card">
           <span class="metric-label">VIX</span>
-          <span class="metric-value" :class="(d.vix ?? 0) > 25 ? 'text-red-400' : 'text-gray-200'">
+          <span class="metric-value" :class="(d.vix ?? 0) > 25 ? 'text-accent-red-light' : 'text-gray-200'">
             {{ d.vix?.toFixed(2) ?? '—' }}</span>
         </div>
       </div>
@@ -49,14 +49,14 @@
             <div class="space-y-2 text-sm font-mono">
               <div class="flex justify-between">
                 <span class="text-gray-400">10a − 2a</span>
-                <span :class="(d.spread_10y2y ?? 0) < 0 ? 'text-red-400 font-bold' : 'text-gray-200'">
+                <span :class="(d.spread_10y2y ?? 0) < 0 ? 'text-accent-red-light font-bold' : 'text-gray-200'">
                   {{ d.spread_10y2y != null ? d.spread_10y2y.toFixed(2) + ' pp' : '—' }}
                   {{ (d.spread_10y2y ?? 0) < 0 ? '· INVERTIDA' : '' }}
                 </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-400">10a − 3m</span>
-                <span :class="(d.spread_10y3m ?? 0) < 0 ? 'text-red-400 font-bold' : 'text-gray-200'">
+                <span :class="(d.spread_10y3m ?? 0) < 0 ? 'text-accent-red-light font-bold' : 'text-gray-200'">
                   {{ d.spread_10y3m != null ? d.spread_10y3m.toFixed(2) + ' pp' : '—' }}
                   {{ (d.spread_10y3m ?? 0) < 0 ? '· INVERTIDA' : '' }}
                 </span>
@@ -70,7 +70,7 @@
               <span class="text-accent-yellow">◆</span> Spreads de crédito
               <span class="text-[11px] font-mono px-1 py-0.5 rounded ml-1"
                     :class="credit?.source === 'fred'
-                      ? 'bg-green-900/40 text-green-300' : 'bg-amber-900/40 text-amber-300'">
+                      ? 'bg-accent-yellow/10 text-accent-yellow' : 'bg-accent-brass/15 text-accent-brass'">
                 {{ credit?.source === 'fred' ? 'FRED (OAS oficial)' : 'proxy via ETFs' }}
               </span>
             </h2>
@@ -104,6 +104,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { getRates } from '@/api/client.js'
 import { purgeChart } from '@/composables/useCharts.js'
@@ -146,7 +149,7 @@ async function load() {
 }
 
 async function render() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   const pts = d.value?.points || []
   if (curveChart.value && pts.length) {
@@ -160,11 +163,11 @@ async function render() {
       mk('m1', '1 mês atrás', '#8899aa', 'dot'),
       mk('y1', '1 ano atrás', '#556677', 'dash'),
     ], {
-      template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+      template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
       font: { color: '#d0d0d0', size: 11 }, height: 300,
       margin: { t: 10, r: 10, b: 40, l: 45 },
-      xaxis: { title: 'Vencimento', gridcolor: '#1e1e1e' },
-      yaxis: { title: 'Yield (%)', gridcolor: '#1e1e1e' },
+      xaxis: { title: 'Vencimento', gridcolor: TEMA.grade },
+      yaxis: { title: 'Yield (%)', gridcolor: TEMA.grade },
       legend: { orientation: 'h', y: 1.12 },
     }, { responsive: true, displaylogo: false, displayModeBar: false })
   }
@@ -176,11 +179,11 @@ async function render() {
       { type: 'scatter', mode: 'lines', x: c.ig.dates, y: c.ig.values,
         name: 'IG OAS', line: { color: '#f5c518', width: 1.5 } },
     ], {
-      template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+      template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
       font: { color: '#d0d0d0', size: 11 }, height: 260,
       margin: { t: 10, r: 10, b: 40, l: 45 },
-      xaxis: { type: 'date', gridcolor: '#1e1e1e' },
-      yaxis: { title: 'Spread (pp)', gridcolor: '#1e1e1e' },
+      xaxis: { type: 'date', gridcolor: TEMA.grade },
+      yaxis: { title: 'Spread (pp)', gridcolor: TEMA.grade },
       legend: { orientation: 'h', y: 1.15 },
     }, { responsive: true, displaylogo: false, displayModeBar: false })
   }

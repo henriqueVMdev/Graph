@@ -20,12 +20,12 @@
         <span class="flex items-center gap-1.5">
           {{ d.symbol }} · {{ d.interval }} ·
           <span v-if="d.mode === 'real'"
-                class="text-[11px] px-1.5 py-px rounded bg-red-500/15 text-red-400 font-semibold">
+                class="text-[11px] px-1.5 py-px rounded bg-accent-red/15 text-accent-red-light font-semibold">
             REAL · {{ d.account }}
           </span>
           <template v-else>{{ d.mode }}</template>
         </span>
-        <span :class="(d.return_pct ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+        <span :class="(d.return_pct ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
           {{ d.return_pct != null ? (d.return_pct >= 0 ? '+' : '') + d.return_pct + '%' : '—' }}
         </span>
       </div>
@@ -33,7 +33,7 @@
         <span class="w-1.5 h-1.5 rounded-full bg-accent-yellow animate-pulse" />
         <span class="text-[11px] text-accent-yellow/80">posição aberta</span>
       </div>
-      <div v-if="d.error" class="mt-1 text-[11px] text-red-400 truncate">{{ d.error }}</div>
+      <div v-if="d.error" class="mt-1 text-[11px] text-accent-red-light truncate">{{ d.error }}</div>
     </div>
 
     <div v-if="!store.deployments.length" class="text-xs text-gray-500 text-center py-6">
@@ -50,7 +50,7 @@ const store = useAutomationStore()
 
 function badgeClass(d) {
   if (d.status === 'running') return 'bg-accent-yellow/15 text-accent-yellow'
-  if (d.status === 'error') return 'bg-red-500/15 text-red-400'
+  if (d.status === 'error') return 'bg-accent-red/15 text-accent-red-light'
   if (d.status === 'stopped') return 'bg-surface-500 text-gray-400'
   return 'bg-surface-500 text-gray-400'
 }

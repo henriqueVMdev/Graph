@@ -96,7 +96,7 @@
       </svg>
       <span v-if="terminal.unseenTriggered.length" aria-hidden="true"
             class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full
-                   bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
+                   bg-accent-red text-white text-[11px] font-bold flex items-center justify-center">
         {{ terminal.unseenTriggered.length }}
       </span>
     </RouterLink>
@@ -122,6 +122,7 @@
 </template>
 
 <script setup>
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDashboardStore } from '@/stores/dashboard.js'
@@ -264,7 +265,7 @@ function tick() {
 
 onMounted(() => {
   tick()
-  clockTimer = setInterval(tick, 1000)
+  clockTimer = setInterval(quandoVisivel(tick), 1000)
   terminal.startAlertsPolling()      // badge do sino em qualquer página
   window.addEventListener('click', onClickOutside)
   window.addEventListener('keydown', onKeydown)

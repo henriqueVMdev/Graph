@@ -31,6 +31,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { purgeChart } from '@/composables/useCharts.js'
 
@@ -47,7 +50,7 @@ let Plotly = null
 
 async function render() {
   if (!chartEl.value || !props.equityCurve) return
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
 
   const traces = []
 
@@ -100,23 +103,23 @@ async function render() {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
     height: 450,
     autosize: true,
     margin: { t: 20, r: 20, b: 50, l: 70 },
     xaxis: {
       title: 'Data',
-      gridcolor: '#1e1e1e',
-      linecolor: '#2a2a2a',
+      gridcolor: TEMA.grade,
+      linecolor: TEMA.eixo,
       tickfont: { color: '#707070' },
       ...(xRange ? { range: xRange } : {}),
     },
     yaxis: {
       title: 'Capital ($)',
-      gridcolor: '#1e1e1e',
-      linecolor: '#2a2a2a',
+      gridcolor: TEMA.grade,
+      linecolor: TEMA.eixo,
       tickprefix: '$',
       tickfont: { color: '#707070' },
     },

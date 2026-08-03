@@ -178,7 +178,7 @@
         <template v-if="store.params.cycle_filter">
           <div class="mt-3 space-y-2">
             <div>
-              <p class="text-[11px] text-green-400 font-semibold mb-1">LONG</p>
+              <p class="text-[11px] text-accent-yellow font-semibold mb-1">LONG</p>
               <div class="grid grid-cols-6 gap-1">
                 <button
                   v-for="m in months"
@@ -186,13 +186,13 @@
                   @click="toggleMonth('cycle_long_months', m.n)"
                   class="py-1 text-[11px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_long_months', m.n)
-                    ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                    ? 'bg-accent-yellow/30 text-accent-yellow border border-accent-yellow/50'
                     : 'bg-surface-600 text-gray-400 border border-surface-500'"
                 >{{ m.label }}</button>
               </div>
             </div>
             <div>
-              <p class="text-[11px] text-red-400 font-semibold mb-1">SHORT</p>
+              <p class="text-[11px] text-accent-red-light font-semibold mb-1">SHORT</p>
               <div class="grid grid-cols-6 gap-1">
                 <button
                   v-for="m in months"
@@ -200,7 +200,7 @@
                   @click="toggleMonth('cycle_short_months', m.n)"
                   class="py-1 text-[11px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_short_months', m.n)
-                    ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                    ? 'bg-accent-red/30 text-accent-red-light border border-accent-red/50'
                     : 'bg-surface-600 text-gray-400 border border-surface-500'"
                 >{{ m.label }}</button>
               </div>

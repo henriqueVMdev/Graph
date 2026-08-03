@@ -94,7 +94,7 @@
             Retorno anual. OOS
             <span class="metric-help" title="Retorno anualizado medio das janelas Out-of-Sample. Representa o desempenho real da estrategia em dados que nao foram usados na otimizacao.">?</span>
           </div>
-          <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_annualized ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
+          <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_annualized ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtPct(store.wfaResults.avg_oos_annualized) }}
           </div>
         </div>
@@ -117,12 +117,12 @@
       <!-- Líquido: fees + funding reais da corretora aplicados ao OOS -->
       <div v-if="store.wfaResults.costs_applied" class="flex flex-wrap items-center gap-3">
         <!-- Custo total descontado (fees + funding) em destaque -->
-        <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-36 border border-red-500/40">
+        <div class="bg-surface-800 rounded-xl px-5 py-3 text-center min-w-36 border border-accent-red/40">
           <div class="text-xs text-gray-400 mb-0.5">
             Custo total descontado
             <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
           </div>
-          <div class="text-2xl font-bold text-red-400">-{{ fmtUsd(totalCostSpent) }}</div>
+          <div class="text-2xl font-bold text-accent-red-light">-{{ fmtUsd(totalCostSpent) }}</div>
           <div class="text-[11px] text-gray-500 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
@@ -130,7 +130,7 @@
             Retorno OOS líquido
             <span class="metric-help" title="Retorno medio das janelas Out-of-Sample apos descontar fees (maker/taker) e funding reais da corretora. Este e o resultado liquido esperado do forward test.">?</span>
           </div>
-          <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
+          <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtPct(store.wfaResults.avg_oos_net_return) }}
           </div>
           <div class="text-[11px] text-gray-500 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
@@ -140,7 +140,7 @@
             Fees pagos (OOS)
             <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
           </div>
-          <div class="text-sm font-semibold text-red-400">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
+          <div class="text-sm font-semibold text-accent-red-light">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
           <div class="text-[11px] text-gray-500 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
@@ -148,7 +148,7 @@
             Funding total (OOS)
             <span class="metric-help" title="Soma do funding pago/recebido nas janelas OOS. Positivo = a estrategia recebeu funding; negativo = pagou.">?</span>
           </div>
-          <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
+          <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ fmtUsd(store.wfaResults.total_oos_funding) }}
           </div>
           <div class="text-[11px] text-gray-500 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
@@ -156,7 +156,7 @@
       </div>
 
       <!-- Avisos de custo (ex.: funding indisponivel na rede) -->
-      <div v-if="store.wfaResults.cost_warnings?.length" class="text-xs text-amber-300 bg-amber-900/20 rounded-lg p-2 border border-amber-800/50">
+      <div v-if="store.wfaResults.cost_warnings?.length" class="text-xs text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50">
         <div v-for="(w, i) in store.wfaResults.cost_warnings" :key="i">⚠ {{ w }}</div>
       </div>
 
@@ -222,7 +222,7 @@
     </div>
 
     <!-- Error -->
-    <div v-else-if="store.wfaError" class="text-sm text-red-400 bg-red-900/20 rounded-lg p-3 border border-red-800">
+    <div v-else-if="store.wfaError" class="text-sm text-accent-red-light bg-accent-red/15 rounded-lg p-3 border border-accent-red/40">
       {{ store.wfaError }}
     </div>
 
@@ -234,9 +234,13 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
 import { purgeChart } from '@/composables/useCharts.js'
+import { maxOf, minOf } from '@/utils.js'
 
 // Reutilizavel: por padrao usa o store de backtest, mas aceita outro store
 // (ex.: prop challenge) que exponha wfaResults/wfaLoading/wfaError.
@@ -286,12 +290,12 @@ let Plotly = null
 
 const BASE_LAYOUT = {
   template: 'plotly_dark',
-  paper_bgcolor: '#000000',
-  plot_bgcolor: '#080808',
+  paper_bgcolor: TEMA.fundoPapel,
+  plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
   margin: { t: 20, r: 20, b: 50, l: 75 },
-  xaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
-  yaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
+  xaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
+  yaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
   hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
   legend: { bgcolor: 'transparent', font: { size: 11, color: '#a0a0a0' } },
 }
@@ -336,10 +340,10 @@ const costDragPct = computed(() => {
 
 const wfeColor = computed(() => {
   const s = store.wfaResults?.wfe ?? 0
-  if (s >= 0.7) return 'text-green-400'
+  if (s >= 0.7) return 'text-accent-yellow'
   if (s >= 0.5) return 'text-accent-yellow'
   if (s >= 0.3) return 'text-orange-400'
-  return 'text-red-400'
+  return 'text-accent-red-light'
 })
 
 const wfeLabel = computed(() => {
@@ -400,8 +404,8 @@ function renderSharpeScatter() {
   })
 
   const allVals = [...isSh, ...oosSh].filter(isFinite)
-  const lo = Math.min(...allVals, 0) - 0.3
-  const hi = Math.max(...allVals, 1) + 0.3
+  const lo = minOf(allVals, 0) - 0.3
+  const hi = maxOf(allVals, 1) + 0.3
 
   const diagTrace = {
     type: 'scatter', mode: 'lines', name: 'Linha 45°',
@@ -427,8 +431,8 @@ function renderSharpeScatter() {
 
   Plotly.react(sharpeScatterChart.value, [diagTrace, scatterTrace], {
     ...BASE_LAYOUT, height: 360,
-    xaxis: { ...BASE_LAYOUT.xaxis, title: 'Sharpe IS', range: [lo, hi], zeroline: true, zerolinecolor: '#222' },
-    yaxis: { ...BASE_LAYOUT.yaxis, title: 'Sharpe OOS', range: [lo, hi], zeroline: true, zerolinecolor: '#222' },
+    xaxis: { ...BASE_LAYOUT.xaxis, title: 'Sharpe IS', range: [lo, hi], zeroline: true, zerolinecolor: TEMA.linhaZero },
+    yaxis: { ...BASE_LAYOUT.yaxis, title: 'Sharpe OOS', range: [lo, hi], zeroline: true, zerolinecolor: TEMA.linhaZero },
     annotations: [{
       xref: 'paper', yref: 'paper', x: 0.98, y: 0.02,
       text: 'Pontos acima da linha = boa generalizacao',
@@ -461,7 +465,7 @@ function renderComparison() {
       },
     ], {
       ...BASE_LAYOUT, height: 300, barmode: 'group',
-      yaxis: { ...BASE_LAYOUT.yaxis, title: 'Retorno OOS (%)', zeroline: true, zerolinecolor: '#333' },
+      yaxis: { ...BASE_LAYOUT.yaxis, title: 'Retorno OOS (%)', zeroline: true, zerolinecolor: TEMA.linhaZero },
       xaxis: { ...BASE_LAYOUT.xaxis, title: 'Janela' },
     }, PLOT_CFG)
     return
@@ -491,7 +495,7 @@ function renderComparison() {
     },
   ], {
     ...BASE_LAYOUT, height: 300, barmode: 'group',
-    yaxis: { ...BASE_LAYOUT.yaxis, title: yTitle, zeroline: true, zerolinecolor: '#333' },
+    yaxis: { ...BASE_LAYOUT.yaxis, title: yTitle, zeroline: true, zerolinecolor: TEMA.linhaZero },
     xaxis: { ...BASE_LAYOUT.xaxis, title: 'Janela' },
   }, PLOT_CFG)
 }
@@ -579,8 +583,8 @@ function renderParamHeatmap() {
     windowsWithParams.map(w => w.optimal_params[pk] ?? 0)
   )
   const zNorm = zRaw.map(row => {
-    const mn = Math.min(...row)
-    const mx = Math.max(...row)
+    const mn = minOf(row)
+    const mx = maxOf(row)
     return mx > mn ? row.map(v => (v - mn) / (mx - mn)) : row.map(() => 0.5)
   })
 
@@ -618,7 +622,7 @@ function renderParamHeatmap() {
 // ── Render all ────────────────────────────────────────────────────────────
 
 async function renderAll() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   renderOosEquity()
   renderSharpeScatter()

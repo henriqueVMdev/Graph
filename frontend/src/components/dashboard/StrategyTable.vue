@@ -65,7 +65,7 @@
       <table class="w-full text-xs">
         <thead>
           <tr class="bg-surface-600 text-gray-400 text-left">
-            <th
+            <th scope="col"
               v-for="col in columns"
               :key="col.key"
               class="px-3 py-2 font-medium whitespace-nowrap select-none cursor-pointer hover:text-gray-200 transition-colors"

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import {
   getWatch, getSpark, getScreener, getDes,
   getAlerts, createAlert, deleteAlert, getNews,
@@ -69,7 +70,7 @@ export const useTerminalStore = defineStore('terminal', () => {
     stopWatchPolling()
     fetchWatch()
     watchlist.value.forEach((w) => fetchSpark(w.s, w.m))
-    watchTimer = setInterval(fetchWatch, 5000)
+    watchTimer = setInterval(quandoVisivel(fetchWatch), 5000)
   }
 
   function stopWatchPolling() {
@@ -105,7 +106,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   function startScreenerPolling() {
     stopScreenerPolling()
     fetchScreener()
-    screenerTimer = setInterval(fetchScreener, 60000)
+    screenerTimer = setInterval(quandoVisivel(fetchScreener), 60000)
   }
 
   function stopScreenerPolling() {

@@ -73,22 +73,22 @@
                 <span class="text-gray-500">méd ·</span>
                 <span class="text-gray-200">{{ store.results.risk_sizing.max_leverage }}x</span>
                 <span class="text-gray-500">máx</span>
-                <span v-if="store.results.risk_sizing.pct_capped > 0" class="text-amber-400">
+                <span v-if="store.results.risk_sizing.pct_capped > 0" class="text-accent-brass">
                   ({{ store.results.risk_sizing.pct_capped }}% no teto)</span>
               </span>
               <span class="text-gray-400">PnL/trade:
-                <span :class="store.results.risk_sizing.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_gross_pnl }}%</span>
+                <span :class="store.results.risk_sizing.avg_gross_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ store.results.risk_sizing.avg_gross_pnl }}%</span>
                 <span class="text-gray-500">→</span>
-                <span :class="store.results.risk_sizing.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.risk_sizing.avg_net_pnl }}%</span>
+                <span :class="store.results.risk_sizing.avg_net_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ store.results.risk_sizing.avg_net_pnl }}%</span>
               </span>
               <span class="text-gray-400">Drag: fees
-                <span class="text-red-400">-{{ store.results.risk_sizing.avg_fee_drag_pct }}%</span>
+                <span class="text-accent-red-light">-{{ store.results.risk_sizing.avg_fee_drag_pct }}%</span>
                 · funding
-                <span :class="store.results.risk_sizing.avg_funding_drag_pct <= 0 ? 'text-green-400' : 'text-red-400'">-{{ store.results.risk_sizing.avg_funding_drag_pct }}%</span>
+                <span :class="store.results.risk_sizing.avg_funding_drag_pct <= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">-{{ store.results.risk_sizing.avg_funding_drag_pct }}%</span>
               </span>
             </div>
           </div>
-          <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-amber-300">
+          <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-accent-brass">
             ⚠ {{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
           </div>
           <p class="mt-1 text-[11px] text-gray-500">{{ store.results.risk_sizing.note }}</p>
@@ -105,17 +105,17 @@
             </span>
             <div class="flex flex-wrap items-center gap-4 font-mono">
               <span class="text-gray-400">PnL/trade:
-                <span :class="store.results.costs.avg_gross_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_gross_pnl }}%</span>
+                <span :class="store.results.costs.avg_gross_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ store.results.costs.avg_gross_pnl }}%</span>
                 <span class="text-gray-500">→</span>
-                <span :class="store.results.costs.avg_net_pnl >= 0 ? 'text-green-400' : 'text-red-400'">{{ store.results.costs.avg_net_pnl }}%</span>
+                <span :class="store.results.costs.avg_net_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ store.results.costs.avg_net_pnl }}%</span>
               </span>
-              <span class="text-gray-400">Fees: <span class="text-red-400">-${{ store.results.costs.total_fees.toLocaleString() }}</span></span>
+              <span class="text-gray-400">Fees: <span class="text-accent-red-light">-${{ store.results.costs.total_fees.toLocaleString() }}</span></span>
               <span class="text-gray-400">Funding:
-                <span :class="store.results.costs.total_funding >= 0 ? 'text-green-400' : 'text-red-400'">${{ store.results.costs.total_funding.toLocaleString() }}</span>
+                <span :class="store.results.costs.total_funding >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">${{ store.results.costs.total_funding.toLocaleString() }}</span>
               </span>
             </div>
           </div>
-          <div v-if="store.results.costs.warnings?.length" class="mt-2 text-[11px] text-amber-300">
+          <div v-if="store.results.costs.warnings?.length" class="mt-2 text-[11px] text-accent-brass">
             <div v-for="(w, i) in store.results.costs.warnings" :key="i">⚠ {{ w }}</div>
           </div>
         </div>
@@ -151,11 +151,11 @@
             <div class="space-y-2">
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Meta</span>
-                <span class="text-green-400 font-mono">+{{ store.results.phase1.target_pct }}%</span>
+                <span class="text-accent-yellow font-mono">+{{ store.results.phase1.target_pct }}%</span>
               </div>
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Taxa de Aprovacao</span>
-                <span class="font-mono font-bold" :class="store.results.phase1.pass_rate >= 50 ? 'text-green-400' : 'text-red-400'">
+                <span class="font-mono font-bold" :class="store.results.phase1.pass_rate >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ store.results.phase1.pass_rate }}%
                 </span>
               </div>
@@ -191,11 +191,11 @@
             <div class="space-y-2">
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Meta</span>
-                <span class="text-green-400 font-mono">+{{ store.results.phase2.target_pct }}%</span>
+                <span class="text-accent-yellow font-mono">+{{ store.results.phase2.target_pct }}%</span>
               </div>
               <div class="flex justify-between text-xs">
                 <span class="text-gray-400">Taxa de Aprovacao (dos que passaram F1)</span>
-                <span class="font-mono font-bold" :class="store.results.phase2.pass_rate >= 50 ? 'text-green-400' : 'text-red-400'">
+                <span class="font-mono font-bold" :class="store.results.phase2.pass_rate >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ store.results.phase2.pass_rate }}%
                 </span>
               </div>
@@ -232,21 +232,21 @@
               <span class="metric-label">Trades</span>
             </div>
             <div class="metric-card">
-              <span class="metric-value text-lg" :class="store.results.trade_stats.win_rate >= 50 ? 'text-green-400' : 'text-red-400'">
+              <span class="metric-value text-lg" :class="store.results.trade_stats.win_rate >= 50 ? 'text-accent-yellow' : 'text-accent-red-light'">
                 {{ store.results.trade_stats.win_rate }}%
               </span>
               <span class="metric-label">Win Rate</span>
             </div>
             <div class="metric-card">
-              <span class="metric-value text-lg text-green-400">{{ store.results.trade_stats.avg_win.toFixed(2) }}%</span>
+              <span class="metric-value text-lg text-accent-yellow">{{ store.results.trade_stats.avg_win.toFixed(2) }}%</span>
               <span class="metric-label">Media Win</span>
             </div>
             <div class="metric-card">
-              <span class="metric-value text-lg text-red-400">{{ store.results.trade_stats.avg_loss.toFixed(2) }}%</span>
+              <span class="metric-value text-lg text-accent-red-light">{{ store.results.trade_stats.avg_loss.toFixed(2) }}%</span>
               <span class="metric-label">Media Loss</span>
             </div>
             <div class="metric-card">
-              <span class="metric-value text-lg" :class="store.results.trade_stats.avg_pnl >= 0 ? 'text-green-400' : 'text-red-400'">
+              <span class="metric-value text-lg" :class="store.results.trade_stats.avg_pnl >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
                 {{ store.results.trade_stats.avg_pnl.toFixed(4) }}%
               </span>
               <span class="metric-label">Media P&L</span>
@@ -293,6 +293,7 @@ const store = usePropChallengeStore()
 import { useRouter } from 'vue-router'
 import { useAutomationStore } from '@/stores/automation.js'
 import WorkspaceShell from '@/components/layout/WorkspaceShell.vue'
+import { maxOf } from '@/utils.js'
 const router = useRouter()
 const autoStore = useAutomationStore()
 
@@ -332,9 +333,9 @@ function formatDays(days) {
 const overallColor = computed(() => {
   if (!store.results) return 'text-gray-400'
   const rate = store.results.overall.pass_rate
-  if (rate >= 60) return 'text-green-400'
+  if (rate >= 60) return 'text-accent-yellow'
   if (rate >= 30) return 'text-accent-yellow'
-  return 'text-red-400'
+  return 'text-accent-red-light'
 })
 
 const plotLayout = {
@@ -383,7 +384,7 @@ async function drawChart(el, curves, accountSize, targetPct) {
   }
 
   // Linha de meta
-  const maxLen = Math.max(...curves.map(c => c.length))
+  const maxLen = maxOf(curves.map(c => c.length))
   traces.push({
     x: [0, maxLen],
     y: [accountSize * (1 + targetPct), accountSize * (1 + targetPct)],

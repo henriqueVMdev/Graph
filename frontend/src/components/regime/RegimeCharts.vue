@@ -23,15 +23,15 @@
         <table class="w-full text-xs">
           <thead>
             <tr class="bg-surface-600 text-gray-400 text-left">
-              <th class="px-3 py-2 font-medium">Regime</th>
-              <th class="px-3 py-2 font-medium">% Tempo</th>
-              <th class="px-3 py-2 font-medium">Barras</th>
-              <th class="px-3 py-2 font-medium">Retorno Total</th>
-              <th class="px-3 py-2 font-medium">Ret. Anual.</th>
-              <th class="px-3 py-2 font-medium">Sharpe</th>
-              <th class="px-3 py-2 font-medium">Max DD</th>
-              <th class="px-3 py-2 font-medium">Win Rate</th>
-              <th class="px-3 py-2 font-medium">Volatilidade</th>
+              <th scope="col" class="px-3 py-2 font-medium">Regime</th>
+              <th scope="col" class="px-3 py-2 font-medium">% Tempo</th>
+              <th scope="col" class="px-3 py-2 font-medium">Barras</th>
+              <th scope="col" class="px-3 py-2 font-medium">Retorno Total</th>
+              <th scope="col" class="px-3 py-2 font-medium">Ret. Anual.</th>
+              <th scope="col" class="px-3 py-2 font-medium">Sharpe</th>
+              <th scope="col" class="px-3 py-2 font-medium">Max DD</th>
+              <th scope="col" class="px-3 py-2 font-medium">Win Rate</th>
+              <th scope="col" class="px-3 py-2 font-medium">Volatilidade</th>
             </tr>
           </thead>
           <tbody>
@@ -48,14 +48,14 @@
               </td>
               <td class="px-3 py-2 text-gray-300">{{ metrics.pct_time }}%</td>
               <td class="px-3 py-2 text-gray-300">{{ metrics.count_bars }}</td>
-              <td class="px-3 py-2" :class="metrics.total_return >= 0 ? 'text-green-400' : 'text-red-400'">
+              <td class="px-3 py-2" :class="metrics.total_return >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
                 {{ fmtPct(metrics.total_return) }}
               </td>
-              <td class="px-3 py-2" :class="metrics.annualized_return >= 0 ? 'text-green-400' : 'text-red-400'">
+              <td class="px-3 py-2" :class="metrics.annualized_return >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
                 {{ fmtPct(metrics.annualized_return) }}
               </td>
               <td class="px-3 py-2 text-gray-300 font-mono">{{ metrics.sharpe }}</td>
-              <td class="px-3 py-2 text-red-400">{{ fmtPct(metrics.max_drawdown) }}</td>
+              <td class="px-3 py-2 text-accent-red-light">{{ fmtPct(metrics.max_drawdown) }}</td>
               <td class="px-3 py-2 text-gray-300">{{ metrics.win_rate }}%</td>
               <td class="px-3 py-2 text-gray-300">{{ fmtPct(metrics.volatility) }}</td>
             </tr>
@@ -100,6 +100,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRegimeStore } from '@/stores/regime.js'
 import { purgeChart } from '@/composables/useCharts.js'
@@ -150,12 +153,12 @@ function fmtPct(v) {
 
 const BASE_LAYOUT = {
   template: 'plotly_dark',
-  paper_bgcolor: '#000000',
-  plot_bgcolor: '#080808',
+  paper_bgcolor: TEMA.fundoPapel,
+  plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
   margin: { t: 20, r: 20, b: 50, l: 75 },
-  xaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
-  yaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', tickfont: { color: '#707070' } },
+  xaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
+  yaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, tickfont: { color: '#707070' } },
   hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
   legend: { bgcolor: 'transparent', font: { size: 11, color: '#a0a0a0' } },
 }
@@ -301,7 +304,7 @@ function renderRollingChart() {
 // ── Render all ────────────────────────────────────────────────────────────
 
 async function renderAll() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   renderPriceChart()
   renderTransitionChart()

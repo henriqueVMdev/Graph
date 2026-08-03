@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import {
   getDeployments, createDeployment, startDeployment, stopDeployment,
   deleteDeployment, getDeploymentStatus, getRunnerStatus, getStrategies,
@@ -130,11 +131,11 @@ export const useAutomationStore = defineStore('automation', () => {
     fetchRunner()
     fetchStatus()
     fetchAccounts()
-    pollTimer = setInterval(() => {
+    pollTimer = setInterval(quandoVisivel(() => {
       fetchDeployments()
       fetchRunner()
       if (selectedId.value) fetchStatus()
-    }, 3000)
+    }), 3000)
   }
 
   function stopPolling() {

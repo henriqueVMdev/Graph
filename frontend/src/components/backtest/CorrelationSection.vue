@@ -46,7 +46,7 @@
           <button
             v-if="si >= 2"
             @click="removeSlot(si)"
-            class="text-gray-500 hover:text-red-400 transition-colors text-base leading-none mt-1"
+            class="text-gray-500 hover:text-accent-red-light transition-colors text-base leading-none mt-1"
             title="Remover"
           >×</button>
 
@@ -216,32 +216,32 @@
             <table class="w-full text-xs">
               <thead>
                 <tr class="bg-surface-600 text-gray-400 text-left">
-                  <th class="px-3 py-2 font-medium">Ativo</th>
-                  <th class="px-3 py-2 font-medium">
+                  <th scope="col" class="px-3 py-2 font-medium">Ativo</th>
+                  <th scope="col" class="px-3 py-2 font-medium">
                     <span class="dist-info-wrap">Retorno Médio (%)
                       <span class="dist-info-icon">?</span>
                       <div class="dist-tooltip">Média dos retornos diários do ativo no período selecionado. Valores positivos indicam que o ativo subiu em média por dia; negativos indicam queda.</div>
                     </span>
                   </th>
-                  <th class="px-3 py-2 font-medium">
+                  <th scope="col" class="px-3 py-2 font-medium">
                     <span class="dist-info-wrap">Volatilidade (%)
                       <span class="dist-info-icon">?</span>
                       <div class="dist-tooltip">Desvio padrão dos retornos diários. Mede o quanto o preço oscila — quanto maior, mais arriscado e imprevisível é o ativo. Uma volatilidade alta pode significar tanto grandes ganhos quanto grandes perdas.</div>
                     </span>
                   </th>
-                  <th class="px-3 py-2 font-medium">
+                  <th scope="col" class="px-3 py-2 font-medium">
                     <span class="dist-info-wrap">Skewness
                       <span class="dist-info-icon">?</span>
                       <div class="dist-tooltip">Assimetria da distribuição dos retornos. Valor positivo (cauda à direita) indica que ganhos extremos são mais prováveis que perdas extremas. Valor negativo (cauda à esquerda) indica o contrário — o ativo tem tendência a quedas abruptas.</div>
                     </span>
                   </th>
-                  <th class="px-3 py-2 font-medium">
+                  <th scope="col" class="px-3 py-2 font-medium">
                     <span class="dist-info-wrap">Kurtosis
                       <span class="dist-info-icon">?</span>
                       <div class="dist-tooltip">Curtose da distribuição. Valores altos indicam "caudas pesadas" — eventos extremos (crashes ou ralis) ocorrem com mais frequência do que uma distribuição normal preveria. Kurtosis &gt; 3 é chamada de leptocúrtica e é comum em ativos financeiros.</div>
                     </span>
                   </th>
-                  <th class="px-3 py-2 font-medium">
+                  <th scope="col" class="px-3 py-2 font-medium">
                     <span class="dist-info-wrap">Sharpe (anual)
                       <span class="dist-info-icon">?</span>
                       <div class="dist-tooltip">Retorno anualizado dividido pela volatilidade anualizada. Mede o retorno obtido por unidade de risco. Sharpe &gt; 1 é considerado bom; &gt; 2 é excelente. Valores negativos indicam que o ativo perdeu dinheiro ajustado ao risco.</div>
@@ -283,8 +283,12 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, watch, computed } from 'vue'
 import { useBacktestStore } from '@/stores/backtest.js'
+import { maxOf, minOf } from '@/utils.js'
 
 const store = useBacktestStore()
 const tab = ref('corr')
@@ -396,7 +400,7 @@ function linReg(x, y) {
 
 async function renderCorrelation(data) {
   if (!corrEl.value || !data?.correlation) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
   const { labels, matrix } = data.correlation
 
   const trace = {
@@ -418,14 +422,14 @@ async function renderCorrelation(data) {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 },
     height: 420,
     autosize: true,
     margin: { t: 20, r: 20, b: 80, l: 80 },
-    xaxis: { side: 'bottom', tickangle: -30, gridcolor: '#1e1e1e' },
-    yaxis: { tickangle: 0, gridcolor: '#1e1e1e' },
+    xaxis: { side: 'bottom', tickangle: -30, gridcolor: TEMA.grade },
+    yaxis: { tickangle: 0, gridcolor: TEMA.grade },
   }
 
   await Plotly.react(corrEl.value, [trace], layout, { responsive: true, displaylogo: false })
@@ -441,7 +445,7 @@ async function renderScatter(data) {
   const yData = data.returns_aligned[b]
   if (!xData || !yData) return
 
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
 
   const labels = data.correlation.labels
   const idxA = labels.indexOf(a)
@@ -449,8 +453,8 @@ async function renderScatter(data) {
   const corrVal = idxA >= 0 && idxB >= 0 ? data.correlation.matrix[idxA][idxB] : null
 
   const { slope, intercept } = linReg(xData, yData)
-  const xMin = Math.min(...xData)
-  const xMax = Math.max(...xData)
+  const xMin = minOf(xData)
+  const xMax = maxOf(xData)
   const regX = [xMin, xMax]
   const regY = [slope * xMin + intercept, slope * xMax + intercept]
 
@@ -484,14 +488,14 @@ async function renderScatter(data) {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 },
     height: 420,
     autosize: true,
     margin: { t: 50, r: 20, b: 60, l: 60 },
-    xaxis: { title: `Retorno Diário — ${a} (%)`, gridcolor: '#1e1e1e', zeroline: true, zerolinecolor: '#2a2a2a', zerolinewidth: 1 },
-    yaxis: { title: `Retorno Diário — ${b} (%)`, gridcolor: '#1e1e1e', zeroline: true, zerolinecolor: '#2a2a2a', zerolinewidth: 1 },
+    xaxis: { title: `Retorno Diário — ${a} (%)`, gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.eixo, zerolinewidth: 1 },
+    yaxis: { title: `Retorno Diário — ${b} (%)`, gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.eixo, zerolinewidth: 1 },
     hovermode: 'closest',
     legend: { bgcolor: 'rgba(0,0,0,0.8)', bordercolor: '#2a2a2a' },
     hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#444', font: { color: '#e0e0e0' } },
@@ -518,7 +522,7 @@ async function renderCorrCoef(data) {
   const dates = data.dates ?? []
   if (!xData || !yData || xData.length < corrWindow.value) return
 
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
 
   const rolling = rollingCorr(xData, yData, corrWindow.value)
 
@@ -587,14 +591,14 @@ async function renderCorrCoef(data) {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 },
     height: 420,
     autosize: true,
     margin: { t: 30, r: 20, b: 60, l: 60 },
-    xaxis: { gridcolor: '#1e1e1e', type: 'category', nticks: 10, tickangle: -30 },
-    yaxis: { title: 'Coeficiente de Correlação', gridcolor: '#1e1e1e', range: [-1.05, 1.05],
+    xaxis: { gridcolor: TEMA.grade, type: 'category', nticks: 10, tickangle: -30 },
+    yaxis: { title: 'Coeficiente de Correlação', gridcolor: TEMA.grade, range: [-1.05, 1.05],
              tickvals: [-1, -0.5, 0, 0.5, 1] },
     hovermode: 'x unified',
     hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
@@ -608,7 +612,7 @@ async function renderCorrCoef(data) {
 
 async function renderDistribution(data) {
   if (!distEl.value || !data?.distributions) return
-  const Plotly = (await import('plotly.js-dist-min')).default
+  const Plotly = await getPlotly()
   const traces = []
 
   for (const [col, d] of Object.entries(data.distributions)) {
@@ -638,14 +642,14 @@ async function renderDistribution(data) {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 },
     height: 450,
     autosize: true,
     margin: { t: 20, r: 20, b: 60, l: 60 },
-    xaxis: { title: 'Retorno Diário (%)', gridcolor: '#1e1e1e' },
-    yaxis: { title: 'Densidade', gridcolor: '#1e1e1e' },
+    xaxis: { title: 'Retorno Diário (%)', gridcolor: TEMA.grade },
+    yaxis: { title: 'Densidade', gridcolor: TEMA.grade },
     barmode: 'overlay',
     hovermode: 'x unified',
     legend: { bgcolor: 'rgba(0,0,0,0.8)', bordercolor: '#2a2a2a' },

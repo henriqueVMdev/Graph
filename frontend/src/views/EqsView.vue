@@ -28,7 +28,7 @@
           </button>
           <button @click="clearFilters"
                   class="px-2 py-0.5 text-[11px] font-mono rounded border border-surface-600
-                         text-gray-500 hover:text-red-400 transition-colors">limpar</button>
+                         text-gray-500 hover:text-accent-red-light transition-colors">limpar</button>
         </div>
 
         <!-- país / setor / opções -->
@@ -95,7 +95,7 @@
         </details>
       </div>
 
-      <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+      <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
       <div v-if="loading" class="flex flex-col items-center py-16">
         <div class="dollar-loader mb-3">$</div>
@@ -110,15 +110,15 @@
         <table class="w-full text-sm font-mono">
           <thead>
             <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
-              <th class="text-left px-3 py-2">#</th>
-              <th class="text-left px-3 py-2">Ativo</th>
-              <th class="text-left px-3 py-2">Empresa</th>
-              <th v-for="c in EQ_COLS" :key="c.key" @click="sortBy(c.key)"
+              <th scope="col" class="text-left px-3 py-2">#</th>
+              <th scope="col" class="text-left px-3 py-2">Ativo</th>
+              <th scope="col" class="text-left px-3 py-2">Empresa</th>
+              <th scope="col" v-for="c in EQ_COLS" :key="c.key" @click="sortBy(c.key)"
                   class="px-3 py-2 cursor-pointer hover:text-accent-yellow whitespace-nowrap">
                 {{ c.label }}
                 <span v-if="sortKey === c.key">{{ sortDir === -1 ? '▼' : '▲' }}</span>
               </th>
-              <th class="px-3 py-2"></th>
+              <th scope="col" class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -180,7 +180,7 @@
         </span>
       </div>
 
-      <div v-if="fundError" class="card p-3 text-xs text-red-400">{{ fundError }}</div>
+      <div v-if="fundError" class="card p-3 text-xs text-accent-red-light">{{ fundError }}</div>
 
       <div v-if="fundLoading" class="flex flex-col items-center py-16">
         <div class="dollar-loader mb-3">$</div>
@@ -194,16 +194,16 @@
         <table class="w-full text-sm font-mono">
           <thead>
             <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
-              <th class="text-left px-3 py-2">Ativo</th>
-              <th class="text-left px-3 py-2">Nome</th>
-              <th class="text-left px-3 py-2">Tipo</th>
-              <th class="px-3 py-2">Último</th>
-              <th class="px-3 py-2">Dia %</th>
-              <th class="px-3 py-2">52s %</th>
-              <th class="px-3 py-2">Patrimônio</th>
-              <th class="px-3 py-2">Taxa adm</th>
-              <th class="px-3 py-2">Vol 3m</th>
-              <th class="px-3 py-2"></th>
+              <th scope="col" class="text-left px-3 py-2">Ativo</th>
+              <th scope="col" class="text-left px-3 py-2">Nome</th>
+              <th scope="col" class="text-left px-3 py-2">Tipo</th>
+              <th scope="col" class="px-3 py-2">Último</th>
+              <th scope="col" class="px-3 py-2">Dia %</th>
+              <th scope="col" class="px-3 py-2">52s %</th>
+              <th scope="col" class="px-3 py-2">Patrimônio</th>
+              <th scope="col" class="px-3 py-2">Taxa adm</th>
+              <th scope="col" class="px-3 py-2">Vol 3m</th>
+              <th scope="col" class="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -379,7 +379,7 @@ function openDes(symbol) {
 }
 
 function pctClass(v) {
-  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'
+  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function fmt(v) {
   if (v == null) return '—'

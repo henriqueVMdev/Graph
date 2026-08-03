@@ -47,13 +47,13 @@
       <table class="w-full text-xs font-mono" v-if="legs.length">
         <thead>
           <tr class="text-[11px] text-gray-400 uppercase text-left border-b border-surface-500">
-            <th class="py-1.5 pr-2">Lado</th>
-            <th class="py-1.5 pr-2">Tipo</th>
-            <th class="py-1.5 pr-2">Strike</th>
-            <th class="py-1.5 pr-2">Qtd</th>
-            <th class="py-1.5 pr-2">Prêmio pago/recebido</th>
-            <th class="py-1.5 pr-2">IV % (opcional)</th>
-            <th></th>
+            <th scope="col" class="py-1.5 pr-2">Lado</th>
+            <th scope="col" class="py-1.5 pr-2">Tipo</th>
+            <th scope="col" class="py-1.5 pr-2">Strike</th>
+            <th scope="col" class="py-1.5 pr-2">Qtd</th>
+            <th scope="col" class="py-1.5 pr-2">Prêmio pago/recebido</th>
+            <th scope="col" class="py-1.5 pr-2">IV % (opcional)</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody>
@@ -81,25 +81,25 @@
               <input v-if="l.kind !== 'stock'" v-model.number="l.iv" type="number" step="any"
                      class="form-input !py-1 text-xs w-20" placeholder="auto" /></td>
             <td class="py-1 text-right">
-              <button @click="legs.splice(i, 1)" class="text-gray-500 hover:text-red-400">✕</button></td>
+              <button @click="legs.splice(i, 1)" class="text-gray-500 hover:text-accent-red-light">✕</button></td>
           </tr>
         </tbody>
       </table>
       <button @click="addLeg()" class="btn-secondary !py-1 text-[11px]">+ Perna</button>
-      <p v-if="error" class="text-xs text-red-400">{{ error }}</p>
+      <p v-if="error" class="text-xs text-accent-red-light">{{ error }}</p>
     </div>
 
     <template v-if="res">
       <!-- métricas -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         <div class="metric-card"><span class="metric-label">Custo líquido</span>
-          <span class="metric-value" :class="res.cost >= 0 ? 'text-red-400' : 'text-accent-yellow'">
+          <span class="metric-value" :class="res.cost >= 0 ? 'text-accent-red-light' : 'text-accent-yellow'">
             {{ res.cost >= 0 ? '-' : '+' }}{{ Math.abs(res.cost).toFixed(2) }}</span></div>
         <div class="metric-card"><span class="metric-label">Máx ganho</span>
           <span class="metric-value text-accent-yellow">
             {{ res.unbounded_gain ? 'ilimitado' : res.max_gain.toFixed(2) }}</span></div>
         <div class="metric-card"><span class="metric-label">Máx perda</span>
-          <span class="metric-value text-red-400">
+          <span class="metric-value text-accent-red-light">
             {{ res.unbounded_loss ? 'ilimitada' : res.max_loss.toFixed(2) }}</span></div>
         <div class="metric-card"><span class="metric-label">Breakevens</span>
           <span class="metric-value text-gray-200 !text-sm">{{ res.breakevens.join(' · ') || '—' }}</span></div>
@@ -128,7 +128,7 @@
               <tr v-for="(g, k) in GREEK_LABELS" :key="k" class="border-b border-surface-600/40">
                 <td class="py-1.5 text-gray-400">{{ g.label }} <span class="text-gray-500">({{ g.hint }})</span></td>
                 <td class="py-1.5 text-right font-bold"
-                    :class="res.net_greeks[k] >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+                    :class="res.net_greeks[k] >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
                   {{ res.net_greeks[k] }}</td>
               </tr>
             </tbody>
@@ -143,8 +143,8 @@
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="text-left py-1.5 px-2"></th>
-                <th v-for="s in res.spot_shifts" :key="s" class="py-1.5 px-2">
+                <th scope="col" class="text-left py-1.5 px-2"></th>
+                <th scope="col" v-for="s in res.spot_shifts" :key="s" class="py-1.5 px-2">
                   {{ s > 0 ? '+' : '' }}{{ (s * 100).toFixed(0) }}%</th>
               </tr>
             </thead>
@@ -152,7 +152,7 @@
               <tr v-for="sc in res.scenarios" :key="sc.when" class="border-b border-surface-600/40">
                 <td class="py-1.5 px-2 text-gray-400">{{ sc.when }}</td>
                 <td v-for="(v, j) in sc.pnl" :key="j" class="py-1.5 px-2 text-right font-bold"
-                    :class="v >= 0 ? 'text-accent-yellow' : 'text-red-400'">{{ v }}</td>
+                    :class="v >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ v }}</td>
               </tr>
             </tbody>
           </table>
@@ -163,6 +163,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { getOptionsChain, evalStrategy } from '@/api/client.js'
@@ -278,7 +281,7 @@ async function run() {
 }
 
 async function render() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   if (!payoffChart.value || !res.value) return
   const r = res.value
@@ -288,11 +291,11 @@ async function render() {
     { type: 'scatter', mode: 'lines', name: 'P&L teórico hoje (BS)',
       x: r.s_grid, y: r.pnl_now, line: { color: '#8899aa', width: 1.3, dash: 'dot' } },
   ], {
-    template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 300,
     margin: { t: 10, r: 10, b: 40, l: 55 },
-    xaxis: { title: 'Preço do ativo', gridcolor: '#1e1e1e' },
-    yaxis: { title: 'P&L', gridcolor: '#1e1e1e', zeroline: true, zerolinecolor: '#445' },
+    xaxis: { title: 'Preço do ativo', gridcolor: TEMA.grade },
+    yaxis: { title: 'P&L', gridcolor: TEMA.grade, zeroline: true, zerolinecolor: TEMA.linhaZero },
     legend: { orientation: 'h', y: 1.12 },
     shapes: [
       { type: 'line', x0: r.spot, x1: r.spot, y0: 0, y1: 1, yref: 'paper',

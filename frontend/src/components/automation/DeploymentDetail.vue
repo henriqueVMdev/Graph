@@ -6,7 +6,7 @@
         <h2 class="text-base text-gray-100 font-semibold flex items-center gap-2">
           {{ dep.name }}
           <span v-if="dep.mode === 'real'"
-                class="text-[11px] px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 font-bold uppercase">
+                class="text-[11px] px-2 py-0.5 rounded-md bg-accent-red/15 text-accent-red-light font-bold uppercase">
             REAL · {{ dep.account }}
           </span>
         </h2>
@@ -41,7 +41,7 @@
       </div>
       <div class="kpi">
         <div class="kpi-label">Retorno</div>
-        <div class="kpi-value" :class="ret >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+        <div class="kpi-value" :class="ret >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
           {{ ret >= 0 ? '+' : '' }}{{ ret.toFixed(2) }}%
         </div>
       </div>
@@ -60,7 +60,7 @@
       <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
         <div class="text-[11px] text-gray-400 uppercase mb-1.5">Posição aberta</div>
         <template v-if="s.position">
-          <div class="text-sm" :class="s.position.side === 1 ? 'text-accent-yellow' : 'text-red-400'">
+          <div class="text-sm" :class="s.position.side === 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ s.position.side === 1 ? 'LONG' : 'SHORT' }} @ {{ fmt(s.position.entry_price) }}
           </div>
           <div class="text-[11px] text-gray-400 mt-1">
@@ -118,23 +118,23 @@
       <table v-if="s.trades?.length" class="w-full text-xs">
         <thead>
           <tr class="text-gray-500 text-left">
-            <th class="pb-1.5 font-medium">Lado</th>
-            <th class="pb-1.5 font-medium">Entrada</th>
-            <th class="pb-1.5 font-medium">Saída</th>
-            <th class="pb-1.5 font-medium">Motivo</th>
-            <th class="pb-1.5 font-medium text-right">PnL %</th>
+            <th scope="col" class="pb-1.5 font-medium">Lado</th>
+            <th scope="col" class="pb-1.5 font-medium">Entrada</th>
+            <th scope="col" class="pb-1.5 font-medium">Saída</th>
+            <th scope="col" class="pb-1.5 font-medium">Motivo</th>
+            <th scope="col" class="pb-1.5 font-medium text-right">PnL %</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="t in s.trades" :key="t.id" class="border-t border-surface-600">
-            <td class="py-1.5" :class="t.side === 1 ? 'text-accent-yellow' : 'text-red-400'">
+            <td class="py-1.5" :class="t.side === 1 ? 'text-accent-yellow' : 'text-accent-red-light'">
               {{ t.side === 1 ? 'L' : 'S' }}
             </td>
             <td class="py-1.5 text-gray-400">{{ fmt(t.entry_price) }}</td>
             <td class="py-1.5 text-gray-400">{{ fmt(t.exit_price) }}</td>
             <td class="py-1.5 text-gray-400">{{ t.exit_reason }}</td>
             <td class="py-1.5 text-right font-medium"
-                :class="t.pnl_pct >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+                :class="t.pnl_pct >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
               {{ t.pnl_pct >= 0 ? '+' : '' }}{{ t.pnl_pct?.toFixed(3) }}%
             </td>
           </tr>
@@ -149,7 +149,7 @@
       <div class="space-y-1 max-h-52 overflow-y-auto">
         <div v-for="ev in s.events" :key="ev.id" class="flex gap-2 text-[11px]">
           <span class="text-gray-500 shrink-0">{{ tsFmt(ev.ts) }}</span>
-          <span :class="ev.level === 'error' ? 'text-red-400' : 'text-gray-400'">
+          <span :class="ev.level === 'error' ? 'text-accent-red-light' : 'text-gray-400'">
             {{ ev.message }}
           </span>
         </div>
@@ -257,7 +257,7 @@ function askDelete() {
          hover:bg-surface-400 transition-colors;
 }
 .btn-danger {
-  @apply px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400
-         hover:bg-red-500/20 transition-colors;
+  @apply px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-red/10 text-accent-red-light
+         hover:bg-accent-red/20 transition-colors;
 }
 </style>

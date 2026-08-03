@@ -78,19 +78,19 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="text-xs text-gray-400 border-b border-surface-600">
-            <th class="text-left px-4 py-2.5 font-medium">#</th>
-            <th class="text-left px-4 py-2.5 font-medium">Token</th>
-            <th class="text-right px-4 py-2.5 font-medium">Preço</th>
-            <th class="text-right px-4 py-2.5 font-medium">5m</th>
-            <th class="text-right px-4 py-2.5 font-medium">1h</th>
-            <th class="text-right px-4 py-2.5 font-medium">6h</th>
-            <th class="text-right px-4 py-2.5 font-medium">24h</th>
-            <th class="text-right px-4 py-2.5 font-medium">Vol 24h</th>
-            <th class="text-right px-4 py-2.5 font-medium">Liquidez</th>
-            <th class="text-right px-4 py-2.5 font-medium">FDV</th>
-            <th class="text-right px-4 py-2.5 font-medium">Txns 24h</th>
-            <th class="text-right px-4 py-2.5 font-medium">Idade</th>
-            <th class="px-2 py-2.5"></th>
+            <th scope="col" class="text-left px-4 py-2.5 font-medium">#</th>
+            <th scope="col" class="text-left px-4 py-2.5 font-medium">Token</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">Preço</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">5m</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">1h</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">6h</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">24h</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">Vol 24h</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">Liquidez</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">FDV</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">Txns 24h</th>
+            <th scope="col" class="text-right px-4 py-2.5 font-medium">Idade</th>
+            <th scope="col" class="px-2 py-2.5"></th>
           </tr>
         </thead>
         <tbody>

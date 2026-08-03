@@ -3,17 +3,20 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useChartStore } from '@/stores/chart.js'
 import { getPlotly } from '@/composables/plotly.js'
+import { maxOf } from '@/utils.js'
 
 const store = useChartStore()
 const el = ref(null)
 let Plotly = null
 
 const BASE_LAYOUT = {
-  paper_bgcolor: '#000000',
-  plot_bgcolor: '#080808',
+  paper_bgcolor: TEMA.fundoPapel,
+  plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
   margin: { t: 16, r: 60, b: 36, l: 12 },
   hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
@@ -75,14 +78,14 @@ async function render() {
     }
   }
 
-  const volMax = (ov.volume && c.volume?.length) ? Math.max(...c.volume) : 1
+  const volMax = (ov.volume && c.volume?.length) ? maxOf(c.volume) : 1
   const layout = {
     ...BASE_LAYOUT, autosize: true, shapes, dragmode: 'pan', hovermode: 'x',
     xaxis: {
-      type: 'date', gridcolor: '#161616', linecolor: '#2a2a2a', tickfont: { color: '#707070' },
+      type: 'date', gridcolor: '#161616', linecolor: TEMA.eixo, tickfont: { color: '#707070' },
       rangeslider: { visible: false }, showspikes: true, spikemode: 'across', spikethickness: 1, spikecolor: '#555', spikedash: 'solid',
     },
-    yaxis: { gridcolor: '#161616', linecolor: '#2a2a2a', tickfont: { color: '#707070' }, side: 'right', domain: [0, 1] },
+    yaxis: { gridcolor: '#161616', linecolor: TEMA.eixo, tickfont: { color: '#707070' }, side: 'right', domain: [0, 1] },
     yaxis2: { overlaying: 'y', side: 'left', showgrid: false, visible: false, range: [0, volMax * 4] },
   }
   Plotly.react(el.value, traces, layout, PLOT_CFG)

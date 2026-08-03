@@ -43,7 +43,7 @@
         </label>
         <button type="submit" class="btn-primary !py-1.5 text-xs">Criar alerta</button>
       </form>
-      <p v-if="error" class="text-xs text-red-400 mt-2">{{ error }}</p>
+      <p v-if="error" class="text-xs text-accent-red-light mt-2">{{ error }}</p>
     </div>
 
     <!-- ativos -->
@@ -62,7 +62,7 @@
             <td class="py-1.5 text-gray-500">{{ tsFmt(a.created_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-500 hover:text-red-400">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light">✕</button>
             </td>
           </tr>
         </tbody>
@@ -84,7 +84,7 @@
             <td class="py-1.5 text-gray-500">{{ tsFmt(a.triggered_at) }}</td>
             <td class="py-1.5 text-right">
               <button @click="terminal.removeAlert(a.id)"
-                      class="text-gray-500 hover:text-red-400">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light">✕</button>
             </td>
           </tr>
         </tbody>

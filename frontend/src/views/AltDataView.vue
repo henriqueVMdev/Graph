@@ -19,7 +19,7 @@
       <span v-if="loading" class="text-xs text-accent-yellow/80 self-center font-mono">carregando…</span>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <!-- ══ PAINEL — indicadores proprietários ══ -->
     <template v-if="tab === 'painel' && ind">
@@ -31,11 +31,11 @@
             <span v-if="!i.error" class="text-[11px] font-bold px-2 py-0.5 rounded font-mono"
                   :class="readingClass(i.reading)">{{ i.reading }}</span>
           </div>
-          <div v-if="i.error" class="text-xs text-red-400">{{ i.error }}</div>
+          <div v-if="i.error" class="text-xs text-accent-red-light">{{ i.error }}</div>
           <template v-else>
             <div class="flex items-baseline gap-2">
               <span class="text-3xl font-bold font-mono"
-                    :class="i.value > 0 ? 'text-green-400' : i.value < 0 ? 'text-red-400' : 'text-gray-200'">
+                    :class="i.value > 0 ? 'text-accent-yellow' : i.value < 0 ? 'text-accent-red-light' : 'text-gray-200'">
                 {{ i.value > 0 ? '+' : '' }}{{ i.value }}</span>
               <span class="text-xs text-gray-400 font-mono">{{ i.unit }}</span>
             </div>
@@ -49,7 +49,7 @@
                 <tr v-for="c in i.components" :key="c.name" class="border-t border-surface-600/30">
                   <td class="py-1 text-gray-400">{{ c.name }}</td>
                   <td class="py-1 text-right"
-                      :class="c.z > 0 ? 'text-green-400' : c.z < 0 ? 'text-red-400' : 'text-gray-400'">
+                      :class="c.z > 0 ? 'text-accent-yellow' : c.z < 0 ? 'text-accent-red-light' : 'text-gray-400'">
                     {{ c.z > 0 ? '+' : '' }}{{ c.z }}</td>
                 </tr>
               </tbody>
@@ -68,7 +68,7 @@
           <div class="flex items-baseline gap-3 mb-2">
             <span class="text-xs font-semibold text-gray-200">GSCPI — Pressão Global de Supply Chain</span>
             <span class="text-2xl font-bold font-mono"
-                  :class="sc.gscpi.last > 0.5 ? 'text-red-400' : sc.gscpi.last < -0.5 ? 'text-green-400' : 'text-gray-200'">
+                  :class="sc.gscpi.last > 0.5 ? 'text-accent-red-light' : sc.gscpi.last < -0.5 ? 'text-accent-yellow' : 'text-gray-200'">
               {{ sc.gscpi.last }}</span>
             <span class="text-xs text-gray-400 font-mono" v-if="sc.gscpi.yoy_delta != null">
               {{ sc.gscpi.yoy_delta > 0 ? '+' : '' }}{{ sc.gscpi.yoy_delta }} vs 1 ano</span>
@@ -126,7 +126,7 @@
           <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">ENSO — El Niño / La Niña</div>
           <div class="flex items-baseline gap-3">
             <span class="text-2xl font-bold font-mono"
-                  :class="cli.enso.status === 'El Niño' ? 'text-red-400'
+                  :class="cli.enso.status === 'El Niño' ? 'text-accent-red-light'
                     : cli.enso.status === 'La Niña' ? 'text-blue-400' : 'text-gray-200'">
               {{ cli.enso.status }}</span>
             <span class="text-xs text-gray-400 font-mono">anomalia {{ cli.enso.anom > 0 ? '+' : '' }}{{ cli.enso.anom }}°C · {{ cli.enso.season }}</span>
@@ -136,7 +136,7 @@
             <tbody>
               <tr v-for="r in [...cli.enso.recent].reverse()" :key="r.season + r.year" class="border-t border-surface-600/30">
                 <td class="py-1 text-gray-400">{{ r.season }} {{ r.year }}</td>
-                <td class="text-right" :class="r.anom >= 0.5 ? 'text-red-400' : r.anom <= -0.5 ? 'text-blue-400' : 'text-gray-400'">
+                <td class="text-right" :class="r.anom >= 0.5 ? 'text-accent-red-light' : r.anom <= -0.5 ? 'text-blue-400' : 'text-gray-400'">
                   {{ r.anom > 0 ? '+' : '' }}{{ r.anom }}°C</td>
               </tr>
             </tbody>
@@ -149,8 +149,8 @@
           <table v-else class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-left">
-                <th class="py-1.5">Região</th><th>Culturas</th>
-                <th class="text-right">Chuva 7d</th><th class="text-right">T máx</th><th class="text-right">Alerta</th>
+                <th scope="col" class="py-1.5">Região</th><th scope="col">Culturas</th>
+                <th scope="col" class="text-right">Chuva 7d</th><th scope="col" class="text-right">T máx</th><th scope="col" class="text-right">Alerta</th>
               </tr>
             </thead>
             <tbody>
@@ -162,7 +162,7 @@
                 <td class="text-right text-gray-300">{{ r.tmax_7d }}°C</td>
                 <td class="text-right">
                   <span v-for="f in r.flags || []" :key="f"
-                        class="text-[11px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 ml-1">{{ f }}</span>
+                        class="text-[11px] px-1.5 py-0.5 rounded bg-accent-brass/15 text-accent-brass ml-1">{{ f }}</span>
                   <span v-if="!(r.flags || []).length" class="text-gray-500">—</span>
                 </td>
               </tr>
@@ -190,22 +190,22 @@
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-left">
-                <th class="py-1.5 pr-3">Empresa</th>
-                <th class="pr-3 text-right">Estoque</th>
-                <th class="pr-3 text-right">Dias de estoque</th>
-                <th class="pr-3 text-right">Δ dias vs 1 ano</th>
-                <th class="pr-3 text-right">Margem bruta</th>
-                <th class="pr-3 text-right">Receita YoY</th>
-                <th class="pr-3">Trajetória (5 tri)</th>
+                <th scope="col" class="py-1.5 pr-3">Empresa</th>
+                <th scope="col" class="pr-3 text-right">Estoque</th>
+                <th scope="col" class="pr-3 text-right">Dias de estoque</th>
+                <th scope="col" class="pr-3 text-right">Δ dias vs 1 ano</th>
+                <th scope="col" class="pr-3 text-right">Margem bruta</th>
+                <th scope="col" class="pr-3 text-right">Receita YoY</th>
+                <th scope="col" class="pr-3">Trajetória (5 tri)</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="r in sec.rows" :key="r.symbol" class="border-t border-surface-600/30">
                 <td class="py-2 pr-3 text-gray-200">{{ r.symbol }}
-                  <span v-if="r.suspect" class="text-amber-400 text-[11px]" title="valores implausíveis — possível erro na fonte (Yahoo)">⚠ verificar</span></td>
+                  <span v-if="r.suspect" class="text-accent-brass text-[11px]" title="valores implausíveis — possível erro na fonte (Yahoo)">⚠ verificar</span></td>
                 <td class="pr-3 text-right text-gray-400">{{ fmtB(r.inventory) }}</td>
                 <td class="pr-3 text-right text-gray-200">{{ r.days_inventory != null ? r.days_inventory + 'd' : '—' }}</td>
-                <td class="pr-3 text-right" :class="(r.days_delta_yoy || 0) > 5 ? 'text-red-400' : (r.days_delta_yoy || 0) < -5 ? 'text-green-400' : 'text-gray-400'">
+                <td class="pr-3 text-right" :class="(r.days_delta_yoy || 0) > 5 ? 'text-accent-red-light' : (r.days_delta_yoy || 0) < -5 ? 'text-accent-yellow' : 'text-gray-400'">
                   {{ r.days_delta_yoy != null ? (r.days_delta_yoy > 0 ? '+' : '') + r.days_delta_yoy + 'd' : '—' }}</td>
                 <td class="pr-3 text-right text-gray-300">{{ r.gross_margin_pct != null ? r.gross_margin_pct + '%' : '—' }}</td>
                 <td class="pr-3 text-right" :class="pctClass(r.rev_yoy_pct)">{{ fmtPct(r.rev_yoy_pct) }}</td>
@@ -230,7 +230,7 @@
         <div class="card p-3">
           <div class="text-[11px] text-gray-400 uppercase">% funding positivo</div>
           <div class="text-lg font-bold font-mono"
-               :class="cm.pct_positive > 75 ? 'text-red-400' : cm.pct_positive < 40 ? 'text-green-400' : 'text-gray-200'">
+               :class="cm.pct_positive > 75 ? 'text-accent-red-light' : cm.pct_positive < 40 ? 'text-accent-yellow' : 'text-gray-200'">
             {{ cm.pct_positive }}%</div>
         </div>
         <div class="card p-3">
@@ -248,9 +248,9 @@
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-left">
-                <th class="py-1.5 pr-3">Ativo</th><th class="pr-3 text-right">Preço</th>
-                <th class="pr-3 text-right">24h</th><th class="pr-3 text-right">OI (US$)</th>
-                <th class="pr-3 text-right">Funding 8h</th>
+                <th scope="col" class="py-1.5 pr-3">Ativo</th><th scope="col" class="pr-3 text-right">Preço</th>
+                <th scope="col" class="pr-3 text-right">24h</th><th scope="col" class="pr-3 text-right">OI (US$)</th>
+                <th scope="col" class="pr-3 text-right">Funding 8h</th>
               </tr>
             </thead>
             <tbody>
@@ -260,7 +260,7 @@
                 <td class="pr-3 text-right" :class="pctClass(m.pct24h)">{{ fmtPct(m.pct24h) }}</td>
                 <td class="pr-3 text-right text-gray-200">{{ fmtB(m.oi_usd) }}</td>
                 <td class="pr-3 text-right"
-                    :class="(m.funding_pct || 0) > 0.02 ? 'text-red-400' : (m.funding_pct || 0) < 0 ? 'text-green-400' : 'text-gray-400'">
+                    :class="(m.funding_pct || 0) > 0.02 ? 'text-accent-red-light' : (m.funding_pct || 0) < 0 ? 'text-accent-yellow' : 'text-gray-400'">
                   {{ m.funding_pct != null ? m.funding_pct.toFixed(4) + '%' : '—' }}</td>
               </tr>
             </tbody>
@@ -268,23 +268,23 @@
         </div>
         <div class="space-y-4">
           <div class="card p-3">
-            <div class="text-[11px] text-green-400 uppercase font-semibold mb-2">Funding mais NEGATIVO (shorts pagando)</div>
+            <div class="text-[11px] text-accent-yellow uppercase font-semibold mb-2">Funding mais NEGATIVO (shorts pagando)</div>
             <table class="w-full text-xs font-mono">
               <tbody>
                 <tr v-for="e in cm.extremes.negative" :key="e.symbol" class="border-t border-surface-600/30">
                   <td class="py-1 text-gray-300">{{ e.symbol }}</td>
-                  <td class="text-right text-green-400">{{ e.funding_pct }}%</td>
+                  <td class="text-right text-accent-yellow">{{ e.funding_pct }}%</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div class="card p-3">
-            <div class="text-[11px] text-red-400 uppercase font-semibold mb-2">Funding mais POSITIVO (longs pagando)</div>
+            <div class="text-[11px] text-accent-red-light uppercase font-semibold mb-2">Funding mais POSITIVO (longs pagando)</div>
             <table class="w-full text-xs font-mono">
               <tbody>
                 <tr v-for="e in cm.extremes.positive" :key="e.symbol" class="border-t border-surface-600/30">
                   <td class="py-1 text-gray-300">{{ e.symbol }}</td>
-                  <td class="text-right text-red-400">{{ e.funding_pct }}%</td>
+                  <td class="text-right text-accent-red-light">{{ e.funding_pct }}%</td>
                 </tr>
               </tbody>
             </table>
@@ -296,7 +296,7 @@
 
     <!-- ══ ON-CHAIN ══ -->
     <template v-if="tab === 'onchain' && oc">
-      <div v-if="(oc.errors || []).length" class="card p-3 text-xs text-amber-400">
+      <div v-if="(oc.errors || []).length" class="card p-3 text-xs text-accent-brass">
         fontes indisponíveis agora: {{ oc.errors.join(' · ') }}
       </div>
 
@@ -318,7 +318,7 @@
                     : 'bg-surface-700 border-surface-500 text-gray-400 hover:text-gray-300'">
             {{ s }}
           </button>
-          <span v-if="coinError" class="text-xs text-red-400">{{ coinError }}</span>
+          <span v-if="coinError" class="text-xs text-accent-red-light">{{ coinError }}</span>
         </div>
 
         <template v-if="ocCoin && ocCoin.profile">
@@ -338,7 +338,7 @@
             </div>
             <div class="rounded-lg bg-surface-600/40 p-3">
               <div class="text-[11px] text-gray-400 uppercase">Distância do ATH</div>
-              <div class="text-base font-bold font-mono text-red-400">
+              <div class="text-base font-bold font-mono text-accent-red-light">
                 {{ ocCoin.profile.ath?.change_pct?.toFixed(1) }}%</div>
               <div class="text-[11px] text-gray-400 font-mono">
                 ${{ fmt(ocCoin.profile.ath?.price) }} · {{ ocCoin.profile.ath?.date }}</div>
@@ -354,7 +354,7 @@
             <div class="rounded-lg bg-surface-600/40 p-3">
               <div class="text-[11px] text-gray-400 uppercase">Perp Bybit</div>
               <div class="text-base font-bold font-mono"
-                   :class="(ocCoin.deriv?.funding_pct || 0) > 0.02 ? 'text-red-400' : (ocCoin.deriv?.funding_pct || 0) < 0 ? 'text-green-400' : 'text-gray-200'">
+                   :class="(ocCoin.deriv?.funding_pct || 0) > 0.02 ? 'text-accent-red-light' : (ocCoin.deriv?.funding_pct || 0) < 0 ? 'text-accent-yellow' : 'text-gray-200'">
                 {{ ocCoin.deriv?.funding_pct != null ? ocCoin.deriv.funding_pct.toFixed(4) + '%' : '—' }}</div>
               <div class="text-[11px] text-gray-400 font-mono">OI {{ fmtB(ocCoin.deriv?.oi_usd) }}</div>
             </div>
@@ -390,7 +390,7 @@
                 <table class="w-full text-[11px] font-mono">
                   <tbody>
                     <tr><td class="py-0.5 text-gray-400">Commits 4 semanas</td>
-                      <td class="text-right" :class="(ocCoin.profile.dev?.commits_4w || 0) === 0 ? 'text-red-400' : 'text-gray-200'">
+                      <td class="text-right" :class="(ocCoin.profile.dev?.commits_4w || 0) === 0 ? 'text-accent-red-light' : 'text-gray-200'">
                         {{ ocCoin.profile.dev?.commits_4w ?? '—' }}</td></tr>
                     <tr><td class="py-0.5 text-gray-400">GitHub stars</td>
                       <td class="text-right text-gray-200">{{ fmtInt(ocCoin.profile.dev?.stars) }}</td></tr>
@@ -403,7 +403,7 @@
               </div>
             </div>
           </div>
-          <p v-if="(ocCoin.errors || []).length" class="text-[11px] text-amber-400/80">
+          <p v-if="(ocCoin.errors || []).length" class="text-[11px] text-accent-brass/80">
             fontes parciais: {{ ocCoin.errors.join(' · ') }}</p>
         </template>
       </div>
@@ -448,7 +448,7 @@
           <div ref="sthSoprMvrvChart" class="h-72" />
           <div class="text-[11px] text-gray-500">{{ oc.btc_metrics.sth_sopr_mvrv_indicator.formula }}</div>
         </div>
-        <details v-if="oc.btc_metrics.unavailable?.length" class="text-[11px] text-amber-400/80">
+        <details v-if="oc.btc_metrics.unavailable?.length" class="text-[11px] text-accent-brass/80">
           <summary class="cursor-pointer">{{ oc.btc_metrics.unavailable.length }} métricas aguardando provedor/credencial</summary>
           <div v-for="u in oc.btc_metrics.unavailable" :key="u.id" class="mt-1">
             {{ u.label }} — {{ u.reason }}
@@ -580,6 +580,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, nextTick, onMounted } from 'vue'
 import {
   getAltIndicators, getAltSupplyChain, getAltTraffic, getAltClimate,
@@ -653,17 +656,17 @@ function setIndRef(el, id) {
 }
 
 const LAYOUT = (h) => ({
-  template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+  template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', size: 10 }, height: h,
   margin: { t: 8, r: 10, b: 30, l: 45 },
-  xaxis: { type: 'date', gridcolor: '#1e1e1e' },
-  yaxis: { gridcolor: '#1e1e1e' },
+  xaxis: { type: 'date', gridcolor: TEMA.grade },
+  yaxis: { gridcolor: TEMA.grade },
   showlegend: false,
 })
 const CFG = { responsive: true, displaylogo: false, displayModeBar: false }
 
 async function plotly() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   return Plotly
 }
 
@@ -673,8 +676,8 @@ function gaugePos(i) {
   return `calc(${(p * 100).toFixed(1)}% - 6px)`
 }
 function readingClass(r) {
-  if (['RISK-ON', 'FOLGA'].includes(r)) return 'bg-green-900/50 text-green-300'
-  if (['RISK-OFF', 'PRESSÃO ALTA', 'PRESSÃO INFLACIONÁRIA'].includes(r)) return 'bg-red-900/50 text-red-300'
+  if (['RISK-ON', 'FOLGA'].includes(r)) return 'bg-accent-yellow/10 text-accent-yellow'
+  if (['RISK-OFF', 'PRESSÃO ALTA', 'PRESSÃO INFLACIONÁRIA'].includes(r)) return 'bg-accent-red/15 text-accent-red-light'
   return 'bg-surface-600 text-gray-300'
 }
 
@@ -778,7 +781,7 @@ async function drawOnchain() {
       fill: 'tozeroy', fillcolor: 'rgba(245,197,24,0.08)',
     }], {
       ...LAYOUT(224),
-      yaxis: { gridcolor: '#1e1e1e', range: [0, 100] },
+      yaxis: { gridcolor: TEMA.grade, range: [0, 100] },
       shapes: [
         { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 25, y1: 25,
           line: { color: '#7f1d1d', width: 1, dash: 'dot' } },
@@ -811,7 +814,7 @@ async function drawOnchain() {
       { type: 'scatter', mode: 'lines', x, y: pi.price, name: 'BTC', line: { color: '#888', width: 1 } },
       { type: 'scatter', mode: 'lines', x, y: pi.dma111, name: '111DMA', line: { color: '#f5c518', width: 1.5 } },
       { type: 'scatter', mode: 'lines', x, y: pi.dma350x2, name: '2×350DMA', line: { color: '#ef4444', width: 1.5 } },
-    ], { ...LAYOUT(256), showlegend: true, legend: { orientation: 'h', y: 1.12 }, yaxis: { type: 'log', gridcolor: '#1e1e1e' } }, CFG)
+    ], { ...LAYOUT(256), showlegend: true, legend: { orientation: 'h', y: 1.12 }, yaxis: { type: 'log', gridcolor: TEMA.grade } }, CFG)
   }
   const sth = oc.value?.btc_metrics?.series?.sth_realized_price
   const lth = oc.value?.btc_metrics?.series?.lth_realized_price
@@ -874,8 +877,8 @@ function fmtSupply(v) {
 
 function fngClass(v) {
   if (v == null) return 'text-gray-300'
-  if (v <= 25) return 'text-red-400'
-  if (v >= 75) return 'text-green-400'
+  if (v <= 25) return 'text-accent-red-light'
+  if (v >= 75) return 'text-accent-yellow'
   return 'text-gray-200'
 }
 
@@ -892,7 +895,7 @@ function fmtPct(v) {
 }
 function pctClass(v) {
   if (v == null) return 'text-gray-400'
-  return v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400'
+  return v > 0 ? 'text-accent-yellow' : v < 0 ? 'text-accent-red-light' : 'text-gray-400'
 }
 function fmtB(v) {
   if (v == null) return '—'

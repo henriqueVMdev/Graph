@@ -76,6 +76,7 @@
 </template>
 
 <script setup>
+import { quandoVisivel } from '@/composables/visibilidade.js'
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import api from '@/api/client.js'
 
@@ -107,7 +108,7 @@ async function start() { await api.post('/hft/start'); refresh() }
 async function stop(close) { await api.post('/hft/stop', { close_positions: close }); refresh() }
 async function saveCfg() { await api.post('/hft/config', { ...cfg }); refresh() }
 
-onMounted(() => { refresh(); timer = setInterval(refresh, 4000) })
+onMounted(() => { refresh(); timer = setInterval(quandoVisivel(refresh), 4000) })
 onUnmounted(() => clearInterval(timer))
 </script>
 

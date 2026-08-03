@@ -2,13 +2,16 @@
  * useCharts — helpers para renderizar/atualizar gráficos Plotly com dark theme.
  */
 
+import { getPlotly } from '@/composables/plotly.js'
+import { TEMA } from '@/composables/chartTheme.js'
+
 const DARK_LAYOUT = {
   template: 'plotly_dark',
-  paper_bgcolor: '#000000',
-  plot_bgcolor: '#080808',
+  paper_bgcolor: TEMA.fundoPapel,
+  plot_bgcolor: TEMA.fundoPlot,
   font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif' },
-  xaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', zerolinecolor: '#2a2a2a' },
-  yaxis: { gridcolor: '#1e1e1e', linecolor: '#2a2a2a', zerolinecolor: '#2a2a2a' },
+  xaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, zerolinecolor: TEMA.eixo },
+  yaxis: { gridcolor: TEMA.grade, linecolor: TEMA.eixo, zerolinecolor: TEMA.eixo },
   legend: { bgcolor: 'rgba(0,0,0,0.85)', bordercolor: '#2a2a2a', borderwidth: 1 },
   hoverlabel: { bgcolor: '#0f0f0f', bordercolor: '#f5c518', font: { color: '#e0e0e0' } },
   margin: { t: 40, r: 20, b: 50, l: 60 },
@@ -90,10 +93,5 @@ export function onPointClick(el, cb) {
   })
 }
 
-let _Plotly = null
-async function importPlotly() {
-  if (_Plotly) return _Plotly
-  const mod = await import('plotly.js-dist-min')
-  _Plotly = mod.default
-  return _Plotly
-}
+// Delegado ao cache unico do composable.
+const importPlotly = () => getPlotly()

@@ -27,7 +27,7 @@
       </select>
     </div>
 
-    <div v-if="terminal.screenerError" class="card p-3 text-xs text-red-400">
+    <div v-if="terminal.screenerError" class="card p-3 text-xs text-accent-red-light">
       {{ terminal.screenerError }}
     </div>
 
@@ -40,15 +40,15 @@
       <table class="w-full text-sm font-mono">
         <thead>
           <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
-            <th class="text-left px-3 py-2">#</th>
-            <th class="text-left px-3 py-2">Ativo</th>
-            <th v-for="c in cols" :key="c.key"
+            <th scope="col" class="text-left px-3 py-2">#</th>
+            <th scope="col" class="text-left px-3 py-2">Ativo</th>
+            <th scope="col" v-for="c in cols" :key="c.key"
                 @click="sortBy(c.key)"
                 class="px-3 py-2 cursor-pointer hover:text-accent-yellow whitespace-nowrap">
               {{ c.label }}
               <span v-if="sortKey === c.key">{{ sortDir === -1 ? '▼' : '▲' }}</span>
             </th>
-            <th class="px-3 py-2"></th>
+            <th scope="col" class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -66,7 +66,7 @@
             <td class="px-3 py-1.5 text-right text-gray-300">{{ r.atr_pct != null ? r.atr_pct.toFixed(2) + '%' : '—' }}</td>
             <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(r.vol_usd) }}</td>
             <td v-if="isCrypto" class="px-3 py-1.5 text-right"
-                :class="(r.funding ?? 0) >= 0 ? 'text-gray-300' : 'text-red-400'">
+                :class="(r.funding ?? 0) >= 0 ? 'text-gray-300' : 'text-accent-red-light'">
               {{ r.funding != null ? (r.funding * 100).toFixed(4) + '%' : '—' }}
             </td>
             <td class="px-3 py-1.5 text-right whitespace-nowrap">
@@ -168,7 +168,7 @@ function toBacktest(r) {
 }
 
 function pctClass(v) {
-  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'
+  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function fmt(v) {
   if (v == null) return '—'

@@ -11,7 +11,7 @@
       </form>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <div v-if="loading" class="flex flex-col items-center py-16">
       <div class="dollar-loader mb-3">$</div>
@@ -114,14 +114,14 @@
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="text-left px-3 py-2">Ativo</th>
-                <th class="text-left px-3 py-2">Empresa</th>
-                <th class="px-3 py-2">Mkt cap</th>
-                <th class="px-3 py-2">P/E</th>
-                <th class="px-3 py-2">P/E proj</th>
-                <th class="px-3 py-2">P/B</th>
-                <th class="px-3 py-2">DY</th>
-                <th class="px-3 py-2">52s %</th>
+                <th scope="col" class="text-left px-3 py-2">Ativo</th>
+                <th scope="col" class="text-left px-3 py-2">Empresa</th>
+                <th scope="col" class="px-3 py-2">Mkt cap</th>
+                <th scope="col" class="px-3 py-2">P/E</th>
+                <th scope="col" class="px-3 py-2">P/E proj</th>
+                <th scope="col" class="px-3 py-2">P/B</th>
+                <th scope="col" class="px-3 py-2">DY</th>
+                <th scope="col" class="px-3 py-2">52s %</th>
               </tr>
             </thead>
             <tbody>
@@ -182,10 +182,10 @@
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="text-left px-3 py-2">Data</th>
-                <th class="px-3 py-2">EPS estimado</th>
-                <th class="px-3 py-2">EPS reportado</th>
-                <th class="px-3 py-2">Surpresa</th>
+                <th scope="col" class="text-left px-3 py-2">Data</th>
+                <th scope="col" class="px-3 py-2">EPS estimado</th>
+                <th scope="col" class="px-3 py-2">EPS reportado</th>
+                <th scope="col" class="px-3 py-2">Surpresa</th>
               </tr>
             </thead>
             <tbody>
@@ -239,7 +239,7 @@
                 <td class="px-3 py-1.5 text-gray-200 max-w-40 truncate">{{ t.insider }}</td>
                 <td class="px-3 py-1.5 text-gray-400 max-w-32 truncate">{{ t.position }}</td>
                 <td class="px-3 py-1.5"
-                    :class="isSale(t.text) ? 'text-red-400' : 'text-green-400'">{{ t.text || '—' }}</td>
+                    :class="isSale(t.text) ? 'text-accent-red-light' : 'text-accent-yellow'">{{ t.text || '—' }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ fmtVol(t.shares) }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">{{ t.value ? fmtVol(t.value) : '—' }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-500">{{ t.date }}</td>
@@ -253,20 +253,20 @@
             <div class="text-sm font-semibold text-gray-200"><span class="text-accent-yellow">◆</span> Insiders & Smart Money · múltiplos mercados</div>
             <div class="text-[11px] text-gray-500">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
           </div>
-          <div v-if="d.smart_money.errors?.length" class="text-[11px] text-amber-400">{{ d.smart_money.errors.join(' · ') }}</div>
+          <div v-if="d.smart_money.errors?.length" class="text-[11px] text-accent-brass">{{ d.smart_money.errors.join(' · ') }}</div>
           <div v-for="feed in d.smart_money.feeds || []" :key="feed.source" class="rounded-lg bg-surface-600/30 p-3">
             <div class="flex justify-between gap-2 mb-2">
               <div>
                 <div class="text-xs font-semibold text-gray-200">{{ feed.source }}</div>
-                <div v-if="feed.note" class="text-[11px] text-amber-400/80">{{ feed.note }}</div>
+                <div v-if="feed.note" class="text-[11px] text-accent-brass/80">{{ feed.note }}</div>
               </div>
               <a :href="feed.url" target="_blank" rel="noopener" class="text-[11px] text-accent-yellow hover:underline">fonte oficial ↗</a>
             </div>
             <div v-if="feed.latest" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
-              <div v-if="feed.latest.net != null"><span class="text-gray-400">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmtVol(feed.latest.net) }}</div></div>
+              <div v-if="feed.latest.net != null"><span class="text-gray-400">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">{{ fmtVol(feed.latest.net) }}</div></div>
               <div v-if="feed.latest.net_percentile_2y != null"><span class="text-gray-400">Percentil 2 anos</span><div class="text-gray-200">{{ feed.latest.net_percentile_2y }}%</div></div>
               <div v-if="feed.latest.ratio != null"><span class="text-gray-400">Long/Short top traders</span><div class="text-gray-200">{{ feed.latest.ratio.toFixed(2) }}</div></div>
-              <div v-if="feed.latest.long_pct != null"><span class="text-gray-400">Long / Short</span><div><span class="text-green-400">{{ feed.latest.long_pct.toFixed(1) }}%</span> / <span class="text-red-400">{{ feed.latest.short_pct.toFixed(1) }}%</span></div></div>
+              <div v-if="feed.latest.long_pct != null"><span class="text-gray-400">Long / Short</span><div><span class="text-accent-yellow">{{ feed.latest.long_pct.toFixed(1) }}%</span> / <span class="text-accent-red-light">{{ feed.latest.short_pct.toFixed(1) }}%</span></div></div>
               <div v-if="feed.latest.date"><span class="text-gray-400">Referência</span><div class="text-gray-300">{{ feed.latest.date }}</div></div>
             </div>
             <table v-if="feed.filings?.length" class="w-full text-[11px] font-mono">
@@ -280,12 +280,12 @@
               <div class="text-[11px] text-gray-400 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
               <table class="w-full text-[11px] font-mono">
                 <thead><tr class="text-gray-500 border-b border-surface-500">
-                  <th class="py-1 text-left">Rótulo</th><th class="text-left">Endereço</th>
-                  <th class="text-right">Saldo BTC</th><th class="text-right">Recebido</th>
-                  <th class="text-right">Txs</th><th class="text-right">Última atividade</th>
+                  <th scope="col" class="py-1 text-left">Rótulo</th><th scope="col" class="text-left">Endereço</th>
+                  <th scope="col" class="text-right">Saldo BTC</th><th scope="col" class="text-right">Recebido</th>
+                  <th scope="col" class="text-right">Txs</th><th scope="col" class="text-right">Última atividade</th>
                 </tr></thead>
                 <tbody><tr v-for="w in feed.famous_wallets" :key="w.address" class="border-b border-surface-600/40">
-                  <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[11px]" :class="w.confidence === 'verified' ? 'text-green-500' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
+                  <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[11px]" :class="w.confidence === 'verified' ? 'text-accent-yellow' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
                   <td><a :href="w.explorer_url" target="_blank" rel="noopener" class="text-accent-yellow hover:underline">{{ shortAddress(w.address) }} ↗</a></td>
                   <td class="text-right text-gray-200">{{ w.balance_btc != null ? w.balance_btc.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.received_btc != null ? w.received_btc.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—' }}</td>
@@ -293,7 +293,7 @@
                   <td class="text-right text-gray-400">{{ fmtDateTs(w.last_activity_ts) }}</td>
                 </tr></tbody>
               </table>
-              <div class="text-[11px] text-amber-400/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
+              <div class="text-[11px] text-accent-brass/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
             </div>
           </div>
           <details class="text-[11px]">
@@ -344,9 +344,9 @@
             <table class="w-full text-xs font-mono">
               <thead>
                 <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                  <th class="text-left px-2 py-1">Ano fiscal</th>
-                  <th class="px-2 py-1">Recompras</th>
-                  <th class="px-2 py-1">Dividendos</th>
+                  <th scope="col" class="text-left px-2 py-1">Ano fiscal</th>
+                  <th scope="col" class="px-2 py-1">Recompras</th>
+                  <th scope="col" class="px-2 py-1">Dividendos</th>
                 </tr>
               </thead>
               <tbody>
@@ -383,6 +383,7 @@
 import { ref, computed, h, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getEa } from '@/api/client.js'
+import { maxOf, minOf } from '@/utils.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -429,8 +430,8 @@ const targetRange = computed(() => {
 })
 function spanOf() {
   const vals = [pt.value.low, pt.value.high, pt.value.current, pt.value.mean].filter((v) => v != null)
-  const min = Math.min(...vals) * 0.97
-  const max = Math.max(...vals) * 1.03
+  const min = minOf(vals) * 0.97
+  const max = maxOf(vals) * 1.03
   return { min, max }
 }
 function pos(v, span) {
@@ -556,7 +557,7 @@ function pctOf(v) {
   return (v <= 1.5 ? v * 100 : v).toFixed(1) + '%'
 }
 function pctClass(v) {
-  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'
+  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function n1(v) {
   return v != null ? v.toFixed(1) : '—'

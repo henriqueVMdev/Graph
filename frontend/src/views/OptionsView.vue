@@ -15,7 +15,7 @@
       </form>
     </div>
 
-    <div v-if="error" class="card p-3 text-xs text-red-400">{{ error }}</div>
+    <div v-if="error" class="card p-3 text-xs text-accent-red-light">{{ error }}</div>
 
     <div v-if="loading" class="flex flex-col items-center py-16">
       <div class="dollar-loader mb-3">$</div>
@@ -65,24 +65,24 @@
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div v-for="side in SIDES" :key="side.key" class="card overflow-x-auto">
           <div class="px-3 pt-2 text-xs font-semibold"
-               :class="side.key === 'calls' ? 'text-accent-yellow' : 'text-red-400'">
+               :class="side.key === 'calls' ? 'text-accent-yellow' : 'text-accent-red-light'">
             {{ side.label }} ({{ d[side.key].length }})
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="px-2 py-1.5">Strike</th>
-                <th class="px-2 py-1.5">Último</th>
-                <th class="px-2 py-1.5">Bid</th>
-                <th class="px-2 py-1.5">Ask</th>
-                <th class="px-2 py-1.5">Vol</th>
-                <th class="px-2 py-1.5">OI</th>
-                <th class="px-2 py-1.5">IV</th>
-                <th class="px-2 py-1.5" title="Black-Scholes">Teo</th>
-                <th class="px-2 py-1.5">Δ</th>
-                <th class="px-2 py-1.5">Γ</th>
-                <th class="px-2 py-1.5" title="por dia">Θ</th>
-                <th class="px-2 py-1.5" title="por 1% de vol">ν</th>
+                <th scope="col" class="px-2 py-1.5">Strike</th>
+                <th scope="col" class="px-2 py-1.5">Último</th>
+                <th scope="col" class="px-2 py-1.5">Bid</th>
+                <th scope="col" class="px-2 py-1.5">Ask</th>
+                <th scope="col" class="px-2 py-1.5">Vol</th>
+                <th scope="col" class="px-2 py-1.5">OI</th>
+                <th scope="col" class="px-2 py-1.5">IV</th>
+                <th scope="col" class="px-2 py-1.5" title="Black-Scholes">Teo</th>
+                <th scope="col" class="px-2 py-1.5">Δ</th>
+                <th scope="col" class="px-2 py-1.5">Γ</th>
+                <th scope="col" class="px-2 py-1.5" title="por dia">Θ</th>
+                <th scope="col" class="px-2 py-1.5" title="por 1% de vol">ν</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +90,7 @@
                   class="border-b border-surface-600/40 text-right"
                   :class="r.itm ? 'bg-surface-600/30' : ''">
                 <td class="px-2 py-1 font-bold"
-                    :class="r.itm ? (side.key === 'calls' ? 'text-accent-yellow' : 'text-red-400') : 'text-gray-300'">
+                    :class="r.itm ? (side.key === 'calls' ? 'text-accent-yellow' : 'text-accent-red-light') : 'text-gray-300'">
                   {{ r.strike }}</td>
                 <td class="px-2 py-1 text-gray-300">{{ r.last ?? '—' }}</td>
                 <td class="px-2 py-1 text-gray-400">{{ r.bid ?? '—' }}</td>
@@ -118,6 +118,9 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getOptionsChain, getVolSurface } from '@/api/client.js'
@@ -155,7 +158,7 @@ async function loadSurface() {
 }
 
 async function renderSurface() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   const s = surface.value
   if (!surfaceChart.value || !s?.iv_grid?.length) return
@@ -168,7 +171,7 @@ async function renderSurface() {
     hovertemplate: 'moneyness %{x} · %{y}<br>IV %{z}%<extra></extra>',
     colorbar: { title: 'IV %', tickfont: { color: '#d0d0d0' } },
   }], {
-    template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 340,
     margin: { t: 10, r: 10, b: 40, l: 110 },
     xaxis: { title: 'Moneyness (strike / spot)' },
@@ -187,7 +190,7 @@ const ivHv = computed(() => {
 })
 const ivHvClass = computed(() => {
   if (!d.value?.atm_iv || !d.value?.hist_vol30) return 'text-gray-200'
-  return d.value.atm_iv > d.value.hist_vol30 ? 'text-red-400' : 'text-accent-yellow'
+  return d.value.atm_iv > d.value.hist_vol30 ? 'text-accent-red-light' : 'text-accent-yellow'
 })
 
 async function load(exp) {
@@ -214,7 +217,7 @@ async function load(exp) {
 
 async function renderSmile() {
   if (!d.value) return
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   // ref só existe depois do DOM trocar o loader pelo conteúdo
   await nextTick()
   if (!smileChart.value) return
@@ -232,11 +235,11 @@ async function renderSmile() {
     mk(d.value.calls, 'Calls', '#f5c518'),
     mk(d.value.puts, 'Puts', '#ef5350'),
   ], {
-    template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 260,
     margin: { t: 10, r: 10, b: 40, l: 45 },
-    xaxis: { title: 'Strike', gridcolor: '#1e1e1e' },
-    yaxis: { title: 'IV (%)', gridcolor: '#1e1e1e' },
+    xaxis: { title: 'Strike', gridcolor: TEMA.grade },
+    yaxis: { title: 'IV (%)', gridcolor: TEMA.grade },
     legend: { orientation: 'h', y: 1.15 },
     shapes,
     annotations: d.value.spot ? [{

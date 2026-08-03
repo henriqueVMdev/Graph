@@ -53,7 +53,7 @@
           <div class="flex items-center gap-2">
             <button
               @click="sendToBacktest()"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/30 hover:bg-accent-yellow/20 transition"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -88,7 +88,7 @@
           </div>
           <div class="card p-3 text-center">
             <div class="text-xs text-gray-400 mb-1">Melhor {{ store.rankBy }}</div>
-            <div class="text-lg font-bold text-green-400">{{ bestScore }}</div>
+            <div class="text-lg font-bold text-accent-yellow">{{ bestScore }}</div>
           </div>
         </div>
 
@@ -130,8 +130,8 @@
             <table class="w-full text-xs">
               <thead>
                 <tr class="border-b border-surface-500">
-                  <th class="th">#</th>
-                  <th v-for="col in tableCols" :key="col" class="th">{{ col }}</th>
+                  <th scope="col" class="th">#</th>
+                  <th scope="col" v-for="col in tableCols" :key="col" class="th">{{ col }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,19 +210,19 @@ function formatVal(v) {
 function metricValClass(col, val) {
   if (typeof val !== 'number') return 'text-gray-100'
   if (col === 'Retorno (%)' || col === 'Sharpe' || col === 'Profit Factor' || col === 'Score') {
-    return val >= 0 ? 'text-green-400' : 'text-red-400'
+    return val >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
   }
-  if (col === 'Max DD (%)') return 'text-red-400'
-  if (col === 'Win Rate (%)') return val >= 50 ? 'text-green-400' : 'text-amber-400'
+  if (col === 'Max DD (%)') return 'text-accent-red-light'
+  if (col === 'Win Rate (%)') return val >= 50 ? 'text-accent-yellow' : 'text-accent-brass'
   return 'text-gray-100'
 }
 
 function colClass(col, val) {
   if (col === 'Retorno (%)' && typeof val === 'number') {
-    return val >= 0 ? 'text-green-400' : 'text-red-400'
+    return val >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
   }
   if (col === 'Max DD (%)' && typeof val === 'number') {
-    return 'text-red-400'
+    return 'text-accent-red-light'
   }
   return 'text-gray-300'
 }

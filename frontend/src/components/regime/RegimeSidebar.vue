@@ -140,7 +140,7 @@
         class="w-full py-2.5 rounded-lg text-sm font-bold transition-colors"
         :class="store.isRunning || !canRun
           ? 'bg-surface-600 text-gray-400 cursor-not-allowed'
-          : 'bg-accent-yellow text-black hover:bg-yellow-400'"
+          : 'bg-accent-yellow text-black hover:brightness-110'"
       >
         <template v-if="store.isRunning">
           <span class="dollar-loader-sm mr-1">$</span> Detectando...

@@ -179,7 +179,7 @@
       </button>
       <div v-if="showCycleMonths" class="space-y-2 mt-2">
         <div>
-          <p class="text-[11px] text-green-400 font-semibold mb-1">LONG</p>
+          <p class="text-[11px] text-accent-yellow font-semibold mb-1">LONG</p>
           <div class="grid grid-cols-6 gap-1">
             <button
               v-for="m in months"
@@ -187,13 +187,13 @@
               @click="toggleMonth('long', m.n)"
               class="py-1 text-[11px] rounded font-medium transition-colors"
               :class="store.cycleLongMonths.includes(m.n)
-                ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                ? 'bg-accent-yellow/30 text-accent-yellow border border-accent-yellow/50'
                 : 'bg-surface-600 text-gray-400 border border-surface-500'"
             >{{ m.label }}</button>
           </div>
         </div>
         <div>
-          <p class="text-[11px] text-red-400 font-semibold mb-1">SHORT</p>
+          <p class="text-[11px] text-accent-red-light font-semibold mb-1">SHORT</p>
           <div class="grid grid-cols-6 gap-1">
             <button
               v-for="m in months"
@@ -201,7 +201,7 @@
               @click="toggleMonth('short', m.n)"
               class="py-1 text-[11px] rounded font-medium transition-colors"
               :class="store.cycleShortMonths.includes(m.n)
-                ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                ? 'bg-accent-red/30 text-accent-red-light border border-accent-red/50'
                 : 'bg-surface-600 text-gray-400 border border-surface-500'"
             >{{ m.label }}</button>
           </div>
@@ -242,7 +242,7 @@
       <button
         v-if="!store.isRunning && store.results?.best"
         @click="loadBest()"
-        class="w-full py-2 rounded-lg font-semibold text-xs bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 transition-all duration-200 mb-2"
+        class="w-full py-2 rounded-lg font-semibold text-xs bg-accent-yellow/10 text-accent-yellow border border-accent-yellow/30 hover:bg-accent-yellow/20 transition-all duration-200 mb-2"
       >
         Carregar Parametros Recomendados
       </button>
@@ -374,8 +374,8 @@ watch(schemaFields, (fields) => {
       const vals = store.customGrid[field.key]
       if (vals && vals.length > 0) {
         ranges[field.key] = {
-          min: Math.min(...vals),
-          max: Math.max(...vals),
+          min: minOf(vals),
+          max: maxOf(vals),
           step: field.step || 1,
         }
       } else {
@@ -436,6 +436,7 @@ watch(selectedAssetKey, (name) => {
 
 // Pré-seleciona os dropdowns com o ativo escolhido em outra página
 import { useWorkspaceStore } from '@/stores/workspace.js'
+import { maxOf, minOf } from '@/utils.js'
 const ws = useWorkspaceStore()
 watch(() => store.assets, (a) => {
   if (selectedAssetKey.value || !store.selectedSymbol) return
@@ -470,8 +471,8 @@ function syncRangesFromGrid() {
     if (field.type !== 'number') continue
     const vals = store.customGrid[field.key]
     if (!vals || vals.length === 0) continue
-    const min = Math.min(...vals)
-    const max = Math.max(...vals)
+    const min = minOf(vals)
+    const max = maxOf(vals)
     ranges[field.key] = {
       min,
       max,

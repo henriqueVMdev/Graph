@@ -43,7 +43,7 @@
       <select id="f-components-automation-newdeploymentform-vue-4" v-model="form.mode"
               class="border rounded-lg text-xs px-2 py-1.5 w-44"
               :class="form.mode === 'real'
-                ? 'bg-red-950/40 border-red-500/60 text-red-300'
+                ? 'bg-red-950/40 border-accent-red/60 text-accent-red-light'
                 : 'bg-surface-600 border-surface-400 text-gray-100'">
         <option value="paper">Paper (simulado local)</option>
         <option value="demo">Bybit Demo (ordens reais)</option>
@@ -53,7 +53,7 @@
 
     <!-- Modo real: aviso + conta -->
     <template v-if="form.mode === 'real'">
-      <div class="text-[11px] text-red-300 bg-red-950/40 border border-red-500/40 rounded-lg px-2.5 py-2">
+      <div class="text-[11px] text-accent-red-light bg-red-950/40 border border-accent-red/40 rounded-lg px-2.5 py-2">
         ⚠ Ordens com <b>dinheiro real</b> na Bybit mainnet. TP/SL ficam
         server-side na exchange. Proteções extras são opcionais abaixo.
       </div>
@@ -125,12 +125,12 @@
       <SchemaFields :schema="schema" :params="form.params" :hidden="['initial_capital']" />
     </div>
 
-    <div v-if="store.error" class="text-xs text-red-400">{{ store.error }}</div>
+    <div v-if="store.error" class="text-xs text-accent-red-light">{{ store.error }}</div>
 
     <button @click="submit" :disabled="store.isLoading || (form.mode === 'real' && !form.account)"
             class="w-full py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
             :class="form.mode === 'real'
-              ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+              ? 'bg-accent-red/20 text-accent-red-light hover:bg-accent-red/30'
               : 'bg-accent-yellow/15 text-accent-yellow hover:bg-accent-yellow/25'">
       {{ store.isLoading ? 'Criando...'
          : form.mode === 'real' ? 'Criar deployment REAL' : 'Criar deployment' }}

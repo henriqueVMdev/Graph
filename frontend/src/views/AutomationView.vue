@@ -12,7 +12,7 @@
 
       <!-- Status do runner -->
       <div class="flex items-center gap-2 text-[11px]"
-           :class="runnerOk ? 'text-gray-400' : 'text-red-400'">
+           :class="runnerOk ? 'text-gray-400' : 'text-accent-red-light'">
         <span class="w-1.5 h-1.5 rounded-full"
               :class="runnerOk ? 'bg-accent-yellow animate-pulse' : 'bg-red-500'" />
         <span v-if="runnerOk">

@@ -15,7 +15,7 @@
       </form>
     </div>
 
-    <div v-if="terminal.watchError" class="card p-3 text-xs text-red-400">
+    <div v-if="terminal.watchError" class="card p-3 text-xs text-accent-red-light">
       {{ terminal.watchError }}
     </div>
 
@@ -23,15 +23,15 @@
       <table class="w-full text-sm font-mono">
         <thead>
           <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
-            <th class="text-left px-3 py-2">Ativo</th>
-            <th class="px-3 py-2">Último</th>
-            <th class="px-3 py-2">24h %</th>
-            <th class="px-3 py-2">Máx 24h</th>
-            <th class="px-3 py-2">Mín 24h</th>
-            <th class="px-3 py-2">Volume ($)</th>
-            <th class="px-3 py-2">Funding</th>
-            <th class="px-3 py-2">24h (15m)</th>
-            <th class="px-3 py-2"></th>
+            <th scope="col" class="text-left px-3 py-2">Ativo</th>
+            <th scope="col" class="px-3 py-2">Último</th>
+            <th scope="col" class="px-3 py-2">24h %</th>
+            <th scope="col" class="px-3 py-2">Máx 24h</th>
+            <th scope="col" class="px-3 py-2">Mín 24h</th>
+            <th scope="col" class="px-3 py-2">Volume ($)</th>
+            <th scope="col" class="px-3 py-2">Funding</th>
+            <th scope="col" class="px-3 py-2">24h (15m)</th>
+            <th scope="col" class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -47,14 +47,14 @@
             <td class="px-3 py-2 text-right font-semibold transition-colors duration-500"
                 :class="flash[rowKey(r)]">{{ fmt(r.last) }}</td>
             <td class="px-3 py-2 text-right"
-                :class="(r.pct24h ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+                :class="(r.pct24h ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'">
               {{ fmtPct(r.pct24h) }}
             </td>
             <td class="px-3 py-2 text-right text-gray-400">{{ fmt(r.high24) }}</td>
             <td class="px-3 py-2 text-right text-gray-400">{{ fmt(r.low24) }}</td>
             <td class="px-3 py-2 text-right text-gray-400">{{ fmtVol(r.vol_usd) }}</td>
             <td class="px-3 py-2 text-right"
-                :class="(r.funding ?? 0) >= 0 ? 'text-gray-300' : 'text-red-400'">
+                :class="(r.funding ?? 0) >= 0 ? 'text-gray-300' : 'text-accent-red-light'">
               {{ fmtFunding(r.funding) }}
             </td>
             <td class="px-3 py-2">
@@ -66,7 +66,7 @@
               <button @click="alertFor(r)" title="Criar alerta"
                       class="text-gray-500 hover:text-accent-yellow text-xs px-1">⏰</button>
               <button @click="terminal.removeFromWatchlist(r.base, r.market)" title="Remover"
-                      class="text-gray-500 hover:text-red-400 text-xs px-1">✕</button>
+                      class="text-gray-500 hover:text-accent-red-light text-xs px-1">✕</button>
             </td>
           </tr>
           <tr v-if="!terminal.watchRows.length">
@@ -84,6 +84,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTerminalStore } from '@/stores/terminal.js'
+import { maxOf, minOf } from '@/utils.js'
 
 const terminal = useTerminalStore()
 const router = useRouter()
@@ -102,7 +103,7 @@ watch(() => terminal.watchRows, (rows) => {
     const k = rowKey(r)
     const prev = lastPrices[k]
     if (prev != null && r.last != null && r.last !== prev) {
-      flash.value = { ...flash.value, [k]: r.last > prev ? 'text-green-400' : 'text-red-400' }
+      flash.value = { ...flash.value, [k]: r.last > prev ? 'text-accent-yellow' : 'text-accent-red-light' }
       setTimeout(() => { flash.value = { ...flash.value, [k]: '' } }, 600)
     }
     lastPrices[k] = r.last
@@ -149,7 +150,7 @@ function fmtFunding(v) {
 const Sparkline = (props) => {
   const pts = props.points
   if (!pts || pts.length < 2) return h('div', { class: 'w-24 h-6' })
-  const min = Math.min(...pts), max = Math.max(...pts)
+  const min = minOf(pts), max = maxOf(pts)
   const range = max - min || 1
   const w = 96, hgt = 24
   const d = pts.map((p, i) =>

@@ -57,7 +57,7 @@
         </label>
         <span v-if="curve?.structure" class="text-xs font-mono px-2 py-1 rounded mb-0.5"
               :class="curve.structure === 'contango'
-                ? 'bg-blue-900/40 text-blue-300' : 'bg-amber-900/40 text-amber-300'">
+                ? 'bg-blue-900/40 text-blue-300' : 'bg-accent-brass/15 text-accent-brass'">
           {{ curve.structure.toUpperCase() }}
         </span>
       </div>
@@ -83,16 +83,16 @@
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="text-left px-3 py-2">Par</th>
-                <th class="px-3 py-2">Spread</th>
-                <th class="px-3 py-2">Leitura</th>
+                <th scope="col" class="text-left px-3 py-2">Par</th>
+                <th scope="col" class="px-3 py-2">Spread</th>
+                <th scope="col" class="px-3 py-2">Leitura</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="s in curve.spreads" :key="s.pair" class="border-b border-surface-600/40">
                 <td class="px-3 py-1.5 text-gray-200">{{ s.pair }}</td>
                 <td class="px-3 py-1.5 text-right font-bold"
-                    :class="s.value > 0 ? 'text-amber-300' : 'text-blue-300'">
+                    :class="s.value > 0 ? 'text-accent-brass' : 'text-blue-300'">
                   {{ s.value > 0 ? '+' : '' }}{{ s.value }}</td>
                 <td class="px-3 py-1.5 text-right text-gray-400">
                   {{ s.value > 0 ? 'backwardation (curto > longo)' : 'contango (longo > curto)' }}</td>
@@ -122,7 +122,7 @@
             <div class="text-[11px] text-gray-400 font-mono mb-2">{{ r.crops }}</div>
             <div class="flex items-baseline gap-3 font-mono">
               <span class="text-2xl font-bold"
-                    :class="r.precip_7d_mm < 5 ? 'text-amber-300' : r.precip_7d_mm > 80 ? 'text-blue-300' : 'text-gray-200'">
+                    :class="r.precip_7d_mm < 5 ? 'text-accent-brass' : r.precip_7d_mm > 80 ? 'text-blue-300' : 'text-gray-200'">
                 {{ r.precip_7d_mm }}<span class="text-xs">mm</span></span>
               <span class="text-xs text-gray-400">7 dias</span>
               <span class="text-sm text-gray-400">máx {{ r.tmax_7d }}°C</span>
@@ -130,8 +130,8 @@
             <div class="mt-2 flex gap-1 flex-wrap">
               <span v-for="f in r.flags" :key="f"
                     class="text-[11px] font-mono px-1.5 py-0.5 rounded uppercase"
-                    :class="f === 'seca' ? 'bg-amber-900/50 text-amber-300'
-                      : f === 'calor extremo' ? 'bg-red-900/50 text-red-300'
+                    :class="f === 'seca' ? 'bg-accent-brass/15 text-accent-brass'
+                      : f === 'calor extremo' ? 'bg-accent-red/15 text-accent-red-light'
                       : 'bg-blue-900/50 text-blue-300'">{{ f }}</span>
               <span v-if="!r.flags.length" class="text-[11px] font-mono px-1.5 py-0.5 rounded
                     bg-surface-600/60 text-gray-400 uppercase">normal</span>
@@ -155,12 +155,12 @@
           <table class="w-full text-xs font-mono">
             <thead>
               <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
-                <th class="text-left px-3 py-2">Ativo</th>
-                <th class="text-left px-3 py-2">Nome</th>
-                <th class="text-left px-3 py-2">Segmento</th>
-                <th class="px-3 py-2">Último</th>
-                <th class="px-3 py-2">Dia %</th>
-                <th class="px-3 py-2">Faixa dia</th>
+                <th scope="col" class="text-left px-3 py-2">Ativo</th>
+                <th scope="col" class="text-left px-3 py-2">Nome</th>
+                <th scope="col" class="text-left px-3 py-2">Segmento</th>
+                <th scope="col" class="px-3 py-2">Último</th>
+                <th scope="col" class="px-3 py-2">Dia %</th>
+                <th scope="col" class="px-3 py-2">Faixa dia</th>
               </tr>
             </thead>
             <tbody>
@@ -203,7 +203,7 @@
               </div>
               <MiniSeries :dates="s.dates" :values="s.values" />
             </template>
-            <p v-else class="text-xs text-red-400">série indisponível</p>
+            <p v-else class="text-xs text-accent-red-light">série indisponível</p>
           </div>
         </div>
       </template>
@@ -239,6 +239,10 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
+import { quandoVisivel } from '@/composables/visibilidade.js'
+import { getPlotly } from '@/composables/plotly.js'
 import { ref, h, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -246,6 +250,7 @@ import {
   getCdtyWeather, getCdtyShipping, getCdtyInventories, getNews,
 } from '@/api/client.js'
 import { purgeChart } from '@/composables/useCharts.js'
+import { maxOf, minOf } from '@/utils.js'
 
 const router = useRouter()
 
@@ -325,7 +330,7 @@ async function loadCurve() {
 }
 
 async function renderCurve() {
-  if (!Plotly) Plotly = (await import('plotly.js-dist-min')).default
+  if (!Plotly) Plotly = await getPlotly()
   await nextTick()
   if (!curveChart.value || !curve.value?.points?.length) return
   const pts = curve.value.points
@@ -343,11 +348,11 @@ async function renderCurve() {
                   line: { color: '#667788', width: 1, dash: 'dot' } })
   }
   Plotly.react(curveChart.value, traces, {
-    template: 'plotly_dark', paper_bgcolor: '#000', plot_bgcolor: '#080808',
+    template: 'plotly_dark', paper_bgcolor: TEMA.fundoPapel, plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', size: 11 }, height: 280,
     margin: { t: 10, r: 10, b: 40, l: 55 },
-    xaxis: { title: 'Vencimento', gridcolor: '#1e1e1e' },
-    yaxis: { title: curve.value.unit, gridcolor: '#1e1e1e' },
+    xaxis: { title: 'Vencimento', gridcolor: TEMA.grade },
+    yaxis: { title: curve.value.unit, gridcolor: TEMA.grade },
     shapes,
     annotations: curve.value.spot ? [{
       x: 0, xref: 'paper', y: curve.value.spot, text: 'spot (=F)',
@@ -380,7 +385,7 @@ async function loadNews(q) {
 const MiniSeries = (props) => {
   const v = (props.values || []).filter((x) => x != null)
   if (v.length < 2) return h('div')
-  const min = Math.min(...v), max = Math.max(...v)
+  const min = minOf(v), max = maxOf(v)
   const range = max - min || 1
   const w = 320, hgt = 60
   const d = v.map((p, i) =>
@@ -392,7 +397,7 @@ const MiniSeries = (props) => {
 MiniSeries.props = { dates: Array, values: Array }
 
 function pctClass(v) {
-  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-red-400'
+  return (v ?? 0) >= 0 ? 'text-accent-yellow' : 'text-accent-red-light'
 }
 function fmt(v) {
   if (v == null) return '—'
@@ -411,7 +416,7 @@ function rel(ts) {
 
 onMounted(async () => {
   loadOverview()
-  overviewTimer = setInterval(loadOverview, 60000)
+  overviewTimer = setInterval(quandoVisivel(loadOverview), 60000)
   try {
     const { data } = await getCdtyCurves()
     curvesMeta.value = data.curves || []

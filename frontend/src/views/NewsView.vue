@@ -20,7 +20,7 @@
       </select>
     </div>
 
-    <div v-if="terminal.newsFailed.length" class="text-[11px] text-amber-300 bg-amber-900/20 rounded-lg p-2 border border-amber-800/50">
+    <div v-if="terminal.newsFailed.length" class="text-[11px] text-accent-brass bg-accent-brass/15 rounded-lg p-2 border border-accent-brass/50">
       ⚠ Fontes indisponíveis agora: {{ terminal.newsFailed.join(', ') }}
     </div>
 
@@ -67,12 +67,12 @@ const SOURCE_COLORS = {
   CoinDesk: 'text-accent-yellow/80',
   Cointelegraph: 'text-blue-400/80',
   Decrypt: 'text-purple-400/80',
-  Livecoins: 'text-green-400/80',
+  Livecoins: 'text-accent-yellow/80',
   'Yahoo Finance': 'text-purple-300/80',
   MarketWatch: 'text-teal-400/80',
   CNBC: 'text-sky-400/80',
   InfoMoney: 'text-orange-400/80',
-  OilPrice: 'text-amber-400/80',
+  OilPrice: 'text-accent-brass/80',
   'Mining.com': 'text-stone-400/80',
 }
 

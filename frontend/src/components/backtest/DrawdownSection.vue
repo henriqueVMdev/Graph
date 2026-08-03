@@ -77,11 +77,11 @@
         <table class="w-full text-xs text-gray-400 border-collapse">
           <thead>
             <tr class="border-b border-surface-600 text-gray-400 text-left">
-              <th class="py-1.5 pr-4">#</th>
-              <th class="py-1.5 pr-4">Inicio</th>
-              <th class="py-1.5 pr-4">Fim</th>
-              <th class="py-1.5 pr-4 text-right">Fundo</th>
-              <th class="py-1.5 text-right">Duracao</th>
+              <th scope="col" class="py-1.5 pr-4">#</th>
+              <th scope="col" class="py-1.5 pr-4">Inicio</th>
+              <th scope="col" class="py-1.5 pr-4">Fim</th>
+              <th scope="col" class="py-1.5 pr-4 text-right">Fundo</th>
+              <th scope="col" class="py-1.5 text-right">Duracao</th>
             </tr>
           </thead>
           <tbody>
@@ -110,6 +110,8 @@
 </template>
 
 <script setup>
+import { TEMA } from '@/composables/chartTheme.js'
+
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getPlotly } from '@/composables/plotly.js'
 
@@ -223,8 +225,8 @@ async function buildChart() {
 
   const layout = {
     template: 'plotly_dark',
-    paper_bgcolor: '#000000',
-    plot_bgcolor: '#080808',
+    paper_bgcolor: TEMA.fundoPapel,
+    plot_bgcolor: TEMA.fundoPlot,
     font: { color: '#d0d0d0', family: 'Inter, system-ui, sans-serif', size: 12 },
     height: 300,
     margin: { t: 10, r: 20, b: 50, l: 60 },
@@ -233,14 +235,14 @@ async function buildChart() {
     xaxis: {
       type: 'date',
       title: 'Data',
-      gridcolor: '#1e1e1e',
-      linecolor: '#2a2a2a',
+      gridcolor: TEMA.grade,
+      linecolor: TEMA.eixo,
       tickfont: { color: '#707070' },
     },
     yaxis: {
       title: 'Drawdown (%)',
-      gridcolor: '#1e1e1e',
-      linecolor: '#2a2a2a',
+      gridcolor: TEMA.grade,
+      linecolor: TEMA.eixo,
       tickfont: { color: '#707070' },
       ticksuffix: '%',
     },

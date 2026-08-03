@@ -54,7 +54,7 @@
             class="text-gray-400 capitalize"
           >{{ ex }}: <b class="text-gray-300">{{ count }}</b></span>
         </div>
-        <div v-if="store.syncResult.warnings.length" class="mt-2 space-y-0.5 text-[11px] text-amber-300">
+        <div v-if="store.syncResult.warnings.length" class="mt-2 space-y-0.5 text-[11px] text-accent-brass">
           <div v-for="(w, i) in store.syncResult.warnings" :key="i">⚠ {{ w }}</div>
         </div>
       </div>
@@ -222,14 +222,14 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-[11px] uppercase tracking-wide text-gray-400 border-b border-surface-500">
-                <th class="px-4 py-2 font-medium">Data</th>
-                <th class="px-4 py-2 font-medium">Origem</th>
-                <th class="px-4 py-2 font-medium">Ativo</th>
-                <th class="px-4 py-2 font-medium">Resultado</th>
-                <th class="px-4 py-2 font-medium text-right">Valor</th>
-                <th class="px-4 py-2 font-medium text-right">Taxa</th>
-                <th class="px-4 py-2 font-medium">Notas</th>
-                <th class="px-4 py-2 font-medium text-right"></th>
+                <th scope="col" class="px-4 py-2 font-medium">Data</th>
+                <th scope="col" class="px-4 py-2 font-medium">Origem</th>
+                <th scope="col" class="px-4 py-2 font-medium">Ativo</th>
+                <th scope="col" class="px-4 py-2 font-medium">Resultado</th>
+                <th scope="col" class="px-4 py-2 font-medium text-right">Valor</th>
+                <th scope="col" class="px-4 py-2 font-medium text-right">Taxa</th>
+                <th scope="col" class="px-4 py-2 font-medium">Notas</th>
+                <th scope="col" class="px-4 py-2 font-medium text-right"></th>
               </tr>
             </thead>
             <tbody>

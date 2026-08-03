@@ -54,24 +54,24 @@ const verdictLabel = computed(() => ({
 const badgeClass = computed(() => ({
   ok: 'bg-accent-yellow/15 text-accent-yellow',
   warn: 'bg-orange-500/15 text-orange-400',
-  invalidated: 'bg-red-500/20 text-red-400',
+  invalidated: 'bg-accent-red/20 text-accent-red-light',
   insufficient: 'bg-surface-500 text-gray-400',
 }[verdict.value]))
 
 const borderClass = computed(() => ({
   ok: 'border-surface-500 bg-surface-700',
   warn: 'border-orange-500/40 bg-orange-500/5',
-  invalidated: 'border-red-500/50 bg-red-500/5',
+  invalidated: 'border-accent-red/50 bg-accent-red/5',
   insufficient: 'border-surface-500 bg-surface-700',
 }[verdict.value]))
 
 const wrClass = computed(() => {
-  if (verdict.value === 'invalidated') return 'text-red-400'
+  if (verdict.value === 'invalidated') return 'text-accent-red-light'
   if (verdict.value === 'warn') return 'text-orange-400'
   return 'text-gray-200'
 })
 
 const detailClass = computed(() =>
-  verdict.value === 'invalidated' ? 'text-red-400'
+  verdict.value === 'invalidated' ? 'text-accent-red-light'
     : verdict.value === 'warn' ? 'text-orange-400' : 'text-gray-400')
 </script>

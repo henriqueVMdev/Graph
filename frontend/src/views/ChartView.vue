@@ -46,7 +46,7 @@
         </div>
 
         <div v-else-if="store.error" class="absolute inset-0 flex items-center justify-center p-6">
-          <div class="text-sm text-red-400 bg-red-900/20 rounded-lg p-3 border border-red-800 max-w-lg">
+          <div class="text-sm text-accent-red-light bg-accent-red/15 rounded-lg p-3 border border-accent-red/40 max-w-lg">
             {{ store.error }}
           </div>
         </div>
