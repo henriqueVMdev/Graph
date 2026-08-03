@@ -108,6 +108,24 @@
         </template>
       </div>
 
+      <!-- ── Capital ─────────────────────────────────────────────────── -->
+      <!-- Fora do loop de schema de proposito: nenhuma estrategia declara o
+           campo, e o Prop Challenge e o NewDeploymentForm ja tratam capital
+           como ajuste da execucao, nao como parametro da estrategia. -->
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">
+          Capital
+          <InfoHint rotulo="Capital inicial">Base do teste, em dólares. Define o tamanho das posições (o sizing por risco e por alavancagem é percentual do capital), então também define o notional sobre o qual as corretoras cobram fees e funding. Dobrar o capital dobra o custo absoluto em taxas.</InfoHint>
+        </p>
+        <NumInput
+          label="Capital inicial em dólares"
+          :model-value="store.params.initial_capital ?? 1000"
+          @change="store.params.initial_capital = $event"
+          :min="1"
+          :step="100"
+        />
+      </div>
+
       <!-- ── Parâmetros dinâmicos ────────────────────────────────────── -->
       <template v-if="store.selectedStrategy && !store.selectedStrategy.error">
         <div
@@ -238,6 +256,7 @@ import { useBacktestStore } from '@/stores/backtest.js'
 import { useWorkspaceStore } from '@/stores/workspace.js'
 import NumInput from '@/components/NumInput.vue'
 import HourFilter from '@/components/HourFilter.vue'
+import InfoHint from '@/components/common/InfoHint.vue'
 
 const store = useBacktestStore()
 const selectedCategory = ref('')

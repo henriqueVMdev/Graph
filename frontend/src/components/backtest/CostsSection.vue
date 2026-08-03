@@ -57,6 +57,22 @@
       Rode um backtest com sizing (alavancagem/quantidade) definido para custear os trades.
     </p>
 
+    <!-- Fees e funding incidem sobre o notional, que sai do sizing do capital.
+         Sem dizer qual capital foi usado, dois numeros de custo bem diferentes
+         parecem igualmente validos. -->
+    <p v-else-if="store.capitalDosResultados" class="text-xs text-gray-400">
+      Custos sobre o capital de
+      <span class="font-mono text-gray-200">{{ money(store.capitalDosResultados) }}</span>,
+      o mesmo que dimensionou estes trades.
+    </p>
+
+    <div v-if="store.capitalDesatualizado" class="text-xs text-accent-brass">
+      <Icon name="aviso" class="w-3 h-3 mr-1 inline align-[-2px]" />
+      A sidebar está em {{ money(store.params.initial_capital) }}, mas estes trades
+      vieram de {{ money(store.capitalDosResultados) }}. Rode o backtest de novo para
+      custear no capital novo.
+    </div>
+
     <div v-if="store.costsError" class="card p-3 border-accent-red text-accent-red-light text-xs">
       {{ store.costsError }}
     </div>

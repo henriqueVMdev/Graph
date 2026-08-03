@@ -16,7 +16,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // Estratégia + params compartilhados (Backtest / Prop Challenge / Gráfico)
   const selectedStrategy = ref(null)
-  const params = ref({})
+  // initial_capital nasce aqui, e nao no schema das estrategias: nenhuma delas
+  // declara o campo, todas so fazem params.get("initial_capital", 1000.0). Sem
+  // um valor de partida, todo consumidor caia no `|| 1000` e o capital era
+  // inalteravel pela interface. Um unico dono do default evita que Backtest,
+  // Prop Challenge e Grafico divirjam.
+  const params = ref({ initial_capital: 1000 })
 
   /** Localiza categoria+label de um ticker na lista de assets do backend
    *  (p/ pré-selecionar os dropdowns das sidebars). */

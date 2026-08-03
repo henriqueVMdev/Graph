@@ -172,6 +172,9 @@ export const useBacktestStore = defineStore('backtest', () => {
     isRunning.value = true
     error.value = null
     results.value = null
+    costsResult.value = null
+    costsError.value = null
+    costsWarnings.value = []
     const stratFile = selectedStrategy.value?.file || 'depaula'
     try {
       let resp
@@ -247,6 +250,20 @@ export const useBacktestStore = defineStore('backtest', () => {
     return `${base}/USDT:USDT`
   }
 
+  /** Capital com que o backtest carregado realmente rodou. Fees e funding
+   *  incidem sobre qty x preco, e qty saiu do sizing daquele capital — usar o
+   *  valor atual da sidebar custearia trades de outra base. */
+  const capitalDosResultados = computed(() =>
+    Number(results.value?.metrics?.initial_capital) || null)
+
+  /** Sidebar mexida depois do backtest: os custos ainda descrevem a corrida
+   *  antiga ate rodar de novo. */
+  const capitalDesatualizado = computed(() => {
+    const rodado = capitalDosResultados.value
+    if (!rodado) return false
+    return Number(params.value.initial_capital) !== rodado
+  })
+
   async function runCosts() {
     const trades = results.value?.trades || []
     if (!trades.length) {
@@ -264,7 +281,7 @@ export const useBacktestStore = defineStore('backtest', () => {
         exchanges: costsConfig.value.exchanges,
         scenarios: costsConfig.value.scenarios,
         use_funding: costsConfig.value.use_funding,
-        initial_capital: Number(params.value.initial_capital) || 1000,
+        initial_capital: capitalDosResultados.value || Number(params.value.initial_capital) || 1000,
         strategy_name: selectedStrategy.value?.name || 'Estratégia',
       })
       costsResult.value = data.rows || []
@@ -331,6 +348,7 @@ export const useBacktestStore = defineStore('backtest', () => {
     correlationData, correlationLoading, correlationError,
     wfaResults, wfaLoading, wfaError, wfaConfig,
     costsResult, costsLoading, costsError, costsWarnings, costsConfig,
+    capitalDosResultados, capitalDesatualizado,
     chartData, chartLoading, chartError, chartConfig,
     fetchAssets, fetchStrategies, selectStrategy,
     applyPendingParams, runBacktest, fetchCorrelation, runWfa,
