@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">BOOK · Ofertas & Negócios</h1>
-      <span class="text-[10px] text-gray-500 font-mono">
+      <span class="text-[11px] text-gray-500 font-mono">
         cripto: L2 bybit ao vivo (3s) · tradicional: bid/ask top-of-book (yahoo)
       </span>
       <div class="flex-1" />
@@ -25,12 +25,12 @@
         <div class="text-xs text-gray-400 font-mono mb-3">{{ d.yf_symbol }} · último {{ fmt(d.last) }}</div>
         <div class="grid grid-cols-2 gap-4 max-w-xl">
           <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-green-800/40">
-            <div class="text-[10px] text-gray-400 uppercase">Bid</div>
+            <div class="text-[11px] text-gray-400 uppercase">Bid</div>
             <div class="text-3xl font-bold font-mono text-green-400">{{ fmt(d.bid) }}</div>
             <div class="text-xs text-gray-400 font-mono mt-1">{{ d.bid_size != null ? d.bid_size + ' lotes' : '' }}</div>
           </div>
           <div class="text-center p-4 rounded-lg bg-surface-600/40 border border-red-800/40">
-            <div class="text-[10px] text-gray-400 uppercase">Ask</div>
+            <div class="text-[11px] text-gray-400 uppercase">Ask</div>
             <div class="text-3xl font-bold font-mono text-red-400">{{ fmt(d.ask) }}</div>
             <div class="text-xs text-gray-400 font-mono mt-1">{{ d.ask_size != null ? d.ask_size + ' lotes' : '' }}</div>
           </div>
@@ -38,7 +38,7 @@
         <div class="text-xs text-gray-400 font-mono mt-3">
           spread {{ spreadTradfi }} · volume dia {{ fmtVol(d.volume) }}
         </div>
-        <p class="text-[10px] text-gray-500 mt-2">{{ d.note }}</p>
+        <p class="text-[11px] text-gray-500 mt-2">{{ d.note }}</p>
       </div>
     </template>
 
@@ -56,7 +56,7 @@
           <div class="grid grid-cols-2 gap-3">
             <!-- bids -->
             <div>
-              <div class="text-[10px] text-green-400 uppercase font-semibold mb-1 text-right">Compra (bids)</div>
+              <div class="text-[11px] text-green-400 uppercase font-semibold mb-1 text-right">Compra (bids)</div>
               <div v-for="[p, q] in d.bids" :key="'b' + p"
                    class="relative flex justify-between text-xs font-mono py-0.5 px-1">
                 <div class="absolute inset-y-0 right-0 bg-green-900/30"
@@ -67,7 +67,7 @@
             </div>
             <!-- asks -->
             <div>
-              <div class="text-[10px] text-red-400 uppercase font-semibold mb-1">Venda (asks)</div>
+              <div class="text-[11px] text-red-400 uppercase font-semibold mb-1">Venda (asks)</div>
               <div v-for="[p, q] in d.asks" :key="'a' + p"
                    class="relative flex justify-between text-xs font-mono py-0.5 px-1">
                 <div class="absolute inset-y-0 left-0 bg-red-900/30"
@@ -77,14 +77,14 @@
               </div>
             </div>
           </div>
-          <div class="mt-2 text-[10px] text-gray-500 font-mono text-center">
+          <div class="mt-2 text-[11px] text-gray-500 font-mono text-center">
             pressão compradora: {{ buyPressure }}% do book visível
           </div>
         </div>
 
         <!-- tape -->
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-1">Negócios recentes</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-1">Negócios recentes</div>
           <div class="max-h-[420px] overflow-y-auto">
             <div v-for="(t, i) in d.trades" :key="i"
                  class="flex justify-between text-[11px] font-mono py-0.5 border-b border-surface-600/30">

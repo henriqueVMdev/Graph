@@ -22,14 +22,14 @@
 
         <!-- Asset selector -->
         <template v-if="store.dataSource === 'asset'">
-          <label class="text-xs text-gray-400 block mb-1">Categoria</label>
-          <select v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-regime-regimesidebar-vue-1">Categoria</label>
+          <select id="f-components-regime-regimesidebar-vue-1" v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
             <option value="">Selecione a categoria</option>
             <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Ativo</label>
-          <select
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-regime-regimesidebar-vue-2">Ativo</label>
+          <select id="f-components-regime-regimesidebar-vue-2"
             v-model="selectedKey"
             @change="onAssetChange"
             :disabled="!selectedCategory"
@@ -44,13 +44,13 @@
             >{{ label }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
-          <select v-model="store.interval" class="form-select w-full mb-2 text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-regime-regimesidebar-vue-3">Timeframe</label>
+          <select id="f-components-regime-regimesidebar-vue-3" v-model="store.interval" class="form-select w-full mb-2 text-xs">
             <option v-for="tf in timeframes" :key="tf.value" :value="tf.value">{{ tf.label }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Fonte dos candles</label>
-          <select v-model="store.exchange" class="form-select w-full text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-regime-regimesidebar-vue-4">Fonte dos candles</label>
+          <select id="f-components-regime-regimesidebar-vue-4" v-model="store.exchange" class="form-select w-full text-xs">
             <option value="">Yahoo Finance (15m/30m: só 60 dias)</option>
             <option value="bybit">Bybit perp (~1 ano de 15m)</option>
             <option value="binance">Binance perp (~1 ano de 15m)</option>
@@ -72,7 +72,7 @@
                      hover:file:bg-surface-400 cursor-pointer"
             />
           </label>
-          <p class="text-[10px] text-gray-500 mt-1">CSV deve ter colunas: Date, Open, High, Low, Close, Volume</p>
+          <p class="text-[11px] text-gray-500 mt-1">CSV deve ter colunas: Date, Open, High, Low, Close, Volume</p>
         </template>
       </div>
 
@@ -80,8 +80,8 @@
       <div class="sidebar-section">
         <p class="sidebar-section-title">Configuração</p>
 
-        <label class="text-xs text-gray-400 block mb-1">Método</label>
-        <select v-model="store.method" class="form-select w-full text-xs mb-3">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-regime-regimesidebar-vue-5">Método</label>
+        <select id="f-components-regime-regimesidebar-vue-5" v-model="store.method" class="form-select w-full text-xs mb-3">
           <option value="hmm">HMM (sklearn + Viterbi)</option>
           <option value="markov_switching">Markov Switching (statsmodels)</option>
           <option value="changepoint">Change-Point Detection</option>
@@ -124,7 +124,7 @@
           <input type="checkbox" v-model="store.causal" class="accent-accent-yellow mt-0.5" />
           <span>
             Causal (tempo real)
-            <span class="block text-[10px] text-gray-500">
+            <span class="block text-[11px] text-gray-500">
               Probabilidades filtradas: o regime da barra t usa só dados até t —
               operável ao vivo. Desmarcado = suavizado com a série inteira
               (descrição histórica melhor, mas com lookahead).

@@ -121,8 +121,8 @@
         <div v-show="tab === 'scatter'">
           <div v-if="availableLabels.length > 2" class="flex gap-4 mb-4 items-end">
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-400">Ativo X</label>
-              <select
+              <label class="text-xs text-gray-400" for="f-components-backtest-correlationsection-vue-1">Ativo X</label>
+              <select id="f-components-backtest-correlationsection-vue-1"
                 v-model="pairA"
                 @change="renderScatter(store.correlationData)"
                 class="bg-surface-600 border border-surface-500 text-gray-200 text-xs rounded px-2 py-1 focus:outline-none focus:border-accent-yellow"
@@ -131,8 +131,8 @@
               </select>
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-400">Ativo Y</label>
-              <select
+              <label class="text-xs text-gray-400" for="f-components-backtest-correlationsection-vue-2">Ativo Y</label>
+              <select id="f-components-backtest-correlationsection-vue-2"
                 v-model="pairB"
                 @change="renderScatter(store.correlationData)"
                 class="bg-surface-600 border border-surface-500 text-gray-200 text-xs rounded px-2 py-1 focus:outline-none focus:border-accent-yellow"
@@ -156,8 +156,8 @@
             <!-- Pair selector -->
             <template v-if="availableLabels.length > 2">
               <div class="flex flex-col gap-1">
-                <label class="text-xs text-gray-400">Ativo A</label>
-                <select
+                <label class="text-xs text-gray-400" for="f-components-backtest-correlationsection-vue-3">Ativo A</label>
+                <select id="f-components-backtest-correlationsection-vue-3"
                   v-model="pairA"
                   @change="renderCorrCoef(store.correlationData)"
                   class="bg-surface-600 border border-surface-500 text-gray-200 text-xs rounded px-2 py-1 focus:outline-none focus:border-accent-yellow"
@@ -166,8 +166,8 @@
                 </select>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs text-gray-400">Ativo B</label>
-                <select
+                <label class="text-xs text-gray-400" for="f-components-backtest-correlationsection-vue-4">Ativo B</label>
+                <select id="f-components-backtest-correlationsection-vue-4"
                   v-model="pairB"
                   @change="renderCorrCoef(store.correlationData)"
                   class="bg-surface-600 border border-surface-500 text-gray-200 text-xs rounded px-2 py-1 focus:outline-none focus:border-accent-yellow"
@@ -699,7 +699,7 @@ function fmtN(v, dec = 2) {
   border-radius: 50%;
   border: 1px solid #555;
   color: #666;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   cursor: default;
   flex-shrink: 0;
@@ -717,7 +717,7 @@ function fmtN(v, dec = 2) {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 10px;
+  font-size: 11px;
   color: #bbb;
   line-height: 1.5;
   text-align: left;

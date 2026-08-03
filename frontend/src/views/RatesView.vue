@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">FI · Juros & Crédito</h1>
-      <span class="text-[10px] text-gray-500 font-mono">treasuries US via yahoo · atualiza 15 min</span>
+      <span class="text-[11px] text-gray-500 font-mono">treasuries US via yahoo · atualiza 15 min</span>
       <div class="flex-1" />
       <button @click="load" class="btn-secondary !py-1.5 text-xs">↻ Atualizar</button>
     </div>
@@ -20,7 +20,7 @@
         <div v-for="p in d.points" :key="p.label" class="metric-card">
           <span class="metric-label">Treasury {{ p.label }}</span>
           <span class="metric-value text-gray-200">{{ p.now?.toFixed(2) }}%</span>
-          <span class="text-[10px] font-mono" :class="delta(p) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
+          <span class="text-[11px] font-mono" :class="delta(p) >= 0 ? 'text-accent-yellow' : 'text-red-400'">
             {{ delta(p) >= 0 ? '+' : '' }}{{ delta(p).toFixed(0) }} bps 1m
           </span>
         </div>
@@ -62,13 +62,13 @@
                 </span>
               </div>
             </div>
-            <p class="text-[10px] text-gray-500 mt-2">curva invertida historicamente antecede recessões</p>
+            <p class="text-[11px] text-gray-500 mt-2">curva invertida historicamente antecede recessões</p>
           </div>
 
           <div class="card p-4">
             <h2 class="text-sm font-semibold text-gray-200 mb-2">
               <span class="text-accent-yellow">◆</span> Spreads de crédito
-              <span class="text-[9px] font-mono px-1 py-0.5 rounded ml-1"
+              <span class="text-[11px] font-mono px-1 py-0.5 rounded ml-1"
                     :class="credit?.source === 'fred'
                       ? 'bg-green-900/40 text-green-300' : 'bg-amber-900/40 text-amber-300'">
                 {{ credit?.source === 'fred' ? 'FRED (OAS oficial)' : 'proxy via ETFs' }}
@@ -84,7 +84,7 @@
                 <span class="text-gray-200">{{ creditNow('ig') }}</span>
               </div>
             </div>
-            <p v-if="credit?.source === 'proxy_etf'" class="text-[10px] text-gray-500 mt-2 leading-snug">
+            <p v-if="credit?.source === 'proxy_etf'" class="text-[11px] text-gray-500 mt-2 leading-snug">
               FRED indisponível nesta rede — proxy = yield de distribuição do ETF menos treasury de
               duration equivalente (subestima o OAS real; útil como direção, não como nível)
             </p>

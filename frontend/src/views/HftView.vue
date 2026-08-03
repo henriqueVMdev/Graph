@@ -5,7 +5,7 @@
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-lg font-bold text-gray-100">
         <span class="text-accent-yellow">◆</span> HFT On-chain
-        <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-600 text-gray-400 ml-1">{{ status?.mode || 'paper' }}</span>
+        <span class="text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-600 text-gray-400 ml-1">{{ status?.mode || 'paper' }}</span>
       </h1>
       <span v-if="status?.halted" class="text-xs px-2 py-1 rounded bg-accent-red/15 text-accent-red-light">⛔ stop diário atingido</span>
       <div class="flex-1" />
@@ -43,7 +43,7 @@
 
         <h2 class="text-sm font-semibold text-gray-200 mt-4 mb-2"><span class="text-accent-yellow">◆</span> Config</h2>
         <div class="grid grid-cols-2 gap-2">
-          <label v-for="f in CFG_FIELDS" :key="f.key" class="text-[10px] text-gray-400">
+          <label v-for="f in CFG_FIELDS" :key="f.key" class="text-[11px] text-gray-400">
             {{ f.label }}
             <input v-model.number="cfg[f.key]" type="number" :step="f.step || 1" class="inp mt-0.5" />
           </label>
@@ -113,7 +113,7 @@ onUnmounted(() => clearInterval(timer))
 
 <style scoped>
 .stat { @apply bg-surface-800 rounded-lg px-4 py-2.5 border border-surface-600 min-w-24; }
-.lbl { @apply text-[10px] text-gray-400; }
+.lbl { @apply text-[11px] text-gray-400; }
 .val { @apply text-base font-bold text-gray-200; }
 .inp { @apply w-full bg-surface-900 border border-surface-600 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-accent-yellow/50; }
 </style>

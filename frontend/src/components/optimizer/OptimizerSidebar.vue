@@ -10,6 +10,7 @@
         <select
           :value="store.selectedStrategy?.file"
           @change="onStrategyChange($event.target.value)"
+          aria-label="Estrategia"
           class="input-field mb-2"
         >
           <option
@@ -42,45 +43,45 @@
       </div>
 
       <template v-if="store.dataSource === 'asset'">
-        <label class="label">Categoria</label>
-        <select v-model="store.selectedCategory" class="input-field mb-2">
+        <label class="label" for="f-components-optimizer-optimizersidebar-vue-1">Categoria</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-1" v-model="store.selectedCategory" class="input-field mb-2">
           <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
         </select>
 
-        <label class="label">Ativo</label>
-        <select v-model="selectedAssetKey" class="input-field mb-2">
+        <label class="label" for="f-components-optimizer-optimizersidebar-vue-2">Ativo</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-2" v-model="selectedAssetKey" class="input-field mb-2">
           <option value="">Selecione...</option>
           <option v-for="(ticker, name) in categoryAssets" :key="ticker" :value="name">{{ name }}</option>
         </select>
 
-        <label class="label">Timeframe</label>
-        <select v-model="store.interval" class="input-field mb-2">
+        <label class="label" for="f-components-optimizer-optimizersidebar-vue-3">Timeframe</label>
+        <select id="f-components-optimizer-optimizersidebar-vue-3" v-model="store.interval" class="input-field mb-2">
           <option v-for="tf in ['15m', '30m', '1h', '2h', '4h', '1d', '1wk', '1mo']" :key="tf" :value="tf">{{ tf }}</option>
         </select>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="label">Inicio</label>
-            <input type="date" v-model="store.startDate" class="input-field" />
+            <label class="label" for="f-components-optimizer-optimizersidebar-vue-4">Inicio</label>
+            <input id="f-components-optimizer-optimizersidebar-vue-4" type="date" v-model="store.startDate" class="input-field" />
           </div>
           <div>
-            <label class="label">Fim</label>
-            <input type="date" v-model="store.endDate" class="input-field" />
+            <label class="label" for="f-components-optimizer-optimizersidebar-vue-5">Fim</label>
+            <input id="f-components-optimizer-optimizersidebar-vue-5" type="date" v-model="store.endDate" class="input-field" />
           </div>
         </div>
       </template>
 
       <template v-else>
-        <label class="label">Upload CSV</label>
-        <input type="file" accept=".csv" @change="onFileChange" class="input-field text-xs" />
+        <label class="label" for="f-components-optimizer-optimizersidebar-vue-6">Upload CSV</label>
+        <input id="f-components-optimizer-optimizersidebar-vue-6" type="file" accept=".csv" @change="onFileChange" class="input-field text-xs" />
       </template>
     </section>
 
     <!-- Grid -->
     <section>
       <h3 class="sidebar-title">Grid de Parametros</h3>
-      <label class="label">Modo</label>
-      <select v-model="store.gridMode" class="input-field mb-2" @change="store.useCustomGrid = false">
+      <label class="label" for="f-components-optimizer-optimizersidebar-vue-7">Modo</label>
+      <select id="f-components-optimizer-optimizersidebar-vue-7" v-model="store.gridMode" class="input-field mb-2" @change="store.useCustomGrid = false">
         <option v-for="mode in gridModes" :key="mode" :value="mode">{{ mode }}</option>
       </select>
 
@@ -150,19 +151,19 @@
     <!-- Backtest config -->
     <section>
       <h3 class="sidebar-title">Configuracao</h3>
-      <label class="label">Capital Inicial</label>
-      <input type="number" v-model.number="store.capital" class="input-field mb-2" />
+      <label class="label" for="f-components-optimizer-optimizersidebar-vue-8">Capital Inicial</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-8" type="number" v-model.number="store.capital" class="input-field mb-2" />
 
-      <label class="label">Min Trades</label>
-      <input type="number" v-model.number="store.minTrades" class="input-field mb-2" />
+      <label class="label" for="f-components-optimizer-optimizersidebar-vue-9">Min Trades</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-9" type="number" v-model.number="store.minTrades" class="input-field mb-2" />
 
-      <label class="label">Rankear por</label>
-      <select v-model="store.rankBy" class="input-field mb-2">
+      <label class="label" for="f-components-optimizer-optimizersidebar-vue-10">Rankear por</label>
+      <select id="f-components-optimizer-optimizersidebar-vue-10" v-model="store.rankBy" class="input-field mb-2">
         <option v-for="r in ['Score','Retorno (%)','Sharpe','Sortino','Calmar','Omega','Sterling','Burke','Profit Factor','Win Rate (%)']" :key="r" :value="r">{{ r }}</option>
       </select>
 
-      <label class="label">Top-N</label>
-      <input type="number" v-model.number="store.topN" min="5" max="200" class="input-field mb-2" />
+      <label class="label" for="f-components-optimizer-optimizersidebar-vue-11">Top-N</label>
+      <input id="f-components-optimizer-optimizersidebar-vue-11" type="number" v-model.number="store.topN" min="5" max="200" class="input-field mb-2" />
     </section>
 
     <!-- Ciclo Sazonal -->
@@ -178,13 +179,13 @@
       </button>
       <div v-if="showCycleMonths" class="space-y-2 mt-2">
         <div>
-          <p class="text-[10px] text-green-400 font-semibold mb-1">LONG</p>
+          <p class="text-[11px] text-green-400 font-semibold mb-1">LONG</p>
           <div class="grid grid-cols-6 gap-1">
             <button
               v-for="m in months"
               :key="'L' + m.n"
               @click="toggleMonth('long', m.n)"
-              class="py-1 text-[10px] rounded font-medium transition-colors"
+              class="py-1 text-[11px] rounded font-medium transition-colors"
               :class="store.cycleLongMonths.includes(m.n)
                 ? 'bg-green-500/30 text-green-300 border border-green-500/50'
                 : 'bg-surface-600 text-gray-400 border border-surface-500'"
@@ -192,13 +193,13 @@
           </div>
         </div>
         <div>
-          <p class="text-[10px] text-red-400 font-semibold mb-1">SHORT</p>
+          <p class="text-[11px] text-red-400 font-semibold mb-1">SHORT</p>
           <div class="grid grid-cols-6 gap-1">
             <button
               v-for="m in months"
               :key="'S' + m.n"
               @click="toggleMonth('short', m.n)"
-              class="py-1 text-[10px] rounded font-medium transition-colors"
+              class="py-1 text-[11px] rounded font-medium transition-colors"
               :class="store.cycleShortMonths.includes(m.n)
                 ? 'bg-red-500/30 text-red-300 border border-red-500/50'
                 : 'bg-surface-600 text-gray-400 border border-surface-500'"

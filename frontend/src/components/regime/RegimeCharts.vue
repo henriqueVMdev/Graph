@@ -91,7 +91,7 @@
         >
           <div class="text-gray-400">{{ b.n }} estados</div>
           <div class="font-mono text-gray-300">{{ b.bic.toLocaleString() }}</div>
-          <div v-if="b.n === results.n_states" class="text-[10px] text-accent-yellow mt-0.5">selecionado</div>
+          <div v-if="b.n === results.n_states" class="text-[11px] text-accent-yellow mt-0.5">selecionado</div>
         </div>
       </div>
     </div>

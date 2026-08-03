@@ -6,7 +6,7 @@
         <h2 class="text-base text-gray-100 font-semibold flex items-center gap-2">
           {{ dep.name }}
           <span v-if="dep.mode === 'real'"
-                class="text-[10px] px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 font-bold uppercase">
+                class="text-[11px] px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 font-bold uppercase">
             REAL · {{ dep.account }}
           </span>
         </h2>
@@ -58,7 +58,7 @@
     <!-- Posição aberta / ordem pendente -->
     <div class="grid grid-cols-2 gap-3">
       <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-        <div class="text-[10px] text-gray-400 uppercase mb-1.5">Posição aberta</div>
+        <div class="text-[11px] text-gray-400 uppercase mb-1.5">Posição aberta</div>
         <template v-if="s.position">
           <div class="text-sm" :class="s.position.side === 1 ? 'text-accent-yellow' : 'text-red-400'">
             {{ s.position.side === 1 ? 'LONG' : 'SHORT' }} @ {{ fmt(s.position.entry_price) }}
@@ -71,7 +71,7 @@
         <div v-else class="text-xs text-gray-500">flat</div>
       </div>
       <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-        <div class="text-[10px] text-gray-400 uppercase mb-1.5">Ordem pendente</div>
+        <div class="text-[11px] text-gray-400 uppercase mb-1.5">Ordem pendente</div>
         <template v-if="s.working_order">
           <div class="text-sm text-gray-300">
             Limite {{ s.working_order.side === 1 ? 'compra' : 'venda' }}
@@ -85,7 +85,7 @@
 
     <!-- Parâmetros da estratégia automatizada -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-400 uppercase mb-2">
+      <div class="text-[11px] text-gray-400 uppercase mb-2">
         Parâmetros da estratégia · {{ dep.strategy_file }}
       </div>
       <div v-if="paramList.length" class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-0.5">
@@ -114,7 +114,7 @@
 
     <!-- Trades -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-400 uppercase mb-2">Trades fechados</div>
+      <div class="text-[11px] text-gray-400 uppercase mb-2">Trades fechados</div>
       <table v-if="s.trades?.length" class="w-full text-xs">
         <thead>
           <tr class="text-gray-500 text-left">
@@ -145,7 +145,7 @@
 
     <!-- Eventos -->
     <div class="rounded-xl border border-surface-500 bg-surface-700 p-3">
-      <div class="text-[10px] text-gray-400 uppercase mb-2">Eventos</div>
+      <div class="text-[11px] text-gray-400 uppercase mb-2">Eventos</div>
       <div class="space-y-1 max-h-52 overflow-y-auto">
         <div v-for="ev in s.events" :key="ev.id" class="flex gap-2 text-[11px]">
           <span class="text-gray-500 shrink-0">{{ tsFmt(ev.ts) }}</span>
@@ -243,7 +243,7 @@ function askDelete() {
   @apply rounded-xl border border-surface-500 bg-surface-700 p-3;
 }
 .kpi-label {
-  @apply text-[10px] text-gray-400 uppercase;
+  @apply text-[11px] text-gray-400 uppercase;
 }
 .kpi-value {
   @apply text-base text-gray-200 font-semibold mt-0.5;

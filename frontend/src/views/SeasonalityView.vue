@@ -1,10 +1,10 @@
 <template>
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
-      <div><h1 class="text-base font-semibold text-gray-100">Tendência Sazonal</h1><p class="text-[10px] text-gray-500">20 · 15 · 10 · 5 · 2 anos · mensal e intramês</p></div>
+      <div><h1 class="text-base font-semibold text-gray-100">Tendência Sazonal</h1><p class="text-[11px] text-gray-500">20 · 15 · 10 · 5 · 2 anos · mensal e intramês</p></div>
       <div class="flex-1"/><form @submit.prevent="load" class="flex gap-2"><input v-model="symbol" placeholder="NZDUSD=X, BTC-USD, GC=F" class="form-input !py-1.5 text-xs w-48 uppercase"/><button class="btn-secondary !py-1.5 text-xs" :disabled="loading">{{loading?'Calculando…':'Analisar'}}</button></form>
     </div>
-    <div class="flex flex-wrap gap-1.5"><button v-for="s in presets" :key="s" @click="symbol=s;load()" class="px-2 py-1 text-[10px] font-mono rounded border border-surface-500 text-gray-400 hover:text-accent-yellow">{{s}}</button></div>
+    <div class="flex flex-wrap gap-1.5"><button v-for="s in presets" :key="s" @click="symbol=s;load()" class="px-2 py-1 text-[11px] font-mono rounded border border-surface-500 text-gray-400 hover:text-accent-yellow">{{s}}</button></div>
     <div v-if="error" class="card p-3 text-xs text-red-400">{{error}}</div>
     <template v-if="d&&!loading">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -20,10 +20,10 @@
         <div class="card p-4"><div class="title">Tendência intramês · {{monthName(d.intra_month.month)}}</div><div ref="intraChart" class="h-72"/></div>
       </div>
       <div class="card p-4 overflow-x-auto"><div class="title">Heatmap de performance mensal (%)</div>
-        <table class="w-full text-[10px] font-mono"><thead><tr><th class="text-left">Ano</th><th v-for="m in 12" :key="m">{{monthName(m).slice(0,3)}}</th></tr></thead>
+        <table class="w-full text-[11px] font-mono"><thead><tr><th class="text-left">Ano</th><th v-for="m in 12" :key="m">{{monthName(m).slice(0,3)}}</th></tr></thead>
           <tbody><tr v-for="row in [...d.heatmap].reverse()" :key="row.year"><td class="py-1 text-gray-400">{{row.year}}</td><td v-for="(v,i) in row.months" :key="i" class="text-center py-1 rounded" :style="heat(v)">{{v==null?'—':v.toFixed(1)}}</td></tr></tbody></table>
       </div>
-      <div class="text-[10px] text-gray-500">{{d.methodology}} · {{d.source}}. Sazonalidade histórica não garante repetição futura.</div>
+      <div class="text-[11px] text-gray-500">{{d.methodology}} · {{d.source}}. Sazonalidade histórica não garante repetição futura.</div>
     </template>
   </div>
 </template>
@@ -40,4 +40,4 @@ async function draw(){const P=(await import('plotly.js-dist-min')).default;await
  const p=d.value.intra_month.points,dx=p.map(a=>a.trading_day);P.newPlot(intraChart.value,[{type:'scatter',mode:'lines',x:dx,y:p.map(a=>a.high_pct),line:{width:0},showlegend:false},{type:'scatter',mode:'lines',x:dx,y:p.map(a=>a.low_pct),fill:'tonexty',fillcolor:'rgba(77,171,247,.12)',line:{width:0},name:'25–75%'},{type:'scatter',mode:'lines',x:dx,y:p.map(a=>a.avg_pct),name:'média',line:{color:'#f5c518',width:2}}],layout(288),cfg)}
 async function load(){loading.value=true;error.value=null;try{d.value=(await getSeasonality(symbol.value.trim().toUpperCase())).data;loading.value=false;await draw()}catch(e){error.value=e.response?.data?.error||e.message;d.value=null}finally{loading.value=false}}onMounted(load)
 </script>
-<style scoped>.title{@apply text-[10px] text-gray-400 uppercase mb-2}</style>
+<style scoped>.title{@apply text-[11px] text-gray-400 uppercase mb-2}</style>

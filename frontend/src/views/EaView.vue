@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">FA · Análise da Empresa</h1>
-      <span class="text-[10px] text-gray-500 font-mono">demonstrações · analistas · donos · dividendos (yahoo)</span>
+      <span class="text-[11px] text-gray-500 font-mono">demonstrações · analistas · donos · dividendos (yahoo)</span>
       <div class="flex-1" />
       <form @submit.prevent="load" class="flex gap-2">
         <input v-model="symbolInput" placeholder="ex.: AAPL, PETR4.SA"
@@ -34,7 +34,7 @@
         </div>
         <div class="flex-1" />
         <div class="text-right">
-          <div class="text-[10px] text-gray-400 uppercase">Market cap</div>
+          <div class="text-[11px] text-gray-400 uppercase">Market cap</div>
           <div class="text-xl font-bold font-mono text-gray-200">{{ fmtVol(d.mcap) }}</div>
           <button @click="toDes" class="btn-secondary !py-1 text-[11px] mt-1">📋 DES</button>
           <button @click="toOmon" class="btn-secondary !py-1 text-[11px] mt-1 ml-1">OMON</button>
@@ -91,12 +91,12 @@
               <span class="text-accent-yellow">◆</span> Recomendações ({{ recTotal }} analistas)
             </h2>
             <template v-if="recTotal">
-              <div class="flex h-5 rounded overflow-hidden font-mono text-[10px] text-black">
+              <div class="flex h-5 rounded overflow-hidden font-mono text-[11px] text-black">
                 <div v-for="b in recBars" :key="b.label" :style="{ width: b.pct + '%' }"
                      :class="b.cls" class="flex items-center justify-center overflow-hidden"
                      :title="`${b.label}: ${b.n}`">{{ b.pct >= 12 ? b.n : '' }}</div>
               </div>
-              <div class="flex flex-wrap gap-3 mt-2 text-[10px] font-mono text-gray-400">
+              <div class="flex flex-wrap gap-3 mt-2 text-[11px] font-mono text-gray-400">
                 <span v-for="b in recBars" :key="b.label" class="flex items-center gap-1">
                   <span class="w-2 h-2 rounded-sm inline-block" :class="b.cls"></span>{{ b.label }} {{ b.n }}
                 </span>
@@ -113,7 +113,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Ativo</th>
                 <th class="text-left px-3 py-2">Empresa</th>
                 <th class="px-3 py-2">Mkt cap</th>
@@ -181,7 +181,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Data</th>
                 <th class="px-3 py-2">EPS estimado</th>
                 <th class="px-3 py-2">EPS reportado</th>
@@ -251,16 +251,16 @@
         <div class="card p-4 space-y-3" v-if="d.smart_money">
           <div>
             <div class="text-sm font-semibold text-gray-200"><span class="text-accent-yellow">◆</span> Insiders & Smart Money · múltiplos mercados</div>
-            <div class="text-[10px] text-gray-500">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
+            <div class="text-[11px] text-gray-500">Filings regulatórios são separados de proxies de posicionamento em cripto e commodities.</div>
           </div>
-          <div v-if="d.smart_money.errors?.length" class="text-[10px] text-amber-400">{{ d.smart_money.errors.join(' · ') }}</div>
+          <div v-if="d.smart_money.errors?.length" class="text-[11px] text-amber-400">{{ d.smart_money.errors.join(' · ') }}</div>
           <div v-for="feed in d.smart_money.feeds || []" :key="feed.source" class="rounded-lg bg-surface-600/30 p-3">
             <div class="flex justify-between gap-2 mb-2">
               <div>
                 <div class="text-xs font-semibold text-gray-200">{{ feed.source }}</div>
-                <div v-if="feed.note" class="text-[9px] text-amber-400/80">{{ feed.note }}</div>
+                <div v-if="feed.note" class="text-[11px] text-amber-400/80">{{ feed.note }}</div>
               </div>
-              <a :href="feed.url" target="_blank" rel="noopener" class="text-[10px] text-accent-yellow hover:underline">fonte oficial ↗</a>
+              <a :href="feed.url" target="_blank" rel="noopener" class="text-[11px] text-accent-yellow hover:underline">fonte oficial ↗</a>
             </div>
             <div v-if="feed.latest" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono">
               <div v-if="feed.latest.net != null"><span class="text-gray-400">Net especuladores</span><div :class="feed.latest.net >= 0 ? 'text-green-400' : 'text-red-400'">{{ fmtVol(feed.latest.net) }}</div></div>
@@ -277,15 +277,15 @@
               </tr></tbody>
             </table>
             <div v-if="feed.famous_wallets?.length" class="mt-3 overflow-x-auto">
-              <div class="text-[10px] text-gray-400 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
-              <table class="w-full text-[10px] font-mono">
+              <div class="text-[11px] text-gray-400 uppercase mb-1">Carteiras BTC públicas conhecidas</div>
+              <table class="w-full text-[11px] font-mono">
                 <thead><tr class="text-gray-500 border-b border-surface-500">
                   <th class="py-1 text-left">Rótulo</th><th class="text-left">Endereço</th>
                   <th class="text-right">Saldo BTC</th><th class="text-right">Recebido</th>
                   <th class="text-right">Txs</th><th class="text-right">Última atividade</th>
                 </tr></thead>
                 <tbody><tr v-for="w in feed.famous_wallets" :key="w.address" class="border-b border-surface-600/40">
-                  <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[8px]" :class="w.confidence === 'verified' ? 'text-green-500' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
+                  <td class="py-1.5"><div class="text-gray-200">{{ w.label }}</div><div class="text-[11px]" :class="w.confidence === 'verified' ? 'text-green-500' : 'text-amber-500'">{{ w.entity }} · {{ w.confidence }}</div></td>
                   <td><a :href="w.explorer_url" target="_blank" rel="noopener" class="text-accent-yellow hover:underline">{{ shortAddress(w.address) }} ↗</a></td>
                   <td class="text-right text-gray-200">{{ w.balance_btc != null ? w.balance_btc.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—' }}</td>
                   <td class="text-right text-gray-400">{{ w.received_btc != null ? w.received_btc.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—' }}</td>
@@ -293,10 +293,10 @@
                   <td class="text-right text-gray-400">{{ fmtDateTs(w.last_activity_ts) }}</td>
                 </tr></tbody>
               </table>
-              <div class="text-[9px] text-amber-400/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
+              <div class="text-[11px] text-amber-400/70 mt-1">Rótulos de custodiantes podem mudar; confirme sempre no explorer e na prova de reservas da entidade.</div>
             </div>
           </div>
-          <details class="text-[10px]">
+          <details class="text-[11px]">
             <summary class="cursor-pointer text-gray-400">Diretório de fontes por mercado ({{ d.smart_money.sources?.length || 0 }})</summary>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
               <a v-for="s in d.smart_money.sources || []" :key="s.market + s.source" :href="s.url" target="_blank" rel="noopener"
@@ -343,7 +343,7 @@
             </h2>
             <table class="w-full text-xs font-mono">
               <thead>
-                <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+                <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                   <th class="text-left px-2 py-1">Ano fiscal</th>
                   <th class="px-2 py-1">Recompras</th>
                   <th class="px-2 py-1">Dividendos</th>
@@ -502,7 +502,7 @@ const StmtTable = (props) => {
     h('div', { class: 'px-3 pt-2 text-sm font-semibold text-gray-200' }, [
       h('span', { class: 'text-accent-yellow' }, '◆ '), props.title]),
     h('table', { class: 'w-full text-xs font-mono' }, [
-      h('thead', h('tr', { class: 'text-[10px] text-gray-400 uppercase text-right border-b border-surface-500' }, [
+      h('thead', h('tr', { class: 'text-[11px] text-gray-400 uppercase text-right border-b border-surface-500' }, [
         h('th', { class: 'px-3 py-2 text-left' }, ''),
         ...s.periods.map((p) => h('th', { class: 'px-3 py-2' }, p)),
       ])),

@@ -30,7 +30,7 @@
         <div>
           <div class="text-xs text-gray-400 font-mono">
             {{ d.symbol }} · {{ isTradfi ? (d.exchange_name || 'yahoo') : d.exchange }}
-            <span v-if="isTradfi" class="ml-1.5 text-[9px] px-1 py-0.5 rounded
+            <span v-if="isTradfi" class="ml-1.5 text-[11px] px-1 py-0.5 rounded
                   bg-blue-900/40 text-blue-300 border border-blue-800/50">TRAD</span>
           </div>
           <div v-if="isTradfi && d.name" class="text-sm text-gray-300 mt-1">{{ d.name }}</div>

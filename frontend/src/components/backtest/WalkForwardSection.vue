@@ -31,14 +31,14 @@
             </button>
           </div>
           <template v-if="store.wfaConfig.optimize_is_samples > 0">
-            <label class="text-[10px] text-gray-400 flex items-center justify-between mb-1">
+            <label class="text-[11px] text-gray-400 flex items-center justify-between mb-1">
               <span>Amostras IS</span>
               <span>{{ store.wfaConfig.optimize_is_samples }}</span>
             </label>
             <input v-model.number="store.wfaConfig.optimize_is_samples" type="range" min="20" max="100" step="10"
               class="w-full h-1.5 accent-yellow-400" />
           </template>
-          <p v-else class="text-[10px] text-gray-500">Usa os parâmetros atuais da estratégia.</p>
+          <p v-else class="text-[11px] text-gray-500">Usa os parâmetros atuais da estratégia.</p>
         </div>
 
         <div>
@@ -58,12 +58,12 @@
             <select v-model="store.wfaConfig.cost_scenario" class="form-select w-full text-xs">
               <option value="realista">Realista</option><option value="pessimista">Pessimista</option>
             </select>
-            <label class="col-span-2 flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label class="col-span-2 flex items-center gap-2 text-[11px] text-gray-400 cursor-pointer">
               <input v-model="store.wfaConfig.use_funding" type="checkbox" class="accent-accent-yellow" />
               Incluir funding
             </label>
           </div>
-          <p v-else class="text-[10px] text-gray-500">Resultado bruto, sem fees e funding.</p>
+          <p v-else class="text-[11px] text-gray-500">Resultado bruto, sem fees e funding.</p>
         </div>
       </div>
 
@@ -86,8 +86,8 @@
             <span class="metric-help" title="Walk-Forward Efficiency: razao entre o desempenho Out-of-Sample e In-Sample. Mede o quanto da performance otimizada se mantem em dados nao vistos. Acima de 0.5 e aceitavel, acima de 0.7 e excelente.">?</span>
           </div>
           <div class="text-3xl font-bold" :class="wfeColor">{{ fmt2(store.wfaResults.wfe) }}</div>
-          <div class="text-[10px] mt-0.5" :class="wfeColor">{{ wfeLabel }}</div>
-          <div class="text-[9px] text-gray-500 mt-0.5">&gt;0.5 aceitavel</div>
+          <div class="text-[11px] mt-0.5" :class="wfeColor">{{ wfeLabel }}</div>
+          <div class="text-[11px] text-gray-500 mt-0.5">&gt;0.5 aceitavel</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
@@ -123,7 +123,7 @@
             <span class="metric-help" title="Total de taxas (fees maker/taker) menos o funding recebido, descontado dos trades Out-of-Sample. E o que a estrategia efetivamente gastou com a corretora no forward test.">?</span>
           </div>
           <div class="text-2xl font-bold text-red-400">-{{ fmtUsd(totalCostSpent) }}</div>
-          <div class="text-[10px] text-gray-500 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
+          <div class="text-[11px] text-gray-500 mt-0.5">arrasto {{ fmtPct(costDragPct) }} no retorno</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-28 border border-accent-yellow/30">
           <div class="text-xs text-gray-400 mb-0.5">
@@ -133,7 +133,7 @@
           <div class="text-sm font-semibold" :class="(store.wfaResults.avg_oos_net_return ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
             {{ fmtPct(store.wfaResults.avg_oos_net_return) }}
           </div>
-          <div class="text-[10px] text-gray-500 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
+          <div class="text-[11px] text-gray-500 mt-0.5">bruto {{ fmtPct(store.wfaResults.avg_oos_return) }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
@@ -141,7 +141,7 @@
             <span class="metric-help" title="Soma das taxas maker/taker pagas a corretora em todas as janelas Out-of-Sample.">?</span>
           </div>
           <div class="text-sm font-semibold text-red-400">-{{ fmtUsd(store.wfaResults.total_oos_fees) }}</div>
-          <div class="text-[10px] text-gray-500 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
+          <div class="text-[11px] text-gray-500 mt-0.5 capitalize">{{ store.wfaResults.cost_exchange }} · {{ store.wfaResults.cost_scenario }}</div>
         </div>
         <div class="bg-surface-800 rounded-lg px-4 py-3 text-center flex-1 min-w-24 border border-surface-600">
           <div class="text-xs text-gray-400 mb-0.5">
@@ -151,7 +151,7 @@
           <div class="text-sm font-semibold" :class="(store.wfaResults.total_oos_funding ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'">
             {{ fmtUsd(store.wfaResults.total_oos_funding) }}
           </div>
-          <div class="text-[10px] text-gray-500 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
+          <div class="text-[11px] text-gray-500 mt-0.5">{{ store.wfaResults.cost_use_funding ? 'funding on' : 'so fees' }}</div>
         </div>
       </div>
 
@@ -664,7 +664,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 13px;
   height: 13px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: rgba(156, 163, 175, 0.6);
   border: 1px solid rgba(156, 163, 175, 0.3);

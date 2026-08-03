@@ -129,7 +129,7 @@
   }
 
   .metric-label {
-    @apply text-[10px] text-gray-400 uppercase tracking-wide;
+    @apply text-[11px] text-gray-400 uppercase tracking-wide;
   }
 
   .table-row {
@@ -158,6 +158,21 @@
 
   .badge-red {
     @apply text-accent-red-light font-mono;
+  }
+
+  /* Cresce a area de toque sem mexer no desenho. Para icones que precisam
+     continuar pequenos, mas nao podem ficar abaixo dos 24x24 da WCAG 2.5.8. */
+  .hit-target {
+    position: relative;
+  }
+  .hit-target::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 24px);
+    height: max(100%, 24px);
+    transform: translate(-50%, -50%);
   }
 
   .sidebar-section {

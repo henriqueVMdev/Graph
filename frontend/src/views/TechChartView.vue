@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">GT · Análise Técnica</h1>
-      <span class="text-[10px] text-gray-500 font-mono">multi-ativo · cripto + tradicional no mesmo gráfico</span>
+      <span class="text-[11px] text-gray-500 font-mono">multi-ativo · cripto + tradicional no mesmo gráfico</span>
       <div class="flex-1" />
       <div class="flex rounded-lg overflow-hidden border border-surface-500">
         <button v-for="t in TABS" :key="t.key" @click="tab = t.key"
@@ -101,22 +101,22 @@
     <!-- estudos (só aba gráfico) -->
     <div v-if="tab === 'grafico'" class="card p-3 space-y-2">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Estudos</span>
+        <span class="text-[11px] text-gray-500 uppercase tracking-wider">Estudos</span>
         <button v-for="st in STUDY_CHIPS" :key="st.label" @click="toggleStudy(st)"
                 class="px-2 py-0.5 text-[11px] font-mono rounded border transition-colors"
                 :class="isActive(st) ? 'border-accent-yellow text-accent-yellow' : 'border-surface-500 text-gray-400 hover:text-gray-200'">
           {{ st.label }}</button>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Custom</span>
+        <span class="text-[11px] text-gray-500 uppercase tracking-wider">Custom</span>
         <input v-model="customExpr" placeholder='ex.: EMA(close,9) - EMA(close,21) · ROC(close,10) · (close - MIN(low,20)) / (MAX(high,20) - MIN(low,20)) * 100'
                class="form-input !py-1 text-[11px] flex-1 min-w-64 font-mono" @keydown.enter.prevent="addCustom" />
         <button @click="addCustom" class="btn-secondary !py-1 text-[11px]">+ Estudo</button>
         <span v-for="(c, i) in customs" :key="i"
-              class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-600/60 text-gray-300">
+              class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-surface-600/60 text-gray-300">
           {{ c.expr.slice(0, 28) }} <button @click="customs.splice(i, 1); runSingle()" class="text-gray-400 hover:text-red-400 ml-1">✕</button></span>
       </div>
-      <p class="text-[10px] text-gray-500 font-mono">
+      <p class="text-[11px] text-gray-500 font-mono">
         funções: SMA EMA RSI STD MAX MIN ROC SHIFT ABS LOG DIFF · variáveis: open high low close volume
       </p>
       <p v-if="studyErrors.length" class="text-xs text-red-400">{{ studyErrors.join(' · ') }}</p>
@@ -142,11 +142,11 @@
         <div ref="mainChart" style="min-height:380px;" class="w-full"></div>
       </div>
       <div class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">Volume financeiro ($)</div>
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">Volume financeiro ($)</div>
         <div ref="volChart" style="min-height:130px;" class="w-full"></div>
       </div>
       <div v-for="(p, i) in singleData.panels" :key="p.name + i" class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">{{ p.name }}</div>
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">{{ p.name }}</div>
         <div :ref="(el) => setPanelRef(el, i)" style="min-height:150px;" class="w-full"></div>
       </div>
     </template>
@@ -154,13 +154,13 @@
     <!-- ══ resultados: COMPARAR ══ -->
     <template v-if="tab === 'comparar' && cmpData && !loading">
       <div class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">
           Retornos acumulados (%) — {{ cmpData.n_common }} candles em comum
         </div>
         <div ref="cumChart" style="min-height:320px;" class="w-full"></div>
       </div>
       <div class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">Matriz de correlação (retornos)</div>
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">Matriz de correlação (retornos)</div>
         <div ref="corrChart" style="min-height:280px;" class="w-full"></div>
       </div>
     </template>
@@ -178,21 +178,21 @@
           <span class="metric-value text-gray-200">{{ spreadData.corr_matrix?.matrix?.[0]?.[1] ?? '—' }}</span></div>
       </div>
       <div class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">Retornos acumulados (%)</div>
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">Retornos acumulados (%)</div>
         <div ref="spCumChart" style="min-height:260px;" class="w-full"></div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">Spread (A − B)</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">Spread (A − B)</div>
           <div ref="spDiffChart" style="min-height:220px;" class="w-full"></div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">Razão (A / B)</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">Razão (A / B)</div>
           <div ref="spRatioChart" style="min-height:220px;" class="w-full"></div>
         </div>
       </div>
       <div class="card p-3">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold px-1">
+        <div class="text-[11px] text-gray-400 uppercase font-semibold px-1">
           Correlação móvel ({{ spreadData.roll_corr?.window }} barras)
         </div>
         <div ref="spCorrChart" style="min-height:180px;" class="w-full"></div>

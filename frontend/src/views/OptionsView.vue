@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">OMON · Opções</h1>
-      <span class="text-[10px] text-gray-500 font-mono">chain via yahoo (~15min) · ações, ETFs e índices US</span>
+      <span class="text-[11px] text-gray-500 font-mono">chain via yahoo (~15min) · ações, ETFs e índices US</span>
       <div class="flex-1" />
       <form @submit.prevent="load()" class="flex gap-2 items-center">
         <input v-model="symbolInput" placeholder="ex.: AAPL, SPY, TSLA"
@@ -70,7 +70,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="px-2 py-1.5">Strike</th>
                 <th class="px-2 py-1.5">Último</th>
                 <th class="px-2 py-1.5">Bid</th>

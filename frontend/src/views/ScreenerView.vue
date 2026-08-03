@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">Screener</h1>
-      <span class="text-[10px] text-gray-500 font-mono">
+      <span class="text-[11px] text-gray-500 font-mono">
         {{ isCrypto ? 'bybit · top por volume · atualiza 60s' : 'yahoo finance · dados ~15min' }}
       </span>
       <div class="flex-1" />
@@ -39,7 +39,7 @@
     <div v-else class="card overflow-x-auto">
       <table class="w-full text-sm font-mono">
         <thead>
-          <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
+          <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500 select-none">
             <th class="text-left px-3 py-2">#</th>
             <th class="text-left px-3 py-2">Ativo</th>
             <th v-for="c in cols" :key="c.key"

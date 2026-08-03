@@ -3,8 +3,8 @@
     <!-- Toolbar: corretora + cenário + funding + botão -->
     <div class="flex flex-wrap items-end gap-3 mb-4">
       <div>
-        <label class="text-xs text-gray-400 block mb-1">Corretora (candles + funding)</label>
-        <select v-model="store.chartConfig.exchange" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-analysischarts-vue-1">Corretora (candles + funding)</label>
+        <select id="f-components-backtest-analysischarts-vue-1" v-model="store.chartConfig.exchange" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
           <option value="bybit">Bybit</option>
           <option value="hyperliquid">Hyperliquid</option>
           <option value="binance">Binance</option>
@@ -12,8 +12,8 @@
         </select>
       </div>
       <div>
-        <label class="text-xs text-gray-400 block mb-1">Cenário (custo)</label>
-        <select v-model="store.chartConfig.scenario" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-analysischarts-vue-2">Cenário (custo)</label>
+        <select id="f-components-backtest-analysischarts-vue-2" v-model="store.chartConfig.scenario" class="bg-surface-700 border border-surface-500 rounded-md text-xs text-gray-200 px-2 py-1.5">
           <option value="realista">Realista</option>
           <option value="pessimista">Pessimista</option>
         </select>

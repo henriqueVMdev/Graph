@@ -91,7 +91,7 @@
           <div v-if="store.results.risk_sizing.skipped" class="mt-2 text-[11px] text-amber-300">
             ⚠ {{ store.results.risk_sizing.skipped }} trades sem stop definido mantiveram o sizing nativo
           </div>
-          <p class="mt-1 text-[10px] text-gray-500">{{ store.results.risk_sizing.note }}</p>
+          <p class="mt-1 text-[11px] text-gray-500">{{ store.results.risk_sizing.note }}</p>
         </div>
 
         <!-- Custos da corretora aplicados (fees + funding) -->
@@ -134,7 +134,7 @@
             <p class="text-2xl font-bold font-mono text-accent-yellow">
               {{ formatDays(store.results.overall.est_total_days) }}
             </p>
-            <p v-if="store.results.trade_stats.avg_days_between_trades" class="text-[10px] text-gray-500 mt-1">
+            <p v-if="store.results.trade_stats.avg_days_between_trades" class="text-[11px] text-gray-500 mt-1">
               ~1 trade a cada {{ store.results.trade_stats.avg_days_between_trades }} dias
             </p>
           </div>

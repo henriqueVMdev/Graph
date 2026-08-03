@@ -9,9 +9,9 @@
           v-show="(!field.show_if || params[field.show_if]) && !hidden.includes(field.key)"
           class="flex items-center justify-between gap-2"
         >
-          <label class="text-xs text-gray-400 shrink-0">{{ field.label }}</label>
+          <label class="text-xs text-gray-400 shrink-0" for="f-components-common-schemafields-vue-1">{{ field.label }}</label>
 
-          <input
+          <input id="f-components-common-schemafields-vue-1"
             v-if="field.type === 'checkbox'"
             type="checkbox"
             :checked="!!params[field.key]"
@@ -29,7 +29,7 @@
           </select>
 
           <div v-else class="w-36">
-            <NumInput
+            <NumInput :label="field.label"
               :model-value="Number(params[field.key] ?? field.default ?? 0)"
               :min="field.min"
               :max="field.max"

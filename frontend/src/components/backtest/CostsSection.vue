@@ -3,8 +3,8 @@
     <!-- Controles -->
     <div class="flex flex-wrap items-end gap-3">
       <div>
-        <label class="text-xs text-gray-400 block mb-1">Símbolo CCXT (swap)</label>
-        <input
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-costssection-vue-1">Símbolo CCXT (swap)</label>
+        <input id="f-components-backtest-costssection-vue-1"
           v-model="store.costsConfig.symbol"
           :placeholder="store.inferCcxtSymbol()"
           class="form-input text-xs w-40 bg-surface-700 border border-surface-500 rounded-lg px-2 py-1.5 text-gray-200"

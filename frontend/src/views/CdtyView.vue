@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">CDTY · Commodities</h1>
-      <span class="text-[10px] text-gray-500 font-mono">futuros CME/ICE via yahoo (~15min)</span>
+      <span class="text-[11px] text-gray-500 font-mono">futuros CME/ICE via yahoo (~15min)</span>
       <div class="flex-1" />
       <div class="flex rounded-lg overflow-hidden border border-surface-500">
         <button v-for="t in TABS" :key="t.key" @click="setTab(t.key)"
@@ -82,7 +82,7 @@
           </div>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Par</th>
                 <th class="px-3 py-2">Spread</th>
                 <th class="px-3 py-2">Leitura</th>
@@ -110,16 +110,16 @@
         <p class="text-gray-400 text-sm">Consultando met.no para as regiões produtoras...</p>
       </div>
       <template v-else>
-        <p class="text-[10px] text-gray-500 font-mono">
+        <p class="text-[11px] text-gray-500 font-mono">
           {{ wx.source }} · impacto potencial em safra por região · flags: seca &lt;5mm/7d · chuva &gt;80mm/7d · calor ≥35°C
         </p>
-        <p class="text-[10px] text-gray-500">
+        <p class="text-[11px] text-gray-500">
           leitura simplificada de oferta × demanda — não considera o calendário da safra (ex.: seca durante a colheita pode até ajudar; o dano real é na floração/enchimento do grão)
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div v-for="r in wx.rows" :key="r.region" class="card p-4">
             <div class="text-sm font-semibold text-gray-200">{{ r.region }}</div>
-            <div class="text-[10px] text-gray-400 font-mono mb-2">{{ r.crops }}</div>
+            <div class="text-[11px] text-gray-400 font-mono mb-2">{{ r.crops }}</div>
             <div class="flex items-baseline gap-3 font-mono">
               <span class="text-2xl font-bold"
                     :class="r.precip_7d_mm < 5 ? 'text-amber-300' : r.precip_7d_mm > 80 ? 'text-blue-300' : 'text-gray-200'">
@@ -129,14 +129,14 @@
             </div>
             <div class="mt-2 flex gap-1 flex-wrap">
               <span v-for="f in r.flags" :key="f"
-                    class="text-[9px] font-mono px-1.5 py-0.5 rounded uppercase"
+                    class="text-[11px] font-mono px-1.5 py-0.5 rounded uppercase"
                     :class="f === 'seca' ? 'bg-amber-900/50 text-amber-300'
                       : f === 'calor extremo' ? 'bg-red-900/50 text-red-300'
                       : 'bg-blue-900/50 text-blue-300'">{{ f }}</span>
-              <span v-if="!r.flags.length" class="text-[9px] font-mono px-1.5 py-0.5 rounded
+              <span v-if="!r.flags.length" class="text-[11px] font-mono px-1.5 py-0.5 rounded
                     bg-surface-600/60 text-gray-400 uppercase">normal</span>
             </div>
-            <p v-if="r.impact" class="mt-2 text-[10px] leading-relaxed"
+            <p v-if="r.impact" class="mt-2 text-[11px] leading-relaxed"
                :class="r.flags.length ? 'text-amber-200/70' : 'text-gray-500'">{{ r.impact }}</p>
           </div>
         </div>
@@ -150,11 +150,11 @@
         <p class="text-gray-400 text-sm">Carregando frete & shipping...</p>
       </div>
       <template v-else>
-        <p class="text-[10px] text-gray-500 font-mono">{{ ship.note }}</p>
+        <p class="text-[11px] text-gray-500 font-mono">{{ ship.note }}</p>
         <div class="card overflow-x-auto">
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left px-3 py-2">Ativo</th>
                 <th class="text-left px-3 py-2">Nome</th>
                 <th class="text-left px-3 py-2">Segmento</th>
@@ -226,8 +226,8 @@
       <div v-else class="card divide-y divide-surface-600/50">
         <a v-for="n in newsItems" :key="n.link" :href="n.link" target="_blank" rel="noopener"
            class="flex items-baseline gap-3 px-4 py-2.5 hover:bg-surface-600/40 transition-colors group">
-          <span class="text-[10px] font-mono w-14 shrink-0 text-gray-500">{{ rel(n.ts) }}</span>
-          <span class="text-[10px] font-mono w-20 shrink-0 uppercase text-orange-300/80">{{ n.source }}</span>
+          <span class="text-[11px] font-mono w-14 shrink-0 text-gray-500">{{ rel(n.ts) }}</span>
+          <span class="text-[11px] font-mono w-20 shrink-0 uppercase text-orange-300/80">{{ n.source }}</span>
           <span class="text-sm text-gray-300 group-hover:text-gray-100 leading-snug">{{ n.title }}</span>
         </a>
         <div v-if="!newsItems.length" class="text-center text-xs text-gray-500 py-10">

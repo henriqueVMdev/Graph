@@ -36,22 +36,22 @@
       <div class="sidebar-section">
         <p class="sidebar-section-title">Dados</p>
 
-        <label class="text-xs text-gray-400 block mb-1">Corretora (candles)</label>
-        <select v-model="store.exchange" class="form-select w-full mb-2 text-xs">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-chart-chartsidebar-vue-1">Corretora (candles)</label>
+        <select id="f-components-chart-chartsidebar-vue-1" v-model="store.exchange" class="form-select w-full mb-2 text-xs">
           <option value="bybit">Bybit</option>
           <option value="hyperliquid">Hyperliquid</option>
           <option value="binance">Binance</option>
           <option value="okx">OKX</option>
         </select>
 
-        <label class="text-xs text-gray-400 block mb-1">Categoria</label>
-        <select v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-chart-chartsidebar-vue-2">Categoria</label>
+        <select id="f-components-chart-chartsidebar-vue-2" v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
           <option value="">Selecione a categoria</option>
           <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
         </select>
 
-        <label class="text-xs text-gray-400 block mb-1">Ativo</label>
-        <select
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-chart-chartsidebar-vue-3">Ativo</label>
+        <select id="f-components-chart-chartsidebar-vue-3"
           v-model="selectedKey"
           @change="onAssetChange"
           :disabled="!selectedCategory"
@@ -66,8 +66,8 @@
           >{{ label }}</option>
         </select>
 
-        <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
-        <select v-model="store.interval" class="form-select w-full text-xs">
+        <label class="text-xs text-gray-400 block mb-1" for="f-components-chart-chartsidebar-vue-4">Timeframe</label>
+        <select id="f-components-chart-chartsidebar-vue-4" v-model="store.interval" class="form-select w-full text-xs">
           <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
         </select>
       </div>
@@ -102,8 +102,8 @@
 
             <!-- Select -->
             <template v-else-if="field.type === 'select'">
-              <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
-              <select
+              <label class="text-xs text-gray-400 block mb-1" for="f-components-chart-chartsidebar-vue-5">{{ field.label }}</label>
+              <select id="f-components-chart-chartsidebar-vue-5"
                 :value="store.params[field.key]"
                 @change="store.params[field.key] = $event.target.value"
                 class="form-select w-full text-xs"
@@ -115,7 +115,7 @@
             <!-- Number -->
             <template v-else-if="field.type === 'number'">
               <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
-              <NumInput
+              <NumInput :label="field.label"
                 :model-value="store.params[field.key]"
                 @change="store.params[field.key] = $event"
                 :min="field.min ?? -Infinity"

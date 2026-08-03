@@ -22,7 +22,7 @@
                    placeholder:normal-case placeholder:text-gray-500 focus:outline-none"
             spellcheck="false" autocomplete="off"
           />
-          <span class="text-[10px] text-gray-500 font-mono border border-surface-500
+          <span class="text-[11px] text-gray-500 font-mono border border-surface-500
                        rounded px-1.5 py-0.5">ENTER = GO</span>
         </div>
 

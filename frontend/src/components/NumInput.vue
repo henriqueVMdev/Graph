@@ -9,6 +9,7 @@
       type="button"
       @click="decrement"
       class="px-2.5 text-gray-400 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-r border-surface-400 text-base leading-none"
+      :aria-label="label ? `Diminuir ${label}` : 'Diminuir'"
       tabindex="-1"
     >−</button>
 
@@ -18,6 +19,7 @@
       :min="min"
       :max="max"
       :step="step"
+      :aria-label="label || undefined"
       @focus="focused = true"
       @blur="onBlur"
       @change="onChange"
@@ -28,6 +30,7 @@
       type="button"
       @click="increment"
       class="px-2.5 text-gray-400 hover:text-accent-yellow hover:bg-surface-500 transition-colors select-none border-l border-surface-400 text-base leading-none"
+      :aria-label="label ? `Aumentar ${label}` : 'Aumentar'"
       tabindex="-1"
     >+</button>
   </div>
@@ -37,6 +40,9 @@
 import { ref } from 'vue'
 
 const props = defineProps({
+  // O rotulo visivel fica fora do componente, entao ele precisa ser repassado
+  // para virar nome acessivel do campo e dos dois botoes.
+  label: { type: String, default: '' },
   modelValue: { type: Number, default: 0 },
   min: { type: Number, default: -Infinity },
   max: { type: Number, default: Infinity },

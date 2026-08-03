@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">OSA · Simulador de Estratégias</h1>
-      <span class="text-[10px] text-gray-500 font-mono">payoff · precificação Black-Scholes · greeks · cenários</span>
+      <span class="text-[11px] text-gray-500 font-mono">payoff · precificação Black-Scholes · greeks · cenários</span>
       <div class="flex-1" />
       <form @submit.prevent="loadChain" class="flex gap-2">
         <input v-model="symbolInput" placeholder="ex.: AAPL (opcional)"
@@ -36,7 +36,7 @@
 
       <!-- presets -->
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Estruturas</span>
+        <span class="text-[11px] text-gray-500 uppercase tracking-wider">Estruturas</span>
         <button v-for="p in PRESETS" :key="p.label" @click="applyPreset(p)"
                 class="px-2 py-0.5 text-[11px] font-mono rounded border border-surface-500
                        text-gray-400 hover:text-accent-yellow hover:border-accent-yellow/50">
@@ -46,7 +46,7 @@
       <!-- pernas -->
       <table class="w-full text-xs font-mono" v-if="legs.length">
         <thead>
-          <tr class="text-[10px] text-gray-400 uppercase text-left border-b border-surface-500">
+          <tr class="text-[11px] text-gray-400 uppercase text-left border-b border-surface-500">
             <th class="py-1.5 pr-2">Lado</th>
             <th class="py-1.5 pr-2">Tipo</th>
             <th class="py-1.5 pr-2">Strike</th>
@@ -142,7 +142,7 @@
           </h2>
           <table class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-right border-b border-surface-500">
+              <tr class="text-[11px] text-gray-400 uppercase text-right border-b border-surface-500">
                 <th class="text-left py-1.5 px-2"></th>
                 <th v-for="s in res.spot_shifts" :key="s" class="py-1.5 px-2">
                   {{ s > 0 ? '+' : '' }}{{ (s * 100).toFixed(0) }}%</th>

@@ -4,8 +4,8 @@
     <div class="flex flex-wrap items-end gap-x-6 gap-y-2 mb-3">
       <!-- Primary sort (backend) -->
       <div class="flex items-center gap-2">
-        <label class="text-xs text-gray-400 whitespace-nowrap">Top-N por:</label>
-        <select
+        <label class="text-xs text-gray-400 whitespace-nowrap" for="f-components-dashboard-strategytable-vue-1">Top-N por:</label>
+        <select id="f-components-dashboard-strategytable-vue-1"
           v-model="sortBy"
           @change="onSortChange"
           class="form-select text-xs py-1"
@@ -31,8 +31,8 @@
 
       <!-- Secondary sort (client-side) -->
       <div class="flex items-center gap-2">
-        <label class="text-xs text-gray-400 whitespace-nowrap">Dentro do Top, ordenar por:</label>
-        <select
+        <label class="text-xs text-gray-400 whitespace-nowrap" for="f-components-dashboard-strategytable-vue-2">Dentro do Top, ordenar por:</label>
+        <select id="f-components-dashboard-strategytable-vue-2"
           v-model="subSortBy"
           class="form-select text-xs py-1"
         >

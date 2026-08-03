@@ -12,7 +12,7 @@
       <div class="flex items-center justify-between">
         <span class="text-sm text-gray-200 font-medium truncate">{{ d.name }}</span>
         <span
-          class="text-[10px] px-1.5 py-0.5 rounded-md font-semibold uppercase"
+          class="text-[11px] px-1.5 py-0.5 rounded-md font-semibold uppercase"
           :class="badgeClass(d)"
         >{{ d.status }}</span>
       </div>
@@ -20,7 +20,7 @@
         <span class="flex items-center gap-1.5">
           {{ d.symbol }} · {{ d.interval }} ·
           <span v-if="d.mode === 'real'"
-                class="text-[10px] px-1.5 py-px rounded bg-red-500/15 text-red-400 font-semibold">
+                class="text-[11px] px-1.5 py-px rounded bg-red-500/15 text-red-400 font-semibold">
             REAL · {{ d.account }}
           </span>
           <template v-else>{{ d.mode }}</template>
@@ -31,9 +31,9 @@
       </div>
       <div v-if="d.open_position" class="mt-1 flex items-center gap-1.5">
         <span class="w-1.5 h-1.5 rounded-full bg-accent-yellow animate-pulse" />
-        <span class="text-[10px] text-accent-yellow/80">posição aberta</span>
+        <span class="text-[11px] text-accent-yellow/80">posição aberta</span>
       </div>
-      <div v-if="d.error" class="mt-1 text-[10px] text-red-400 truncate">{{ d.error }}</div>
+      <div v-if="d.error" class="mt-1 text-[11px] text-red-400 truncate">{{ d.error }}</div>
     </div>
 
     <div v-if="!store.deployments.length" class="text-xs text-gray-500 text-center py-6">

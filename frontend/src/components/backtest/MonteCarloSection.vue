@@ -819,7 +819,7 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   border: 1px solid #555;
   color: #666;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   cursor: default;
   line-height: 1;
@@ -837,7 +837,7 @@ onBeforeUnmount(() => {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 10px;
+  font-size: 11px;
   color: #bbb;
   line-height: 1.5;
   text-align: left;

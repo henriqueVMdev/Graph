@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">ALTD · Dados Alternativos & Inteligência</h1>
-      <span class="text-[10px] text-gray-500 font-mono">
+      <span class="text-[11px] text-gray-500 font-mono">
         GSCPI NY Fed · TSA · NOAA ENSO · met.no · filings SEC · funding Bybit — fontes gratuitas, proxies rotulados
       </span>
     </div>
@@ -23,12 +23,12 @@
 
     <!-- ══ PAINEL — indicadores proprietários ══ -->
     <template v-if="tab === 'painel' && ind">
-      <p class="text-[10px] text-gray-500">{{ ind.note }}</p>
+      <p class="text-[11px] text-gray-500">{{ ind.note }}</p>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div v-for="i in ind.indicators" :key="i.id" class="card p-4 space-y-3">
           <div class="flex items-start justify-between">
             <div class="text-xs font-semibold text-gray-200">{{ i.name }}</div>
-            <span v-if="!i.error" class="text-[10px] font-bold px-2 py-0.5 rounded font-mono"
+            <span v-if="!i.error" class="text-[11px] font-bold px-2 py-0.5 rounded font-mono"
                   :class="readingClass(i.reading)">{{ i.reading }}</span>
           </div>
           <div v-if="i.error" class="text-xs text-red-400">{{ i.error }}</div>
@@ -55,7 +55,7 @@
               </tbody>
             </table>
             <div v-if="i.history" :ref="(el) => setIndRef(el, i.id)" class="h-32" />
-            <p class="text-[10px] text-gray-500 leading-relaxed">{{ i.method }}</p>
+            <p class="text-[11px] text-gray-500 leading-relaxed">{{ i.method }}</p>
           </template>
         </div>
       </div>
@@ -74,10 +74,10 @@
               {{ sc.gscpi.yoy_delta > 0 ? '+' : '' }}{{ sc.gscpi.yoy_delta }} vs 1 ano</span>
           </div>
           <div ref="gscpiChart" class="h-72" />
-          <p class="text-[10px] text-gray-500 mt-2">{{ sc.gscpi.source }} · z-score: 0 = média histórica, +1 = 1 desvio acima</p>
+          <p class="text-[11px] text-gray-500 mt-2">{{ sc.gscpi.source }} · z-score: 0 = média histórica, +1 = 1 desvio acima</p>
         </div>
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Proxies de frete & logística</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Proxies de frete & logística</div>
           <table class="w-full text-xs font-mono">
             <tbody>
               <tr v-for="p in sc.proxies" :key="p.symbol" class="border-t border-surface-600/30">
@@ -87,7 +87,7 @@
               </tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500 mt-3 leading-relaxed">{{ sc.note }}</p>
+          <p class="text-[11px] text-gray-500 mt-3 leading-relaxed">{{ sc.note }}</p>
         </div>
       </div>
     </template>
@@ -96,26 +96,26 @@
     <template v-if="tab === 'trafego' && tsa">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Passageiros ({{ tsa.last_date }})</div>
+          <div class="text-[11px] text-gray-400 uppercase">Passageiros ({{ tsa.last_date }})</div>
           <div class="text-lg font-bold font-mono text-gray-100">{{ fmtInt(tsa.last) }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Média 7 dias</div>
+          <div class="text-[11px] text-gray-400 uppercase">Média 7 dias</div>
           <div class="text-lg font-bold font-mono text-accent-yellow">{{ fmtInt(tsa.avg7_last) }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Tendência vs mês anterior</div>
+          <div class="text-[11px] text-gray-400 uppercase">Tendência vs mês anterior</div>
           <div class="text-lg font-bold font-mono" :class="pctClass(tsa.mom_pct)">{{ fmtPct(tsa.mom_pct) }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Dias na série</div>
+          <div class="text-[11px] text-gray-400 uppercase">Dias na série</div>
           <div class="text-lg font-bold font-mono text-gray-300">{{ tsa.ts.length }}</div>
         </div>
       </div>
       <div class="card p-4">
-        <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Passageiros/dia em checkpoints TSA (EUA)</div>
+        <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Passageiros/dia em checkpoints TSA (EUA)</div>
         <div ref="tsaChart" class="h-72" />
-        <p class="text-[10px] text-gray-500 mt-2">{{ tsa.source }} · leitura p/ aéreas (AAL, DAL, UAL, LUV), hotéis e querosene de aviação</p>
+        <p class="text-[11px] text-gray-500 mt-2">{{ tsa.source }} · leitura p/ aéreas (AAL, DAL, UAL, LUV), hotéis e querosene de aviação</p>
       </div>
     </template>
 
@@ -123,7 +123,7 @@
     <template v-if="tab === 'clima' && cli">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">ENSO — El Niño / La Niña</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">ENSO — El Niño / La Niña</div>
           <div class="flex items-baseline gap-3">
             <span class="text-2xl font-bold font-mono"
                   :class="cli.enso.status === 'El Niño' ? 'text-red-400'
@@ -141,14 +141,14 @@
               </tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500 mt-2">{{ cli.enso.source }}</p>
+          <p class="text-[11px] text-gray-500 mt-2">{{ cli.enso.source }}</p>
         </div>
         <div class="card p-4 lg:col-span-2">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Regiões produtoras (7 dias, met.no)</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Regiões produtoras (7 dias, met.no)</div>
           <div v-if="!cli.regions?.rows?.length" class="text-xs text-gray-500 py-6 text-center">clima indisponível no momento</div>
           <table v-else class="w-full text-xs font-mono">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-left">
+              <tr class="text-[11px] text-gray-400 uppercase text-left">
                 <th class="py-1.5">Região</th><th>Culturas</th>
                 <th class="text-right">Chuva 7d</th><th class="text-right">T máx</th><th class="text-right">Alerta</th>
               </tr>
@@ -162,13 +162,13 @@
                 <td class="text-right text-gray-300">{{ r.tmax_7d }}°C</td>
                 <td class="text-right">
                   <span v-for="f in r.flags || []" :key="f"
-                        class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 ml-1">{{ f }}</span>
+                        class="text-[11px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 ml-1">{{ f }}</span>
                   <span v-if="!(r.flags || []).length" class="text-gray-500">—</span>
                 </td>
               </tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500 mt-2">{{ cli.regions?.source }}</p>
+          <p class="text-[11px] text-gray-500 mt-2">{{ cli.regions?.source }}</p>
         </div>
       </div>
     </template>
@@ -189,7 +189,7 @@
         <div class="card p-3 overflow-x-auto">
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-left">
+              <tr class="text-[11px] text-gray-400 uppercase text-left">
                 <th class="py-1.5 pr-3">Empresa</th>
                 <th class="pr-3 text-right">Estoque</th>
                 <th class="pr-3 text-right">Dias de estoque</th>
@@ -202,7 +202,7 @@
             <tbody>
               <tr v-for="r in sec.rows" :key="r.symbol" class="border-t border-surface-600/30">
                 <td class="py-2 pr-3 text-gray-200">{{ r.symbol }}
-                  <span v-if="r.suspect" class="text-amber-400 text-[10px]" title="valores implausíveis — possível erro na fonte (Yahoo)">⚠ verificar</span></td>
+                  <span v-if="r.suspect" class="text-amber-400 text-[11px]" title="valores implausíveis — possível erro na fonte (Yahoo)">⚠ verificar</span></td>
                 <td class="pr-3 text-right text-gray-400">{{ fmtB(r.inventory) }}</td>
                 <td class="pr-3 text-right text-gray-200">{{ r.days_inventory != null ? r.days_inventory + 'd' : '—' }}</td>
                 <td class="pr-3 text-right" :class="(r.days_delta_yoy || 0) > 5 ? 'text-red-400' : (r.days_delta_yoy || 0) < -5 ? 'text-green-400' : 'text-gray-400'">
@@ -216,7 +216,7 @@
             </tbody>
           </table>
         </div>
-        <p class="text-[10px] text-gray-500">{{ sec.source }}</p>
+        <p class="text-[11px] text-gray-500">{{ sec.source }}</p>
       </div>
     </template>
 
@@ -224,30 +224,30 @@
     <template v-if="tab === 'cripto' && cm">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Perps monitorados</div>
+          <div class="text-[11px] text-gray-400 uppercase">Perps monitorados</div>
           <div class="text-lg font-bold font-mono text-gray-100">{{ cm.n_perps }}</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">% funding positivo</div>
+          <div class="text-[11px] text-gray-400 uppercase">% funding positivo</div>
           <div class="text-lg font-bold font-mono"
                :class="cm.pct_positive > 75 ? 'text-red-400' : cm.pct_positive < 40 ? 'text-green-400' : 'text-gray-200'">
             {{ cm.pct_positive }}%</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Funding médio (8h)</div>
+          <div class="text-[11px] text-gray-400 uppercase">Funding médio (8h)</div>
           <div class="text-lg font-bold font-mono text-gray-200">{{ cm.mean_funding_pct }}%</div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">OI dos majors</div>
+          <div class="text-[11px] text-gray-400 uppercase">OI dos majors</div>
           <div class="text-lg font-bold font-mono text-accent-yellow">{{ fmtB(totalOi) }}</div>
         </div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="card p-3 lg:col-span-2 overflow-x-auto">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Open interest & funding — majors (Bybit)</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Open interest & funding — majors (Bybit)</div>
           <table class="w-full text-xs font-mono whitespace-nowrap">
             <thead>
-              <tr class="text-[10px] text-gray-400 uppercase text-left">
+              <tr class="text-[11px] text-gray-400 uppercase text-left">
                 <th class="py-1.5 pr-3">Ativo</th><th class="pr-3 text-right">Preço</th>
                 <th class="pr-3 text-right">24h</th><th class="pr-3 text-right">OI (US$)</th>
                 <th class="pr-3 text-right">Funding 8h</th>
@@ -268,7 +268,7 @@
         </div>
         <div class="space-y-4">
           <div class="card p-3">
-            <div class="text-[10px] text-green-400 uppercase font-semibold mb-2">Funding mais NEGATIVO (shorts pagando)</div>
+            <div class="text-[11px] text-green-400 uppercase font-semibold mb-2">Funding mais NEGATIVO (shorts pagando)</div>
             <table class="w-full text-xs font-mono">
               <tbody>
                 <tr v-for="e in cm.extremes.negative" :key="e.symbol" class="border-t border-surface-600/30">
@@ -279,7 +279,7 @@
             </table>
           </div>
           <div class="card p-3">
-            <div class="text-[10px] text-red-400 uppercase font-semibold mb-2">Funding mais POSITIVO (longs pagando)</div>
+            <div class="text-[11px] text-red-400 uppercase font-semibold mb-2">Funding mais POSITIVO (longs pagando)</div>
             <table class="w-full text-xs font-mono">
               <tbody>
                 <tr v-for="e in cm.extremes.positive" :key="e.symbol" class="border-t border-surface-600/30">
@@ -291,7 +291,7 @@
           </div>
         </div>
       </div>
-      <p class="text-[10px] text-gray-500">{{ cm.note }}</p>
+      <p class="text-[11px] text-gray-500">{{ cm.note }}</p>
     </template>
 
     <!-- ══ ON-CHAIN ══ -->
@@ -303,7 +303,7 @@
       <!-- por moeda -->
       <div class="card p-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold">Por moeda</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold">Por moeda</div>
           <form @submit.prevent="loadCoin()" class="flex gap-2">
             <input v-model="coinSym" placeholder="ex.: ETH, SOL, DOGE"
                    class="form-input !py-1.5 text-xs w-36 uppercase" />
@@ -312,7 +312,7 @@
           </form>
           <button v-for="s in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'SUI']" :key="s"
                   @click="loadCoin(s)"
-                  class="px-2 py-1 text-[10px] rounded border font-mono transition-colors"
+                  class="px-2 py-1 text-[11px] rounded border font-mono transition-colors"
                   :class="ocCoin?.symbol === s
                     ? 'bg-accent-yellow/10 border-accent-yellow/40 text-accent-yellow'
                     : 'bg-surface-700 border-surface-500 text-gray-400 hover:text-gray-300'">
@@ -324,45 +324,45 @@
         <template v-if="ocCoin && ocCoin.profile">
           <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div class="rounded-lg bg-surface-600/40 p-3">
-              <div class="text-[10px] text-gray-400 uppercase">{{ ocCoin.profile.name }} · #{{ ocCoin.profile.rank }}</div>
+              <div class="text-[11px] text-gray-400 uppercase">{{ ocCoin.profile.name }} · #{{ ocCoin.profile.rank }}</div>
               <div class="text-base font-bold font-mono text-gray-100">${{ fmt(ocCoin.profile.price) }}</div>
-              <div class="text-[10px] font-mono">
+              <div class="text-[11px] font-mono">
                 <span :class="pctClass(ocCoin.profile.chg_7d_pct)">7d {{ fmtPct(ocCoin.profile.chg_7d_pct) }}</span>
                 <span class="ml-1.5" :class="pctClass(ocCoin.profile.chg_30d_pct)">30d {{ fmtPct(ocCoin.profile.chg_30d_pct) }}</span>
               </div>
             </div>
             <div class="rounded-lg bg-surface-600/40 p-3">
-              <div class="text-[10px] text-gray-400 uppercase">Mcap / Volume 24h</div>
+              <div class="text-[11px] text-gray-400 uppercase">Mcap / Volume 24h</div>
               <div class="text-base font-bold font-mono text-gray-100">{{ fmtB(ocCoin.profile.mcap) }}</div>
-              <div class="text-[10px] text-gray-400 font-mono">{{ fmtB(ocCoin.profile.volume_24h) }} vol</div>
+              <div class="text-[11px] text-gray-400 font-mono">{{ fmtB(ocCoin.profile.volume_24h) }} vol</div>
             </div>
             <div class="rounded-lg bg-surface-600/40 p-3">
-              <div class="text-[10px] text-gray-400 uppercase">Distância do ATH</div>
+              <div class="text-[11px] text-gray-400 uppercase">Distância do ATH</div>
               <div class="text-base font-bold font-mono text-red-400">
                 {{ ocCoin.profile.ath?.change_pct?.toFixed(1) }}%</div>
-              <div class="text-[10px] text-gray-400 font-mono">
+              <div class="text-[11px] text-gray-400 font-mono">
                 ${{ fmt(ocCoin.profile.ath?.price) }} · {{ ocCoin.profile.ath?.date }}</div>
             </div>
             <div class="rounded-lg bg-surface-600/40 p-3">
-              <div class="text-[10px] text-gray-400 uppercase">Supply circulante</div>
+              <div class="text-[11px] text-gray-400 uppercase">Supply circulante</div>
               <div class="text-base font-bold font-mono text-gray-100">{{ fmtSupply(ocCoin.profile.supply?.circulating) }}</div>
-              <div class="text-[10px] text-gray-400 font-mono">
+              <div class="text-[11px] text-gray-400 font-mono">
                 {{ ocCoin.profile.supply?.pct_emitted != null
                   ? ocCoin.profile.supply.pct_emitted.toFixed(1) + '% do máx ' + fmtSupply(ocCoin.profile.supply.max)
                   : 'sem supply máximo' }}</div>
             </div>
             <div class="rounded-lg bg-surface-600/40 p-3">
-              <div class="text-[10px] text-gray-400 uppercase">Perp Bybit</div>
+              <div class="text-[11px] text-gray-400 uppercase">Perp Bybit</div>
               <div class="text-base font-bold font-mono"
                    :class="(ocCoin.deriv?.funding_pct || 0) > 0.02 ? 'text-red-400' : (ocCoin.deriv?.funding_pct || 0) < 0 ? 'text-green-400' : 'text-gray-200'">
                 {{ ocCoin.deriv?.funding_pct != null ? ocCoin.deriv.funding_pct.toFixed(4) + '%' : '—' }}</div>
-              <div class="text-[10px] text-gray-400 font-mono">OI {{ fmtB(ocCoin.deriv?.oi_usd) }}</div>
+              <div class="text-[11px] text-gray-400 font-mono">OI {{ fmtB(ocCoin.deriv?.oi_usd) }}</div>
             </div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <div v-if="ocCoin.tvl" class="lg:col-span-2 rounded-lg bg-surface-600/20 p-3">
-              <div class="text-[10px] text-gray-400 uppercase font-semibold mb-1">
+              <div class="text-[11px] text-gray-400 uppercase font-semibold mb-1">
                 TVL da chain {{ ocCoin.tvl.chain }} — 1 ano
                 <span class="ml-2 font-mono" :class="pctClass(ocCoin.tvl.chg_30d_pct)">
                   {{ fmtB(ocCoin.tvl.last) }} · 30d {{ fmtPct(ocCoin.tvl.chg_30d_pct) }}</span>
@@ -371,7 +371,7 @@
             </div>
             <div class="space-y-2">
               <div v-if="ocCoin.network" class="rounded-lg bg-surface-600/20 p-3">
-                <div class="text-[10px] text-gray-400 uppercase font-semibold mb-1">Rede (Blockchair)</div>
+                <div class="text-[11px] text-gray-400 uppercase font-semibold mb-1">Rede (Blockchair)</div>
                 <table class="w-full text-[11px] font-mono">
                   <tbody>
                     <tr><td class="py-0.5 text-gray-400">Txs 24h</td>
@@ -386,7 +386,7 @@
                 </table>
               </div>
               <div class="rounded-lg bg-surface-600/20 p-3">
-                <div class="text-[10px] text-gray-400 uppercase font-semibold mb-1">Dev & comunidade (CoinGecko)</div>
+                <div class="text-[11px] text-gray-400 uppercase font-semibold mb-1">Dev & comunidade (CoinGecko)</div>
                 <table class="w-full text-[11px] font-mono">
                   <tbody>
                     <tr><td class="py-0.5 text-gray-400">Commits 4 semanas</td>
@@ -403,7 +403,7 @@
               </div>
             </div>
           </div>
-          <p v-if="(ocCoin.errors || []).length" class="text-[10px] text-amber-400/80">
+          <p v-if="(ocCoin.errors || []).length" class="text-[11px] text-amber-400/80">
             fontes parciais: {{ ocCoin.errors.join(' · ') }}</p>
         </template>
       </div>
@@ -412,43 +412,43 @@
       <div class="card p-4 space-y-4" v-if="oc.btc_metrics">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <div class="text-[10px] text-accent-yellow uppercase font-semibold">BTC · On-chain avançado</div>
-            <div class="text-[10px] text-gray-500">Cada valor identifica sua fonte; métricas proprietárias não são estimadas.</div>
+            <div class="text-[11px] text-accent-yellow uppercase font-semibold">BTC · On-chain avançado</div>
+            <div class="text-[11px] text-gray-500">Cada valor identifica sua fonte; métricas proprietárias não são estimadas.</div>
           </div>
           <div class="text-right font-mono">
-            <div class="text-[9px] text-gray-400 uppercase">Open Interest agregado</div>
+            <div class="text-[11px] text-gray-400 uppercase">Open Interest agregado</div>
             <div class="text-sm text-gray-100">{{ fmtB(oc.btc_metrics.open_interest?.total_usd) }}</div>
           </div>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div v-for="m in advancedMetricCards" :key="m.id" class="rounded-lg bg-surface-600/30 p-3">
-            <div class="text-[9px] text-gray-400 uppercase leading-tight">{{ m.label }}</div>
+            <div class="text-[11px] text-gray-400 uppercase leading-tight">{{ m.label }}</div>
             <div class="text-base font-bold font-mono text-gray-100">{{ m.value }}</div>
-            <div class="text-[9px] text-gray-500">{{ m.source }}</div>
+            <div class="text-[11px] text-gray-500">{{ m.source }}</div>
           </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
-            <div class="text-[10px] text-gray-400 uppercase mb-1">Pi Cycle Top · BTC, 111DMA e 2×350DMA</div>
+            <div class="text-[11px] text-gray-400 uppercase mb-1">Pi Cycle Top · BTC, 111DMA e 2×350DMA</div>
             <div ref="piCycleChart" class="h-64" />
           </div>
           <div>
-            <div class="text-[10px] text-gray-400 uppercase mb-1">Realized Price · STH vs LTH</div>
+            <div class="text-[11px] text-gray-400 uppercase mb-1">Realized Price · STH vs LTH</div>
             <div ref="holderPriceChart" class="h-64" />
           </div>
         </div>
         <div v-if="oc.btc_metrics.sth_sopr_mvrv_indicator">
           <div class="flex flex-wrap justify-between gap-2 mb-1">
-            <div class="text-[10px] text-gray-400 uppercase">STH MVRV & 2× STH SOPR · break-even = 1</div>
-            <div class="text-[10px] font-mono text-gray-400">
+            <div class="text-[11px] text-gray-400 uppercase">STH MVRV & 2× STH SOPR · break-even = 1</div>
+            <div class="text-[11px] font-mono text-gray-400">
               MVRV {{ oc.btc_metrics.sth_sopr_mvrv_indicator.latest?.sth_mvrv?.toFixed(3) }} ·
               SOPR {{ oc.btc_metrics.sth_sopr_mvrv_indicator.latest?.sth_sopr?.toFixed(3) }}
             </div>
           </div>
           <div ref="sthSoprMvrvChart" class="h-72" />
-          <div class="text-[9px] text-gray-500">{{ oc.btc_metrics.sth_sopr_mvrv_indicator.formula }}</div>
+          <div class="text-[11px] text-gray-500">{{ oc.btc_metrics.sth_sopr_mvrv_indicator.formula }}</div>
         </div>
-        <details v-if="oc.btc_metrics.unavailable?.length" class="text-[10px] text-amber-400/80">
+        <details v-if="oc.btc_metrics.unavailable?.length" class="text-[11px] text-amber-400/80">
           <summary class="cursor-pointer">{{ oc.btc_metrics.unavailable.length }} métricas aguardando provedor/credencial</summary>
           <div v-for="u in oc.btc_metrics.unavailable" :key="u.id" class="mt-1">
             {{ u.label }} — {{ u.reason }}
@@ -459,32 +459,32 @@
       <!-- cards de topo -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Fear & Greed</div>
+          <div class="text-[11px] text-gray-400 uppercase">Fear & Greed</div>
           <div class="text-lg font-bold font-mono" :class="fngClass(oc.sentiment?.fear_greed?.value)">
             {{ oc.sentiment?.fear_greed?.value ?? '—' }}
-            <span class="text-[10px] font-normal">{{ oc.sentiment?.fear_greed?.label }}</span>
+            <span class="text-[11px] font-normal">{{ oc.sentiment?.fear_greed?.label }}</span>
           </div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Mcap cripto global</div>
+          <div class="text-[11px] text-gray-400 uppercase">Mcap cripto global</div>
           <div class="text-lg font-bold font-mono text-gray-100">{{ fmtB(oc.sentiment?.global?.mcap_usd) }}
-            <span class="text-[10px]" :class="pctClass(oc.sentiment?.global?.mcap_change_24h_pct)">
+            <span class="text-[11px]" :class="pctClass(oc.sentiment?.global?.mcap_change_24h_pct)">
               {{ fmtPct(oc.sentiment?.global?.mcap_change_24h_pct) }}</span></div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Dominância BTC / ETH</div>
+          <div class="text-[11px] text-gray-400 uppercase">Dominância BTC / ETH</div>
           <div class="text-lg font-bold font-mono text-accent-yellow">
             {{ oc.sentiment?.global?.btc_dominance?.toFixed(1) }}%
             <span class="text-gray-400 text-sm">/ {{ oc.sentiment?.global?.eth_dominance?.toFixed(1) }}%</span></div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">Stablecoins (supply)</div>
+          <div class="text-[11px] text-gray-400 uppercase">Stablecoins (supply)</div>
           <div class="text-lg font-bold font-mono text-gray-100">{{ fmtB(oc.defi?.stablecoins?.total) }}
-            <span class="text-[10px]" :class="pctClass(oc.defi?.stablecoins?.delta_30d_pct)">
+            <span class="text-[11px]" :class="pctClass(oc.defi?.stablecoins?.delta_30d_pct)">
               {{ fmtPct(oc.defi?.stablecoins?.delta_30d_pct) }} 30d</span></div>
         </div>
         <div class="card p-3">
-          <div class="text-[10px] text-gray-400 uppercase">TVL DeFi total</div>
+          <div class="text-[11px] text-gray-400 uppercase">TVL DeFi total</div>
           <div class="text-lg font-bold font-mono text-gray-100">{{ fmtB(oc.defi?.tvl_total) }}</div>
         </div>
       </div>
@@ -492,15 +492,15 @@
       <!-- gráficos -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Fear & Greed — 90 dias</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Fear & Greed — 90 dias</div>
           <div ref="fngChart" class="h-56" />
         </div>
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Hashrate BTC — 180 dias (EH/s)</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Hashrate BTC — 180 dias (EH/s)</div>
           <div ref="hashChart" class="h-56" />
         </div>
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Endereços ativos BTC — 180 dias</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Endereços ativos BTC — 180 dias</div>
           <div ref="addrChart" class="h-56" />
         </div>
       </div>
@@ -508,13 +508,13 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- rede BTC -->
         <div class="card p-4 space-y-3">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold">Rede Bitcoin agora</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold">Rede Bitcoin agora</div>
           <div class="grid grid-cols-4 gap-2 text-center">
             <div v-for="(v, k) in {rápida: oc.btc?.fees_satvb?.fastestFee, '30min': oc.btc?.fees_satvb?.halfHourFee, '1h': oc.btc?.fees_satvb?.hourFee, eco: oc.btc?.fees_satvb?.economyFee}"
                  :key="k" class="rounded-lg bg-surface-600/40 p-2">
-              <div class="text-[9px] text-gray-400 uppercase">{{ k }}</div>
+              <div class="text-[11px] text-gray-400 uppercase">{{ k }}</div>
               <div class="text-sm font-bold font-mono text-gray-200">{{ v ?? '—' }}</div>
-              <div class="text-[8px] text-gray-500">sat/vB</div>
+              <div class="text-[11px] text-gray-500">sat/vB</div>
             </div>
           </div>
           <table class="w-full text-[11px] font-mono">
@@ -540,29 +540,29 @@
                 <td class="text-right text-gray-300">{{ fmtInt(oc.btc?.snapshot?.blocks) }}</td></tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500">mempool.space · blockchair · blockchain.info</p>
+          <p class="text-[11px] text-gray-500">mempool.space · blockchair · blockchain.info</p>
         </div>
 
         <!-- TVL por chain -->
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">TVL DeFi por chain</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">TVL DeFi por chain</div>
           <table class="w-full text-xs font-mono">
             <tbody>
               <tr v-for="c in oc.defi?.chains || []" :key="c.name" class="border-t border-surface-600/30">
                 <td class="py-1.5 text-gray-300">{{ c.name }}
-                  <span class="text-gray-500 text-[10px]">{{ c.symbol }}</span></td>
+                  <span class="text-gray-500 text-[11px]">{{ c.symbol }}</span></td>
                 <td class="text-right text-gray-200">{{ fmtB(c.tvl) }}</td>
                 <td class="text-right text-gray-400 w-14">
                   {{ oc.defi.tvl_total ? (c.tvl / oc.defi.tvl_total * 100).toFixed(1) + '%' : '' }}</td>
               </tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500 mt-2">DeFiLlama</p>
+          <p class="text-[11px] text-gray-500 mt-2">DeFiLlama</p>
         </div>
 
         <!-- stablecoins -->
         <div class="card p-4">
-          <div class="text-[10px] text-gray-400 uppercase font-semibold mb-2">Stablecoins — supply & fluxo 30d</div>
+          <div class="text-[11px] text-gray-400 uppercase font-semibold mb-2">Stablecoins — supply & fluxo 30d</div>
           <table class="w-full text-xs font-mono">
             <tbody>
               <tr v-for="s in oc.defi?.stablecoins?.top || []" :key="s.symbol" class="border-t border-surface-600/30">
@@ -572,7 +572,7 @@
               </tr>
             </tbody>
           </table>
-          <p class="text-[10px] text-gray-500 mt-2 leading-relaxed">{{ oc.defi?.stablecoins?.note }}</p>
+          <p class="text-[11px] text-gray-500 mt-2 leading-relaxed">{{ oc.defi?.stablecoins?.note }}</p>
         </div>
       </div>
     </template>

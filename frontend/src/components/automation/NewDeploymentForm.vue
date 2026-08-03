@@ -14,8 +14,8 @@
 
     <!-- Estratégia -->
     <div class="flex items-center justify-between gap-2">
-      <label class="text-xs text-gray-400">Estratégia</label>
-      <select v-model="form.strategy_file" @change="onStrategyChange"
+      <label class="text-xs text-gray-400" for="f-components-automation-newdeploymentform-vue-1">Estratégia</label>
+      <select id="f-components-automation-newdeploymentform-vue-1" v-model="form.strategy_file" @change="onStrategyChange"
               class="bg-surface-600 border border-surface-400 rounded-lg text-xs text-gray-100 px-2 py-1.5 w-44">
         <option v-for="st in store.strategies" :key="st.file" :value="st.file"
                 :disabled="!st.automatable">
@@ -25,22 +25,22 @@
     </div>
 
     <div class="flex items-center justify-between gap-2">
-      <label class="text-xs text-gray-400">Símbolo</label>
-      <input v-model="form.symbol" placeholder="BTC"
+      <label class="text-xs text-gray-400" for="f-components-automation-newdeploymentform-vue-2">Símbolo</label>
+      <input id="f-components-automation-newdeploymentform-vue-2" v-model="form.symbol" placeholder="BTC"
              class="bg-surface-600 border border-surface-400 rounded-lg text-xs text-gray-100 px-2 py-1.5 w-44" />
     </div>
 
     <div class="flex items-center justify-between gap-2">
-      <label class="text-xs text-gray-400">Timeframe</label>
-      <select v-model="form.interval"
+      <label class="text-xs text-gray-400" for="f-components-automation-newdeploymentform-vue-3">Timeframe</label>
+      <select id="f-components-automation-newdeploymentform-vue-3" v-model="form.interval"
               class="bg-surface-600 border border-surface-400 rounded-lg text-xs text-gray-100 px-2 py-1.5 w-44">
         <option v-for="tf in ['5m','15m','30m','1h','4h']" :key="tf" :value="tf">{{ tf }}</option>
       </select>
     </div>
 
     <div class="flex items-center justify-between gap-2">
-      <label class="text-xs text-gray-400">Modo</label>
-      <select v-model="form.mode"
+      <label class="text-xs text-gray-400" for="f-components-automation-newdeploymentform-vue-4">Modo</label>
+      <select id="f-components-automation-newdeploymentform-vue-4" v-model="form.mode"
               class="border rounded-lg text-xs px-2 py-1.5 w-44"
               :class="form.mode === 'real'
                 ? 'bg-red-950/40 border-red-500/60 text-red-300'
@@ -58,8 +58,8 @@
         server-side na exchange. Proteções extras são opcionais abaixo.
       </div>
       <div class="flex items-center justify-between gap-2">
-        <label class="text-xs text-gray-400">Conta</label>
-        <select v-model="form.account"
+        <label class="text-xs text-gray-400" for="f-components-automation-newdeploymentform-vue-5">Conta</label>
+        <select id="f-components-automation-newdeploymentform-vue-5" v-model="form.account"
                 class="bg-surface-600 border border-surface-400 rounded-lg text-xs text-gray-100 px-2 py-1.5 w-44">
           <option :value="null" disabled>Selecione a conta</option>
           <option v-for="a in store.accounts" :key="a.id" :value="a.id" :disabled="!a.configured">
@@ -72,13 +72,13 @@
     <div class="flex items-center justify-between gap-2">
       <label class="text-xs text-gray-400">Capital inicial ($)</label>
       <div class="w-44">
-        <NumInput v-model="form.initial_capital" :min="100" :step="1000" />
+        <NumInput label="Capital inicial ($)" v-model="form.initial_capital" :min="100" :step="1000" />
       </div>
     </div>
 
     <!-- Proteções opcionais (default: tudo desligado — só o stop da estratégia) -->
     <div class="border-t border-surface-600 pt-3 space-y-2">
-      <p class="text-[10px] text-gray-400 uppercase tracking-widest">
+      <p class="text-[11px] text-gray-400 uppercase tracking-widest">
         Proteções (opcional — padrão desligado)
       </p>
 
@@ -88,7 +88,7 @@
           Perda diária máx (%)
         </label>
         <div class="w-24" :class="!guard.dailyOn ? 'opacity-40 pointer-events-none' : ''">
-          <NumInput v-model="guard.daily_loss_pct" :min="0.1" :max="50" :step="0.5" />
+          <NumInput label="Perda diária máx (%)" v-model="guard.daily_loss_pct" :min="0.1" :max="50" :step="0.5" />
         </div>
       </div>
 
@@ -98,7 +98,7 @@
           Perda total máx (%)
         </label>
         <div class="w-24" :class="!guard.maxOn ? 'opacity-40 pointer-events-none' : ''">
-          <NumInput v-model="guard.max_loss_pct" :min="0.5" :max="90" :step="1" />
+          <NumInput label="Perda total máx (%)" v-model="guard.max_loss_pct" :min="0.5" :max="90" :step="1" />
         </div>
       </div>
 
@@ -115,7 +115,7 @@
           Teto de notional ($)
         </label>
         <div class="w-24" :class="!guard.notionalOn ? 'opacity-40 pointer-events-none' : ''">
-          <NumInput v-model="guard.max_notional" :min="10" :step="100" />
+          <NumInput label="Teto de notional ($)" v-model="guard.max_notional" :min="10" :step="100" />
         </div>
       </div>
     </div>

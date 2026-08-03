@@ -1,7 +1,7 @@
 <template>
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <h1 class="text-base font-semibold text-gray-100">Alertas de Preço, Funding e Sinais</h1>
-    <p class="text-[10px] text-gray-500 -mt-3">além dos alertas manuais, o vigia automático monitora o universo da Central de Inteligência a cada 15 min: mudanças de sinal (ex.: NEUTRO → COMPRA) e divergências novas aparecem em Disparados</p>
+    <p class="text-[11px] text-gray-500 -mt-3">além dos alertas manuais, o vigia automático monitora o universo da Central de Inteligência a cada 15 min: mudanças de sinal (ex.: NEUTRO → COMPRA) e divergências novas aparecem em Disparados</p>
 
     <!-- criar -->
     <div class="card p-4">
@@ -55,7 +55,7 @@
         <tbody>
           <tr v-for="a in active" :key="a.id" class="border-b border-surface-600/50">
             <td class="py-1.5 font-bold text-gray-100">{{ a.symbol }}
-              <span v-if="a.market === 'tradfi'" class="ml-1 text-[9px] font-mono px-1 py-0.5
+              <span v-if="a.market === 'tradfi'" class="ml-1 text-[11px] font-mono px-1 py-0.5
                     rounded bg-blue-900/40 text-blue-300 border border-blue-800/50">TRAD</span></td>
             <td class="py-1.5 text-gray-400">{{ terminal.kindLabel(a.kind) }} {{ a.level }}</td>
             <td class="py-1.5 text-gray-500">{{ a.note }}</td>

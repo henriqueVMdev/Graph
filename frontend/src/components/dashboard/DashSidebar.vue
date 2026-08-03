@@ -22,7 +22,7 @@
         <!-- Ou selecionar arquivo existente -->
         <div v-if="store.files.length > 0">
           <span class="text-xs text-gray-400 block mb-1">Ou selecionar arquivo:</span>
-          <select v-model="selectedFile" @change="onSelectFile" class="form-select w-full">
+          <select v-model="selectedFile" @change="onSelectFile" aria-label="Selecionar arquivo" class="form-select w-full">
             <option value="">-- selecione --</option>
             <option v-for="f in store.files" :key="f" :value="f">{{ f }}</option>
           </select>
@@ -80,7 +80,7 @@
         <!-- Min Trades -->
         <div class="mb-3">
           <label class="text-xs text-gray-400 block mb-1">Min Trades</label>
-          <NumInput
+          <NumInput label="Min Trades"
             :model-value="localFilters.min_trades"
             @change="updateFilter('min_trades', $event)"
             :min="0"
@@ -91,7 +91,7 @@
         <!-- Min Sharpe -->
         <div class="mb-3">
           <label class="text-xs text-gray-400 block mb-1">Min Sharpe</label>
-          <NumInput
+          <NumInput label="Min Sharpe"
             :model-value="localFilters.min_sharpe"
             @change="updateFilter('min_sharpe', $event)"
             :step="0.1"
@@ -108,11 +108,13 @@
           </label>
           <div class="flex gap-2">
             <NumInput
+              label="Retorno mínimo (%)"
               :model-value="localFilters.return_min"
               @change="updateFilter('return_min', $event)"
               :step="1"
             />
             <NumInput
+              label="Retorno máximo (%)"
               :model-value="localFilters.return_max"
               @change="updateFilter('return_max', $event)"
               :step="1"

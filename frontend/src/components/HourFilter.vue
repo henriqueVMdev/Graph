@@ -11,18 +11,18 @@
     </label>
 
     <template v-if="params.hour_filter">
-      <p class="text-[10px] text-gray-400 mt-2 mb-2">
+      <p class="text-[11px] text-gray-400 mt-2 mb-2">
         Só abre posição nas horas marcadas (horário de Brasília). Vale para timeframes intradiários.
       </p>
 
       <div class="flex gap-2 mb-2">
         <button
           @click="setAll(true)"
-          class="flex-1 py-1 text-[10px] rounded bg-surface-600 text-gray-400 border border-surface-500 hover:text-gray-200"
+          class="flex-1 py-1 text-[11px] rounded bg-surface-600 text-gray-400 border border-surface-500 hover:text-gray-200"
         >Todas</button>
         <button
           @click="setAll(false)"
-          class="flex-1 py-1 text-[10px] rounded bg-surface-600 text-gray-400 border border-surface-500 hover:text-gray-200"
+          class="flex-1 py-1 text-[11px] rounded bg-surface-600 text-gray-400 border border-surface-500 hover:text-gray-200"
         >Nenhuma</button>
       </div>
 
@@ -31,14 +31,14 @@
           v-for="h in hours"
           :key="h"
           @click="toggleHour(h)"
-          class="py-1 text-[10px] rounded font-medium transition-colors"
+          class="py-1 text-[11px] rounded font-medium transition-colors"
           :class="isActive(h)
             ? 'bg-accent-yellow/25 text-accent-yellow border border-accent-yellow/50'
             : 'bg-surface-600 text-gray-400 border border-surface-500'"
         >{{ String(h).padStart(2, '0') }}</button>
       </div>
 
-      <p class="text-[10px] text-gray-500 mt-2">
+      <p class="text-[11px] text-gray-500 mt-2">
         {{ (params.allowed_hours || []).length }} de 24 horas liberadas
       </p>
     </template>

@@ -9,7 +9,7 @@
                   group-hover:shadow-yellow-glow transition-shadow">G</div>
       <div class="leading-none hidden lg:block">
         <div class="text-[13px] font-bold tracking-wide text-gray-100">GRAPH</div>
-        <div class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">quant lab</div>
+        <div class="text-[11px] text-gray-500 uppercase tracking-[0.2em]">quant lab</div>
       </div>
     </RouterLink>
 
@@ -44,7 +44,7 @@
                class="absolute left-0 top-full mt-1.5 min-w-48 rounded-lg border
                       border-surface-500 bg-surface-800/95 backdrop-blur shadow-xl
                       py-1.5 z-50">
-            <div class="px-3 pb-1 text-[9px] uppercase tracking-[0.18em] text-gray-500">
+            <div class="px-3 pb-1 text-[11px] uppercase tracking-[0.18em] text-gray-500">
               {{ g.hint }}
             </div>
             <RouterLink
@@ -80,14 +80,14 @@
 
     <!-- Command line hint -->
     <button @click="$emit('open-cmd')" title="Command line (Ctrl+K)"
-            class="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-gray-500
+            class="hidden md:flex items-center gap-1.5 text-[11px] font-mono text-gray-500
                    border border-surface-500 rounded-md px-2 py-1 hover:text-accent-yellow
                    hover:border-accent-yellow/40 transition-colors shrink-0">
       <span class="text-accent-yellow">&gt;_</span> Ctrl+K
     </button>
 
     <!-- Sino de alertas -->
-    <RouterLink to="/alerts" class="relative shrink-0 text-gray-400 hover:text-accent-yellow transition-colors"
+    <RouterLink to="/alerts" class="hit-target shrink-0 text-gray-400 hover:text-accent-yellow transition-colors"
                 :aria-label="alertsLabel">
       <svg viewBox="0 0 24 24" class="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -96,7 +96,7 @@
       </svg>
       <span v-if="terminal.unseenTriggered.length" aria-hidden="true"
             class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full
-                   bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                   bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
         {{ terminal.unseenTriggered.length }}
       </span>
     </RouterLink>
@@ -115,7 +115,7 @@
            title="Janela de entrada da estratégia validada: 19:00-00:00 Brasília">
         <span class="w-1.5 h-1.5 rounded-full"
               :class="inWindow ? 'bg-accent-yellow animate-pulse' : 'bg-gray-600'" />
-        <span class="text-[10px] font-semibold tracking-wide">19-00h</span>
+        <span class="text-[11px] font-semibold tracking-wide">19-00h</span>
       </div>
     </div>
   </nav>

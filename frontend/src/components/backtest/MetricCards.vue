@@ -139,9 +139,9 @@ function fmtMoney(v) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 13px;
-  height: 13px;
-  font-size: 9px;
+  width: 15px;
+  height: 15px;
+  font-size: 11px;
   font-weight: 600;
   color: rgba(156, 163, 175, 0.6);
   border: 1px solid rgba(156, 163, 175, 0.3);

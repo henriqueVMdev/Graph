@@ -25,15 +25,15 @@
       >
         <div class="flex items-center justify-between">
           <span class="text-sm font-semibold text-gray-100">{{ a.name }}</span>
-          <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+          <span class="text-[11px] uppercase tracking-wider px-1.5 py-0.5 rounded"
                 :class="a.agent_type === 'native' ? 'bg-accent-yellow/10 text-accent-yellow' : 'bg-surface-600 text-gray-400'">
             {{ a.agent_type }}
           </span>
         </div>
-        <div class="text-[10px] text-gray-500 mt-0.5 font-mono">{{ a.model }}</div>
+        <div class="text-[11px] text-gray-500 mt-0.5 font-mono">{{ a.model }}</div>
         <div class="flex gap-2 mt-1.5">
-          <button @click.stop="editAgent(a)" class="text-[10px] text-gray-400 hover:text-gray-200">editar</button>
-          <button @click.stop="store.removeAgent(a.id)" class="text-[10px] text-gray-400 hover:text-accent-red-light">excluir</button>
+          <button @click.stop="editAgent(a)" class="text-[11px] text-gray-400 hover:text-gray-200">editar</button>
+          <button @click.stop="store.removeAgent(a.id)" class="text-[11px] text-gray-400 hover:text-accent-red-light">excluir</button>
         </div>
       </div>
 
@@ -52,19 +52,19 @@
         </div>
         <input v-model="form.base_url" placeholder="Base URL (vazio = OpenRouter)" class="inp font-mono text-[11px]" />
         <div v-if="form.agent_type === 'native'">
-          <div class="text-[10px] text-gray-400 mb-1">Tools:</div>
+          <div class="text-[11px] text-gray-400 mb-1">Tools:</div>
           <label v-for="(desc, name) in store.toolCatalog" :key="name" class="flex items-start gap-1.5 text-[11px] text-gray-400 mb-1 cursor-pointer" :title="desc">
             <input type="checkbox" :value="name" v-model="form.enabled_tools" class="mt-0.5 accent-yellow-400" />
             <span class="font-mono">{{ name }}</span>
           </label>
 
-          <div v-if="otherAgents.length" class="text-[10px] text-gray-400 mt-2 mb-1">Colaboradores (delegate_agent):</div>
+          <div v-if="otherAgents.length" class="text-[11px] text-gray-400 mt-2 mb-1">Colaboradores (delegate_agent):</div>
           <label v-for="a in otherAgents" :key="a.id" class="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1 cursor-pointer">
             <input type="checkbox" :value="a.id" v-model="form.collaborator_ids" class="accent-yellow-400" />
             {{ a.name }}
           </label>
 
-          <div v-if="store.skills.length" class="text-[10px] text-gray-400 mt-2 mb-1">Skills:</div>
+          <div v-if="store.skills.length" class="text-[11px] text-gray-400 mt-2 mb-1">Skills:</div>
           <label v-for="s in store.skills" :key="s.id" class="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1 cursor-pointer" :title="s.description">
             <input type="checkbox" :value="s.id" v-model="form.enabled_skill_ids" class="accent-yellow-400" />
             {{ s.name }} <span class="text-gray-500">v{{ s.version }}</span>
@@ -86,14 +86,14 @@
         <div class="text-xs font-semibold text-accent-yellow">⚡ Propostas de skill pendentes</div>
         <div v-for="p in store.proposals" :key="p.id" class="bg-surface-900 rounded-lg p-2.5">
           <div class="text-[11px] font-semibold text-gray-200">{{ p.action }} · {{ p.name }}</div>
-          <div class="text-[10px] text-gray-400 mt-0.5">{{ p.rationale }}</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">{{ p.rationale }}</div>
           <details class="mt-1">
-            <summary class="text-[10px] text-gray-500 cursor-pointer">ver conteúdo</summary>
-            <pre class="text-[10px] text-gray-400 mt-1 whitespace-pre-wrap max-h-40 overflow-y-auto">{{ p.content }}</pre>
+            <summary class="text-[11px] text-gray-500 cursor-pointer">ver conteúdo</summary>
+            <pre class="text-[11px] text-gray-400 mt-1 whitespace-pre-wrap max-h-40 overflow-y-auto">{{ p.content }}</pre>
           </details>
           <div class="flex gap-2 mt-1.5">
-            <button @click="store.reviewProposal(p.id, 'approve')" class="text-[10px] px-2 py-0.5 rounded bg-accent-yellow/15 text-accent-yellow">Aprovar</button>
-            <button @click="store.reviewProposal(p.id, 'reject')" class="text-[10px] px-2 py-0.5 rounded border border-surface-600 text-gray-400">Rejeitar</button>
+            <button @click="store.reviewProposal(p.id, 'approve')" class="text-[11px] px-2 py-0.5 rounded bg-accent-yellow/15 text-accent-yellow">Aprovar</button>
+            <button @click="store.reviewProposal(p.id, 'reject')" class="text-[11px] px-2 py-0.5 rounded border border-surface-600 text-gray-400">Rejeitar</button>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@
       <div class="card p-3 space-y-2">
         <div class="flex items-center justify-between">
           <div class="text-xs font-semibold text-gray-200">Skills</div>
-          <button @click="startNewSkill" class="text-[10px] text-gray-400 hover:text-accent-yellow">+ nova</button>
+          <button @click="startNewSkill" class="text-[11px] text-gray-400 hover:text-accent-yellow">+ nova</button>
         </div>
         <div v-for="s in store.skills" :key="s.id" class="flex items-center justify-between text-[11px]">
           <span class="text-gray-400" :title="s.description">{{ s.name }} <span class="text-gray-500">v{{ s.version }}</span></span>
@@ -146,7 +146,7 @@
             <!-- assistant -->
             <div v-else-if="ev.type === 'assistant'" class="flex" :class="{ 'pl-8': ev.depth > 0 }">
               <div class="max-w-3xl bg-surface-800 border border-surface-600 rounded-xl px-4 py-2.5 text-sm text-gray-200 whitespace-pre-wrap">
-                <div v-if="ev.depth > 0" class="text-[10px] text-accent-yellow/70 mb-1">↳ {{ ev.agent }}</div>
+                <div v-if="ev.depth > 0" class="text-[11px] text-accent-yellow/70 mb-1">↳ {{ ev.agent }}</div>
                 {{ ev.content }}
               </div>
             </div>
@@ -156,7 +156,7 @@
                 <summary class="text-[11px] cursor-pointer" :class="ev.type === 'tool_call' ? 'text-accent-yellow/70' : 'text-gray-400'">
                   {{ ev.type === 'tool_call' ? '⚙ ' + ev.name + '(' + JSON.stringify(ev.args) + ')' : '↳ resultado de ' + ev.name }}
                 </summary>
-                <pre v-if="ev.result" class="text-[10px] text-gray-400 mt-1.5 whitespace-pre-wrap max-h-48 overflow-y-auto">{{ ev.result }}</pre>
+                <pre v-if="ev.result" class="text-[11px] text-gray-400 mt-1.5 whitespace-pre-wrap max-h-48 overflow-y-auto">{{ ev.result }}</pre>
               </details>
             </div>
           </div>

@@ -19,19 +19,19 @@
     <div v-show="activeTab === 0">
       <div class="flex flex-wrap items-center gap-3 mb-3">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Retorno min (%):</span>
+          <span class="text-[11px] text-gray-400">Retorno min (%):</span>
           <input type="number" v-model="f0.returnMin" class="chart-filter-input" placeholder="-" />
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Max DD ate (%):</span>
+          <span class="text-[11px] text-gray-400">Max DD ate (%):</span>
           <input type="number" v-model="f0.ddMax" class="chart-filter-input" placeholder="-" />
         </div>
         <button @click="applyFilter(0)" :disabled="loading0" class="filter-btn">
-          <span v-if="loading0" class="dollar-loader-sm text-[10px]">$</span>
+          <span v-if="loading0" class="dollar-loader-sm text-[11px]">$</span>
           <span v-else>Filtrar</span>
         </button>
         <button v-if="isFiltered0" @click="clearFilter(0)" class="filter-clear-btn">Limpar</button>
-        <span v-if="count0 != null" class="text-[10px] text-gray-500">{{ count0 }} pontos</span>
+        <span v-if="count0 != null" class="text-[11px] text-gray-500">{{ count0 }} pontos</span>
       </div>
       <ScatterChart
         ref="chart0"
@@ -47,19 +47,19 @@
     <div v-show="activeTab === 1">
       <div class="flex flex-wrap items-center gap-3 mb-3">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Retorno min (%):</span>
+          <span class="text-[11px] text-gray-400">Retorno min (%):</span>
           <input type="number" v-model="f1.returnMin" class="chart-filter-input" placeholder="-" />
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Sharpe min:</span>
+          <span class="text-[11px] text-gray-400">Sharpe min:</span>
           <input type="number" v-model="f1.sharpeMin" class="chart-filter-input" step="0.1" placeholder="-" />
         </div>
         <button @click="applyFilter(1)" :disabled="loading1" class="filter-btn">
-          <span v-if="loading1" class="dollar-loader-sm text-[10px]">$</span>
+          <span v-if="loading1" class="dollar-loader-sm text-[11px]">$</span>
           <span v-else>Filtrar</span>
         </button>
         <button v-if="isFiltered1" @click="clearFilter(1)" class="filter-clear-btn">Limpar</button>
-        <span v-if="count1 != null" class="text-[10px] text-gray-500">{{ count1 }} pontos</span>
+        <span v-if="count1 != null" class="text-[11px] text-gray-500">{{ count1 }} pontos</span>
       </div>
       <ScatterChart
         ref="chart1"
@@ -75,19 +75,19 @@
     <div v-show="activeTab === 2">
       <div class="flex flex-wrap items-center gap-3 mb-3">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Retorno min (%):</span>
+          <span class="text-[11px] text-gray-400">Retorno min (%):</span>
           <input type="number" v-model="f2.returnMin" class="chart-filter-input" placeholder="-" />
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[10px] text-gray-400">Trades min:</span>
+          <span class="text-[11px] text-gray-400">Trades min:</span>
           <input type="number" v-model="f2.tradesMin" class="chart-filter-input" placeholder="-" />
         </div>
         <button @click="applyFilter(2)" :disabled="loading2" class="filter-btn">
-          <span v-if="loading2" class="dollar-loader-sm text-[10px]">$</span>
+          <span v-if="loading2" class="dollar-loader-sm text-[11px]">$</span>
           <span v-else>Filtrar</span>
         </button>
         <button v-if="isFiltered2" @click="clearFilter(2)" class="filter-clear-btn">Limpar</button>
-        <span v-if="count2 != null" class="text-[10px] text-gray-500">{{ count2 }} pontos</span>
+        <span v-if="count2 != null" class="text-[11px] text-gray-500">{{ count2 }} pontos</span>
       </div>
       <ScatterChart
         ref="chart2"
@@ -253,11 +253,11 @@ async function onPointClicked(rank) {
          focus:border-accent-yellow/50 focus:outline-none;
 }
 .filter-btn {
-  @apply px-3 py-1 text-[10px] font-semibold rounded bg-accent-yellow/15 text-accent-yellow
+  @apply px-3 py-1 text-[11px] font-semibold rounded bg-accent-yellow/15 text-accent-yellow
          border border-accent-yellow/30 hover:bg-accent-yellow/25 transition-colors
          disabled:opacity-50 min-w-[50px] text-center;
 }
 .filter-clear-btn {
-  @apply px-2 py-1 text-[10px] text-gray-400 hover:text-gray-300 transition-colors;
+  @apply px-2 py-1 text-[11px] text-gray-400 hover:text-gray-300 transition-colors;
 }
 </style>

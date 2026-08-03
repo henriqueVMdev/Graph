@@ -23,7 +23,7 @@
       <button
         v-if="dateFrom || dateTo"
         @click="clearRange"
-        class="text-[10px] text-gray-400 hover:text-gray-300 transition-colors"
+        class="text-[11px] text-gray-400 hover:text-gray-300 transition-colors"
       >limpar</button>
     </div>
     <div ref="chartEl" class="w-full" style="min-height: 450px;"></div>

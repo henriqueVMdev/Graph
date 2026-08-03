@@ -14,6 +14,7 @@
           <select
             :value="store.selectedStrategy?.file"
             @change="onStrategyChange($event.target.value)"
+            aria-label="Estratégia"
             class="form-select w-full text-xs mb-2"
           >
             <option
@@ -56,14 +57,14 @@
 
         <!-- Asset selector -->
         <template v-if="store.dataSource === 'asset'">
-          <label class="text-xs text-gray-400 block mb-1">Categoria</label>
-          <select v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-1">Categoria</label>
+          <select id="f-components-backtest-backtestsidebar-vue-1" v-model="selectedCategory" @change="onCategoryChange" class="form-select w-full mb-2 text-xs">
             <option value="">Selecione a categoria</option>
             <option v-for="cat in Object.keys(store.assets)" :key="cat" :value="cat">{{ cat }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Ativo</label>
-          <select
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-2">Ativo</label>
+          <select id="f-components-backtest-backtestsidebar-vue-2"
             v-model="selectedKey"
             @change="onAssetChange"
             :disabled="!selectedCategory"
@@ -78,13 +79,13 @@
             >{{ label }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Timeframe</label>
-          <select v-model="store.interval" class="form-select w-full mb-2 text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-3">Timeframe</label>
+          <select id="f-components-backtest-backtestsidebar-vue-3" v-model="store.interval" class="form-select w-full mb-2 text-xs">
             <option v-for="tf in timeframes" :key="tf" :value="tf">{{ tf }}</option>
           </select>
 
-          <label class="text-xs text-gray-400 block mb-1">Fonte dos candles</label>
-          <select v-model="store.exchange" class="form-select w-full text-xs">
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-4">Fonte dos candles</label>
+          <select id="f-components-backtest-backtestsidebar-vue-4" v-model="store.exchange" class="form-select w-full text-xs">
             <option value="">Yahoo Finance (15m/30m: só 60 dias)</option>
             <option value="bybit">Bybit perp (~1 ano de 15m)</option>
             <option value="binance">Binance perp (~1 ano de 15m)</option>
@@ -94,8 +95,8 @@
 
         <!-- CSV upload -->
         <template v-else>
-          <label class="text-xs text-gray-400 block mb-1">CSV de Preços (Date, Open, High, Low, Close)</label>
-          <input
+          <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-5">CSV de Preços (Date, Open, High, Low, Close)</label>
+          <input id="f-components-backtest-backtestsidebar-vue-5"
             type="file"
             accept=".csv"
             @change="onCsvUpload"
@@ -137,8 +138,8 @@
 
             <!-- Select -->
             <template v-else-if="field.type === 'select'">
-              <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
-              <select
+              <label class="text-xs text-gray-400 block mb-1" for="f-components-backtest-backtestsidebar-vue-6">{{ field.label }}</label>
+              <select id="f-components-backtest-backtestsidebar-vue-6"
                 :value="store.params[field.key]"
                 @change="store.params[field.key] = $event.target.value"
                 class="form-select w-full text-xs"
@@ -150,7 +151,7 @@
             <!-- Number -->
             <template v-else-if="field.type === 'number'">
               <label class="text-xs text-gray-400 block mb-1">{{ field.label }}</label>
-              <NumInput
+              <NumInput :label="field.label"
                 :model-value="store.params[field.key]"
                 @change="store.params[field.key] = $event"
                 :min="field.min ?? -Infinity"
@@ -177,13 +178,13 @@
         <template v-if="store.params.cycle_filter">
           <div class="mt-3 space-y-2">
             <div>
-              <p class="text-[10px] text-green-400 font-semibold mb-1">LONG</p>
+              <p class="text-[11px] text-green-400 font-semibold mb-1">LONG</p>
               <div class="grid grid-cols-6 gap-1">
                 <button
                   v-for="m in months"
                   :key="'L' + m.n"
                   @click="toggleMonth('cycle_long_months', m.n)"
-                  class="py-1 text-[10px] rounded font-medium transition-colors"
+                  class="py-1 text-[11px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_long_months', m.n)
                     ? 'bg-green-500/30 text-green-300 border border-green-500/50'
                     : 'bg-surface-600 text-gray-400 border border-surface-500'"
@@ -191,13 +192,13 @@
               </div>
             </div>
             <div>
-              <p class="text-[10px] text-red-400 font-semibold mb-1">SHORT</p>
+              <p class="text-[11px] text-red-400 font-semibold mb-1">SHORT</p>
               <div class="grid grid-cols-6 gap-1">
                 <button
                   v-for="m in months"
                   :key="'S' + m.n"
                   @click="toggleMonth('cycle_short_months', m.n)"
-                  class="py-1 text-[10px] rounded font-medium transition-colors"
+                  class="py-1 text-[11px] rounded font-medium transition-colors"
                   :class="isMonthActive('cycle_short_months', m.n)
                     ? 'bg-red-500/30 text-red-300 border border-red-500/50'
                     : 'bg-surface-600 text-gray-400 border border-surface-500'"

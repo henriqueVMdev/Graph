@@ -2,7 +2,7 @@
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto p-4 space-y-4">
     <div class="flex flex-wrap items-center gap-3">
       <h1 class="text-base font-semibold text-gray-100">Monitor de Mercado</h1>
-      <span class="text-[10px] text-gray-500 font-mono">cripto: bybit perp · tradicional: yahoo (~15min) · atualiza 5s</span>
+      <span class="text-[11px] text-gray-500 font-mono">cripto: bybit perp · tradicional: yahoo (~15min) · atualiza 5s</span>
       <div class="flex-1" />
       <form @submit.prevent="add" class="flex gap-2">
         <select v-model="newMarket" class="form-select !py-1.5 text-xs">
@@ -22,7 +22,7 @@
     <div class="card overflow-x-auto">
       <table class="w-full text-sm font-mono">
         <thead>
-          <tr class="text-[10px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
+          <tr class="text-[11px] text-gray-400 uppercase tracking-wider text-right border-b border-surface-500">
             <th class="text-left px-3 py-2">Ativo</th>
             <th class="px-3 py-2">Último</th>
             <th class="px-3 py-2">24h %</th>
@@ -40,7 +40,7 @@
             <td class="px-3 py-2 text-left">
               <button @click="openDes(r)"
                       class="font-bold text-gray-100 hover:text-accent-yellow">{{ r.base }}</button>
-              <span v-if="r.market === 'tradfi'" class="ml-1.5 text-[9px] font-mono px-1 py-0.5
+              <span v-if="r.market === 'tradfi'" class="ml-1.5 text-[11px] font-mono px-1 py-0.5
                     rounded bg-blue-900/40 text-blue-300 border border-blue-800/50 align-middle"
                     :title="r.label">TRAD</span>
             </td>

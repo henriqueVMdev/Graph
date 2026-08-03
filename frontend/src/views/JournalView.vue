@@ -1,9 +1,9 @@
 <template>
   <div class="h-[calc(100dvh-3.5rem)] overflow-y-auto">
-    <div class="max-w-7xl mx-auto p-5 space-y-5">
+    <div class="max-w-7xl mx-auto p-4 sm:p-5 space-y-5 min-w-0">
 
       <!-- Header -->
-      <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="flex flex-wrap items-end justify-between gap-4 min-w-0">
         <div>
           <h1 class="text-xl font-bold text-gray-100 tracking-tight">Diário de Operações</h1>
           <p class="text-sm text-gray-400 mt-0.5">Registre seus trades por estratégia e acompanhe o capital</p>
@@ -32,6 +32,7 @@
                   v-model.number="capitalDraft"
                   type="number"
                   step="0.01"
+                  aria-label="Capital inicial"
                   class="form-input w-32 font-mono"
                   @keyup.enter="saveCapital"
                 />
@@ -94,7 +95,7 @@
           <span class="metric-label">Trades</span>
           <span class="metric-value text-gray-100">
             {{ s.total_trades }}
-            <span class="text-[10px] font-normal text-gray-400">
+            <span class="text-[11px] font-normal text-gray-400">
               ({{ s.wins }}W / {{ s.losses }}L)
             </span>
           </span>
@@ -157,12 +158,12 @@
         <h2 class="text-sm font-semibold text-gray-300 mb-3">Registrar operação</h2>
         <form class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end" @submit.prevent="submit">
           <div class="col-span-1">
-            <label class="metric-label block mb-1">Data</label>
-            <input v-model="form.date" type="date" class="form-input w-full" />
+            <label class="metric-label block mb-1" for="f-views-journalview-vue-1">Data</label>
+            <input id="f-views-journalview-vue-1" v-model="form.date" type="date" class="form-input w-full" />
           </div>
           <div class="col-span-1">
-            <label class="metric-label block mb-1">Estratégia</label>
-            <input
+            <label class="metric-label block mb-1" for="f-views-journalview-vue-2">Estratégia</label>
+            <input id="f-views-journalview-vue-2"
               v-model="form.strategy"
               list="strategy-options"
               placeholder="Ex: depaula"
@@ -173,8 +174,8 @@
             </datalist>
           </div>
           <div class="col-span-1">
-            <label class="metric-label block mb-1">Ativo</label>
-            <input v-model="form.asset" placeholder="BTCUSDT" class="form-input w-full" />
+            <label class="metric-label block mb-1" for="f-views-journalview-vue-3">Ativo</label>
+            <input id="f-views-journalview-vue-3" v-model="form.asset" placeholder="BTCUSDT" class="form-input w-full" />
           </div>
           <div class="col-span-1">
             <label class="metric-label block mb-1">Resultado</label>
@@ -198,8 +199,8 @@
             </div>
           </div>
           <div class="col-span-1">
-            <label class="metric-label block mb-1">Valor ($)</label>
-            <input v-model.number="form.amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full font-mono" />
+            <label class="metric-label block mb-1" for="f-views-journalview-vue-4">Valor ($)</label>
+            <input id="f-views-journalview-vue-4" v-model.number="form.amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full font-mono" />
           </div>
           <div class="col-span-1">
             <button type="submit" class="btn-primary w-full" :disabled="store.saving || !canSubmit">
@@ -207,7 +208,7 @@
             </button>
           </div>
           <div class="col-span-2 md:col-span-6">
-            <input v-model="form.notes" placeholder="Notas (opcional)" class="form-input w-full" />
+            <input v-model="form.notes" placeholder="Notas (opcional)" aria-label="Notas" class="form-input w-full" />
           </div>
         </form>
       </div>
@@ -237,7 +238,7 @@
                 <td class="px-4 py-2">
                   <span
                     v-if="t.source === 'exchange'"
-                    class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-blue-500/15 text-blue-300"
+                    class="px-1.5 py-0.5 rounded text-[11px] font-semibold uppercase bg-blue-500/15 text-blue-300"
                   >{{ t.exchange }}</span>
                   <span v-else class="text-gray-300">{{ t.strategy }}</span>
                 </td>
