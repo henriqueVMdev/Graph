@@ -2,6 +2,8 @@
 
 Terminal de análise e laboratório de estratégias no estilo Bloomberg, construído sobre fontes de dados gratuitas. Backend em Flask (Python), frontend em Vue 3 + Vite + Tailwind, gráficos em Plotly e Lightweight Charts, persistência em SQLite e JSON.
 
+> Documentação completa: [visão geral](docs/README.md), [produto e regras de negócio](docs/PRODUCT.md), [arquitetura](docs/ARCHITECTURE.md), [API](docs/API.md), [operação e produção](docs/OPERATIONS.md) e [diagramas](docs/DIAGRAMS.md).
+
 Princípios do projeto:
 
 - **Fontes gratuitas e rotuladas** — todo dado identifica a origem; o que é proxy ou heurística é marcado como tal na interface.
